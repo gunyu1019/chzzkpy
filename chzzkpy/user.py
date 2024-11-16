@@ -33,7 +33,7 @@ class ParticleUser(ChzzkModel):
     user_id_hash: Optional[str]
     nickname: Optional[str]
     profile_image_url: Optional[str]
-    verified_mark: bool
+    verified_mark: bool = False
 
 
 class User(ParticleUser):

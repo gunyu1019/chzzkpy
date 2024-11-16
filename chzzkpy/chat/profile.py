@@ -26,6 +26,7 @@ from pydantic import computed_field, Field, PrivateAttr
 
 from .enums import UserRole
 from ..base_model import ChzzkModel
+from ..user import ParticleUser
 
 
 class Badge(ChzzkModel):
@@ -69,17 +70,13 @@ class ActivityBadge(Badge):
     activated: bool
 
 
-class Profile(ChzzkModel):
+class Profile(ParticleUser):
     activity_badges: list[Any]
-    user_id_hash: str
     user_role: Optional[UserRole] = Field(alias="userRoleCode", default=None)
-    nickname: str
-    profile_image_url: Optional[str]
     _badge: Optional[dict[str, str]] = PrivateAttr(default=None)
     _title: Optional[dict[str, str]] = PrivateAttr(default=None)
     streaming_property: Optional[StreamingProperty] = None
     activity_badges: list[ActivityBadge] = Field(default_factory=list)
-    verified_mark: bool = False
 
     def __init__(self, **kwargs):
         super(ChzzkModel, self).__init__(**kwargs)
