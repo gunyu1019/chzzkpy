@@ -27,7 +27,7 @@ from ahttp_client.extension import get_pydantic_response_model
 from typing import Annotated, Optional, Literal
 
 from ..base_model import Content
-from ..http import ChzzkSession, ChzzkAPISession
+from ..http import ChzzkSession
 from ..user import ParticleUser
 from .chat_activity_count import ChatAcitivityCount
 from .chat_rule import ChatRule 
@@ -36,9 +36,9 @@ from .prohibit_word import ProhibitWordResponse
 from .stream import Stream
 
 
-class ChzzkChatSession(ChzzkAPISession):
+class ChzzkManageSession(ChzzkSession):
     def __init__(self, loop: Optional[asyncio.AbstractEventLoop] = None):
-        super().__init__(loop=loop)
+        super().__init__(base_url="https://api.chzzk.naver.com", loop=loop)
 
         self.temporary_restrict.before_hook(self.query_to_json)
         self.restrict.before_hook(self.query_to_json)

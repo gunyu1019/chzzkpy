@@ -114,7 +114,6 @@ class ChzzkAPISession(ChzzkSession):
     def __init__(self, loop: Optional[asyncio.AbstractEventLoop] = None):
         super().__init__(base_url="https://api.chzzk.naver.com", loop=loop)
 
-
     @get_pydantic_response_model()
     @get("/polling/v2/channels/{channel_id}/live-status", directly_response=True)
     async def live_status(
