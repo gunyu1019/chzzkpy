@@ -22,11 +22,14 @@ SOFTWARE.
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import List, TYPE_CHECKING
+from ..error import LoginRequired
+from .http import ChzzkManageSession
 
 
 if TYPE_CHECKING:
     from ..client import Client
+    from .prohibit_word import ProhibitWord
 
 
 class ManageClient:
@@ -34,6 +37,24 @@ class ManageClient:
         self.channel_id = channel_id
         self.client = client
 
-    @property
-    def _http(self):
-        return self.client._api_session
+        # All manage feature needs login.
+        if not self._http.has_login:
+            raise LoginRequired()
+
+        self._http = ChzzkManageSession(self.client.loop)
+        self._http.login(
+            authorization_key=self.client._api_session._authorization_key,
+            session_key=self.client._api_session._session_key
+        )
+
+    async def close(self):
+        """Closes the connection to chzzk."""
+        await self._http.close()
+        await super().close()
+        return
+    
+    async def get_prohibit_words(self) -> List[ProhibitWord]:
+        data = await self._http.get_prohibit_words(self.channel_id)
+        return data.content.prohibit_words
+    
+    async def add_prohibit_word(self, word: str)
