@@ -58,5 +58,13 @@ class ManageClient:
         return data.content.prohibit_words
     
     async def add_prohibit_word(self, word: str) -> bool:
-        result = await self._http.add_prohibit_word(word)
+        result = await self._http.add_prohibit_word(self.channel_id, word)
+        return result.code == 200
+
+    async def get_chat_rule(self) -> str:
+        data = await self._http.get_chat_rule(self.channel_id)
+        return data.content.rule
+
+    async def set_chat_rule(self, word: str) -> bool:
+        result = await self._http.set_chat_rule(self.channel_id, word)
         return result.code == 200
