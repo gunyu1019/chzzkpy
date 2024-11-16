@@ -57,4 +57,6 @@ class ManageClient:
         data = await self._http.get_prohibit_words(self.channel_id)
         return data.content.prohibit_words
     
-    async def add_prohibit_word(self, word: str)
+    async def add_prohibit_word(self, word: str) -> bool:
+        result = await self._http.add_prohibit_word(word)
+        return result.code == 200
