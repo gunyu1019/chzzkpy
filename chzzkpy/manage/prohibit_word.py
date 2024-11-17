@@ -22,11 +22,7 @@ SOFTWARE.
 """
 import datetime
 
-from typing import Generic, TypeVar
-from pydantic import BeforeValidator, Field
-
 from ..base_model import ChzzkModel
-from ..user import ParticleUser
 
 
 class ProhibitWord(ChzzkModel):
