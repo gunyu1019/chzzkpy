@@ -20,6 +20,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+
 from __future__ import annotations
 
 from typing import List, Optional, TYPE_CHECKING
@@ -46,7 +47,7 @@ class ManageClient:
         self._http = ChzzkManageSession(self.client.loop)
         self._http.login(
             authorization_key=self.client._api_session._authorization_key,
-            session_key=self.client._api_session._session_key
+            session_key=self.client._api_session._session_key,
         )
 
     async def close(self):
@@ -54,7 +55,7 @@ class ManageClient:
         await self._http.close()
         await super().close()
         return
-    
+
     async def get_prohibit_words(self) -> List[ProhibitWord]:
         data = await self._http.get_prohibit_words(self.channel_id)
         return data.content.prohibit_words
@@ -65,29 +66,33 @@ class ManageClient:
         if len(prohibit_words) <= 0:
             return
         return prohibit_words[0]
-    
+
     async def add_prohibit_word(self, word: str) -> Optional[ProhibitWord]:
         await self._http.add_prohibit_word(self.channel_id, word)
         return await self.get_prohbit_word(word)
-    
-    async def edit_prohibit_word(self, prohibit_word: ProhibitWord | int, word: str) -> Optional[ProhibitWord]:
+
+    async def edit_prohibit_word(
+        self, prohibit_word: ProhibitWord | int, word: str
+    ) -> Optional[ProhibitWord]:
         if isinstance(prohibit_word, ProhibitWord):
             prohibit_word_number = prohibit_word.prohibit_word_no
         else:
             prohibit_word_number = prohibit_word
-        
+
         await self._http.edit_prohibit_word(self.channel_id, prohibit_word_number, word)
         return await self.get_prohbit_word(word)
-    
+
     async def remove_prohibit_word(self, prohibit_word: ProhibitWord | int) -> bool:
         if isinstance(prohibit_word, ProhibitWord):
             prohibit_word_number = prohibit_word.prohibit_word_no
         else:
             prohibit_word_number = prohibit_word
-        
-        result = await self._http.remove_prohibit_word(self.channel_id, prohibit_word_number)
+
+        result = await self._http.remove_prohibit_word(
+            self.channel_id, prohibit_word_number
+        )
         return result.code == 200
-    
+
     async def remove_prohibit_words(self) -> bool:
         result = await self._http.remove_prohibit_word_all(self.channel_id)
         return result.code == 200
@@ -99,7 +104,7 @@ class ManageClient:
     async def set_chat_rule(self, word: str) -> bool:
         result = await self._http.set_chat_rule(self.channel_id, word)
         return result.code == 200
-    
+
     async def stream(self) -> Stream:
         data = await self._http.stream()
         return data.content
@@ -110,8 +115,7 @@ class ManageClient:
             target_id = user.user_id_hash
 
         data = await self._http.restrict(
-            channel_id=self.channel_id,
-            target_id=target_id
+            channel_id=self.channel_id, target_id=target_id
         )
         return data.content
 
@@ -121,8 +125,7 @@ class ManageClient:
             target_id = user.user_id_hash
 
         data = await self._http.remove_restrict(
-            channel_id=self.channel_id,
-            target_id=target_id
+            channel_id=self.channel_id, target_id=target_id
         )
         return data.content
 
@@ -132,7 +135,6 @@ class ManageClient:
             user_id = user.user_id_hash
 
         data = await self._http.chat_activity_count(
-            channel_id=self.channel_id,
-            target_id=user_id
+            channel_id=self.channel_id, target_id=user_id
         )
         return data.content

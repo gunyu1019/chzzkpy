@@ -168,6 +168,7 @@ class ChzzkAPISession(ChzzkSession):
     ) -> Content[TopSearchResult]:
         pass
 
+
 class NaverGameAPISession(ChzzkSession):
     def __init__(self, loop: Optional[asyncio.AbstractEventLoop] = None):
         super().__init__(base_url="https://comm-api.game.naver.com", loop=loop)

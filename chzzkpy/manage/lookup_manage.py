@@ -20,6 +20,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+
 import datetime
 
 from typing import Optional, Generic, TypeVar
@@ -27,7 +28,7 @@ from typing import Optional, Generic, TypeVar
 from ..base_model import ChzzkModel
 from ..user import ParticleUser
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class ManageResult(ChzzkModel, Generic[T]):
@@ -49,7 +50,7 @@ class Subcriber(ChzzkModel):  # incomplete data
     nickname: Optional[str]
     profile_image_url: Optional[str]
     verified_mark: bool = False
-    
+
     total_month: int
     tier: str
     publish_period: int

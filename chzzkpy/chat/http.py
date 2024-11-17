@@ -17,13 +17,16 @@ class ChzzkAPIChatSession(ChzzkAPISession):
         self.temporary_restrict.before_hook(self.query_to_json)
 
     @get_pydantic_response_model()
-    @post("/manage/v1/channels/{channel_id}/temporary-restrict-users", directory_response=True)
+    @post(
+        "/manage/v1/channels/{channel_id}/temporary-restrict-users",
+        directory_response=True,
+    )
     @ChzzkSession.configuration(login_able=True, login_required=True)
     async def temporary_restrict(
         self,
         channel_id: Annotated[str, Path],
         chat_channel_id: Annotated[str, Query.to_camel()],
-        target_id: Annotated[str, Query.to_camel()]
+        target_id: Annotated[str, Query.to_camel()],
     ) -> Content[ParticleUser]:
         pass
 

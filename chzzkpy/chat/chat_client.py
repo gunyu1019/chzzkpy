@@ -411,7 +411,7 @@ class ChatClient(Client):
             streaming_channel_id=message.extras.streaming_channel_id,
         )
         return
-    
+
     async def temporary_restrict(self, user: ParticleUser | str) -> ParticleUser:
         user_id = user
         if isinstance(user, ParticleUser):
@@ -420,6 +420,6 @@ class ChatClient(Client):
         response = await self._api_session.temporary_restrict(
             channel_id=self.channel_id,
             chat_channel_id=self.chat_channel_id,
-            target_id=user_id
+            target_id=user_id,
         )
         return response
