@@ -24,6 +24,7 @@ from __future__ import annotations
 
 from typing import List, Optional, TYPE_CHECKING
 from ..error import LoginRequired
+from ..user import ParticleUser
 from .http import ChzzkManageSession
 from .prohibit_word import ProhibitWord
 from .stream import Stream
@@ -101,4 +102,25 @@ class ManageClient:
     async def stream(self) -> Stream:
         data = await self._http.stream()
         return data.content
-    
+
+    async def add_restrict(self, user: str | ParticleUser) -> ParticleUser:
+        target_id = user
+        if isinstance(user, ParticleUser):
+            target_id = user.user_id_hash
+
+        data = await self._http.restrict(
+            channel_id=self.channel_id,
+            target_id=target_id
+        )
+        return data.content
+
+    async def remove_restrict(self, user: str | ParticleUser) -> ParticleUser:
+        target_id = user
+        if isinstance(user, ParticleUser):
+            target_id = user.user_id_hash
+
+        data = await self._http.remove_restrict(
+            channel_id=self.channel_id,
+            target_id=target_id
+        )
+        return data.content
