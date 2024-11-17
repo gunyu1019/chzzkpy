@@ -22,7 +22,7 @@ SOFTWARE.
 """
 import datetime
 
-from typing import Generic, TypeVar
+from typing import Optional, Generic, TypeVar
 
 from ..base_model import ChzzkModel
 from ..user import ParticleUser
@@ -45,9 +45,16 @@ class FollowingInfo(ChzzkModel):
 
 
 class Subcriber(ChzzkModel):  # incomplete data
-    user: ParticleUser
-    following: FollowingInfo
-    channel_following: FollowingInfo
+    user_id_hash: Optional[str]
+    nickname: Optional[str]
+    profile_image_url: Optional[str]
+    verified_mark: bool = False
+    
+    total_month: int
+    tier: str
+    publish_period: int
+    twitch_month: Optional[int] = None
+    created_date: datetime.datetime
 
 
 class Follower(ChzzkModel):
