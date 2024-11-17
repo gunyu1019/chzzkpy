@@ -22,7 +22,7 @@ SOFTWARE.
 """
 from __future__ import annotations
 
-from typing import List, TYPE_CHECKING
+from typing import List, Optional, TYPE_CHECKING
 from ..error import LoginRequired
 from .http import ChzzkManageSession
 
@@ -56,9 +56,38 @@ class ManageClient:
     async def get_prohibit_words(self) -> List[ProhibitWord]:
         data = await self._http.get_prohibit_words(self.channel_id)
         return data.content.prohibit_words
+
+    async def get_prohbit_word(self, word: str) -> Optional[ProhibitWord]:
+        data = await self.get_prohibit_words()
+        prohibit_words = [x for x in data if x.prohibit_word == word]
+        if len(prohibit_words) <= 0:
+            return
+        return prohibit_words[0]
     
-    async def add_prohibit_word(self, word: str) -> bool:
-        result = await self._http.add_prohibit_word(self.channel_id, word)
+    async def add_prohibit_word(self, word: str) -> Optional[ProhibitWord]:
+        await self._http.add_prohibit_word(self.channel_id, word)
+        return await self.get_prohbit_word(word)
+    
+    async def edit_prohibit_word(self, prohibit_word: ProhibitWord | int, word: str) -> Optional[ProhibitWord]:
+        if isinstance(prohibit_word, ProhibitWord):
+            prohibit_word_number = prohibit_word.prohibit_word_no
+        else:
+            prohibit_word_number = prohibit_word
+        
+        await self._http.edit_prohibit_word(self.channel_id, prohibit_word_number, word)
+        return await self.get_prohbit_word(word)
+    
+    async def remove_prohibit_word(self, prohibit_word: ProhibitWord | int) -> bool:
+        if isinstance(prohibit_word, ProhibitWord):
+            prohibit_word_number = prohibit_word.prohibit_word_no
+        else:
+            prohibit_word_number = prohibit_word
+        
+        result = await self._http.remove_prohibit_word(self.channel_id, prohibit_word_number)
+        return result.code == 200
+    
+    async def remove_prohibit_words(self) -> bool:
+        result = await self._http.remove_prohibit_word_all(self.channel_id)
         return result.code == 200
 
     async def get_chat_rule(self) -> str:
