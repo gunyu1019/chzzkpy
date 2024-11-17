@@ -36,6 +36,7 @@ from .http import ChzzkAPIChatSession, NaverGameChatSession
 from .state import ConnectionState
 from ..client import Client
 from ..error import LoginRequired
+from ..user import ParticleUser
 
 if TYPE_CHECKING:
     from .access_token import AccessToken
@@ -410,3 +411,15 @@ class ChatClient(Client):
             streaming_channel_id=message.extras.streaming_channel_id,
         )
         return
+    
+    async def temporary_restrict(self, user: ParticleUser | str) -> ParticleUser:
+        user_id = user
+        if isinstance(user, ParticleUser):
+            user_id = user.user_id_hash
+
+        response = await self._api_session.temporary_restrict(
+            channel_id=self.channel_id,
+            chat_channel_id=self.chat_channel_id,
+            target_id=user_id
+        )
+        return response
