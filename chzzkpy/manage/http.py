@@ -40,23 +40,11 @@ class ChzzkManageSession(ChzzkSession):
     def __init__(self, loop: Optional[asyncio.AbstractEventLoop] = None):
         super().__init__(base_url="https://api.chzzk.naver.com", loop=loop)
 
-        self.temporary_restrict.before_hook(self.query_to_json)
         self.restrict.before_hook(self.query_to_json)
         self.set_role.before_hook(self.query_to_json)
         self.add_prohibit_word.before_hook(self.query_to_json)
         self.edit_prohibit_word.before_hook(self.query_to_json)
         self.set_chat_rule.before_hook(self.query_to_json)
-
-    @get_pydantic_response_model()
-    @post("/manage/v1/channels/{channel_id}/temporary-restrict-users", directory_response=True)
-    @ChzzkSession.configuration(login_able=True, login_required=True)
-    async def temporary_restrict(
-        self,
-        channel_id: Annotated[str, Path],
-        chat_channel_id: Annotated[str, Query.to_camel()],
-        target_id: Annotated[str, Query.to_camel()]
-    ) -> Content[ParticleUser]:
-        pass
     
     @get_pydantic_response_model()
     @post("/manage/v1/channels/{channel_id}/restrict-users", directory_response=True)

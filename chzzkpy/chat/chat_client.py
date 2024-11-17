@@ -32,11 +32,10 @@ import aiohttp
 from .enums import ChatCmd
 from .error import ChatConnectFailed
 from .gateway import ChzzkWebSocket, ReconnectWebsocket
-from .http import ChzzkChatSession
+from .http import ChzzkAPIChatSession, NaverGameChatSession
 from .state import ConnectionState
 from ..client import Client
 from ..error import LoginRequired
-from ..http import ChzzkAPISession
 
 if TYPE_CHECKING:
     from .access_token import AccessToken
@@ -86,8 +85,8 @@ class ChatClient(Client):
         self._gateway: Optional[ChzzkWebSocket] = None
 
     def _session_initial_set(self):
-        self._api_session = ChzzkAPISession(loop=self.loop)
-        self._game_session = ChzzkChatSession(loop=self.loop)
+        self._api_session = ChzzkAPIChatSession(loop=self.loop)
+        self._game_session = NaverGameChatSession(loop=self.loop)
 
     @property
     def is_connected(self) -> bool:
