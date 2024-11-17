@@ -122,7 +122,7 @@ class ChatMessage(MessageDetail[Extra]):
     @_based_client
     async def unpin(self):
         """Unpin this message."""
-        await self.client.delete_notice_message(self)
+        await self.client.delete_notice_message()
 
     @_based_client
     async def blind(self):
