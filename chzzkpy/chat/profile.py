@@ -24,9 +24,8 @@ SOFTWARE.
 from typing import Any, Optional
 from pydantic import computed_field, Field, PrivateAttr
 
-from .enums import UserRole
 from ..base_model import ChzzkModel
-from ..user import ParticleUser
+from ..user import UserRole, ParticleUser
 
 
 class Badge(ChzzkModel):

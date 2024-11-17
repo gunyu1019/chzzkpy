@@ -27,7 +27,7 @@ from .client import Client
 from .error import *
 from .manage import *
 from .live import LiveStatus, LiveDetail, LivePollingStatus
-from .user import User
+from .user import User, UserRole
 
 # Extension Package
 try:

@@ -29,7 +29,7 @@ from .donation import (
     VideoDonation,
     MissionDonation,
 )
-from .enums import ChatType, ChatCmd, UserRole
+from .enums import ChatType, ChatCmd
 from .error import *
 from .message import (
     ChatMessage,

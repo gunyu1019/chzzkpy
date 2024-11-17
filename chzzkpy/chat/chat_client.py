@@ -423,3 +423,9 @@ class ChatClient(Client):
             target_id=user_id,
         )
         return response
+    
+    async def add_role(
+            self,
+            user: ParticleUser | str,
+            role
+    )

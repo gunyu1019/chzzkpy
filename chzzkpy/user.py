@@ -22,6 +22,7 @@ SOFTWARE.
 """
 
 import datetime
+from enum import Enum
 from typing import Annotated, Any, Optional
 
 from pydantic import BeforeValidator
@@ -45,3 +46,11 @@ class User(ParticleUser):
         BeforeValidator(ChzzkModel.special_date_parsing_validator),
     ]  # Example: YYYY-MM-DDTHH:MM:SS.SSS+09
     logged_in: Optional[bool]
+
+
+class UserRole(Enum):
+    common_user = "common_user"
+    streamer = "streamer"
+    chat_manager = "streaming_chat_manager"
+    channel_manager = "streaming_channel_manager"
+    manager = "manager"
