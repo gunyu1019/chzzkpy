@@ -25,11 +25,11 @@ from __future__ import annotations
 from typing import List, Optional, TYPE_CHECKING
 from ..error import LoginRequired
 from .http import ChzzkManageSession
-
+from .prohibit_word import ProhibitWord
+from .stream import Stream
 
 if TYPE_CHECKING:
     from ..client import Client
-    from .prohibit_word import ProhibitWord
 
 
 class ManageClient:
@@ -97,3 +97,8 @@ class ManageClient:
     async def set_chat_rule(self, word: str) -> bool:
         result = await self._http.set_chat_rule(self.channel_id, word)
         return result.code == 200
+    
+    async def stream(self) -> Stream:
+        data = await self._http.stream()
+        return data.content
+    
