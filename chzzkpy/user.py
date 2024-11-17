@@ -53,4 +53,5 @@ class UserRole(Enum):
     streamer = "streamer"
     chat_manager = "streaming_chat_manager"
     channel_manager = "streaming_channel_manager"
+    settlement_manager = "streaming_settlement_manager"
     manager = "manager"
