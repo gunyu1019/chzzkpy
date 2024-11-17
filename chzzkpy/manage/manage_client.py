@@ -25,7 +25,7 @@ from __future__ import annotations
 
 from typing import List, Optional, TYPE_CHECKING
 from ..error import LoginRequired
-from ..user import ParticleUser
+from ..user import ParticleUser, UserRole
 from .http import ChzzkManageSession
 from .chat_activity_count import ChatAcitivityCount
 from .prohibit_word import ProhibitWord
@@ -82,28 +82,25 @@ class ManageClient:
         await self._http.edit_prohibit_word(self.channel_id, prohibit_word_number, word)
         return await self.get_prohbit_word(word)
 
-    async def remove_prohibit_word(self, prohibit_word: ProhibitWord | int) -> bool:
+    async def remove_prohibit_word(self, prohibit_word: ProhibitWord | int) -> None:
         if isinstance(prohibit_word, ProhibitWord):
             prohibit_word_number = prohibit_word.prohibit_word_no
         else:
             prohibit_word_number = prohibit_word
 
-        result = await self._http.remove_prohibit_word(
+        await self._http.remove_prohibit_word(
             self.channel_id, prohibit_word_number
         )
-        return result.code == 200
 
-    async def remove_prohibit_words(self) -> bool:
-        result = await self._http.remove_prohibit_word_all(self.channel_id)
-        return result.code == 200
+    async def remove_prohibit_words(self) -> None:
+        await self._http.remove_prohibit_word_all(self.channel_id)
 
     async def get_chat_rule(self) -> str:
         data = await self._http.get_chat_rule(self.channel_id)
         return data.content.rule
 
-    async def set_chat_rule(self, word: str) -> bool:
-        result = await self._http.set_chat_rule(self.channel_id, word)
-        return result.code == 200
+    async def set_chat_rule(self, word: str) -> None:
+        await self._http.set_chat_rule(self.channel_id, word)
 
     async def stream(self) -> Stream:
         data = await self._http.stream()
@@ -119,15 +116,38 @@ class ManageClient:
         )
         return data.content
 
-    async def remove_restrict(self, user: str | ParticleUser) -> ParticleUser:
+    async def remove_restrict(self, user: str | ParticleUser) -> None:
         target_id = user
         if isinstance(user, ParticleUser):
             target_id = user.user_id_hash
 
-        data = await self._http.remove_restrict(
+        await self._http.remove_restrict(
             channel_id=self.channel_id, target_id=target_id
         )
+
+    async def add_role(self, user: str | ParticleUser, role: UserRole) -> ParticleUser:
+        user_id = user
+        if isinstance(user, ParticleUser):
+            user_id = user.user_id_hash
+
+        if role in [UserRole.common_user, UserRole.streamer, UserRole.manager]:
+            raise TypeError(f"You cannot give role({role.name}) to user.")
+
+        data = await self._http.add_role(
+            channel_id=self.channel_id,
+            target_id=user_id,
+            role=role.value
+        )
         return data.content
+
+    async def remove_role(self, user: str | ParticleUser) -> None:
+        user_id = user
+        if isinstance(user, ParticleUser):
+            user_id = user.user_id_hash
+
+        await self._http.remove_role(
+            channel_id=self.channel_id, target_id=user_id
+        )
 
     async def chat_activity_count(self, user: str | ParticleUser) -> ChatAcitivityCount:
         user_id = user

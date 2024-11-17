@@ -65,7 +65,7 @@ class ChzzkManageSession(ChzzkSession):
     @ChzzkSession.configuration(login_able=True, login_required=True)
     async def remove_restrict(
         self, channel_id: Annotated[str, Path], target_id: Annotated[str, Path]
-    ) -> Content[ParticleUser]:
+    ) -> Content[None]:
         pass
 
     @get_pydantic_response_model()
