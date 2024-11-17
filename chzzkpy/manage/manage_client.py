@@ -26,6 +26,7 @@ from typing import List, Optional, TYPE_CHECKING
 from ..error import LoginRequired
 from ..user import ParticleUser
 from .http import ChzzkManageSession
+from .chat_activity_count import ChatAcitivityCount
 from .prohibit_word import ProhibitWord
 from .stream import Stream
 
@@ -122,5 +123,16 @@ class ManageClient:
         data = await self._http.remove_restrict(
             channel_id=self.channel_id,
             target_id=target_id
+        )
+        return data.content
+
+    async def chat_activity_count(self, user: str | ParticleUser) -> ChatAcitivityCount:
+        user_id = user
+        if isinstance(user, ParticleUser):
+            user_id = user.user_id_hash
+
+        data = await self._http.chat_activity_count(
+            channel_id=self.channel_id,
+            target_id=user_id
         )
         return data.content

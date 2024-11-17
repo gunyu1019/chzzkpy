@@ -170,7 +170,7 @@ class ChzzkManageSession(ChzzkSession):
     @get_pydantic_response_model()
     @get("/manage/v1/channels/{channel_id}/users/{target_id}/chat-activity-count", directory_response=True)
     @ChzzkSession.configuration(login_able=True, login_required=True)
-    async def get_chat_activity_count(
+    async def chat_activity_count(
         self,
         channel_id: Annotated[str, Path],
         target_id: Annotated[str, Path],
