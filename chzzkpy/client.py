@@ -30,6 +30,8 @@ from .http import ChzzkAPISession, NaverGameAPISession
 from .live import Live, LiveStatus, LiveDetail
 from .user import User
 from .video import Video
+from .manage.manage_client import ManageClient
+
 
 if TYPE_CHECKING:
     from .channel import Channel
@@ -55,6 +57,7 @@ class Client:
             self.login(authorization_key, session_key)
 
         self._session_initial_set()
+        self._manage_client = None
 
     def _session_initial_set(self):
         self._api_session = ChzzkAPISession(loop=self.loop)
@@ -219,3 +222,8 @@ class Client:
         res = await self._api_session.autocomplete(keyword=keyword)
         data = res.content.data
         return data
+
+    async def manage(self, channel_id):
+        if self._manage_client is None:
+            self._manage_client = ManageClient(channel_id, self)
+        return self._manage_client
