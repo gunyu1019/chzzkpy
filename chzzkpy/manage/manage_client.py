@@ -31,7 +31,7 @@ from .http import ChzzkManageSession
 from .chat_activity_count import ChatAcitivityCount
 from .prohibit_word import ProhibitWord
 from .stream import Stream
-from .lookup_manage import ManageResult, Subcriber, Follower
+from .lookup_manage import LookupResult, Subcriber, Follower, RestrictUser
 
 if TYPE_CHECKING:
     from ..client import Client
@@ -113,7 +113,7 @@ class ManageClient:
         if isinstance(user, ParticleUser):
             target_id = user.user_id_hash
 
-        data = await self._http.restrict(
+        data = await self._http.add_restrict(
             channel_id=self.channel_id, target_id=target_id
         )
         return data.content
@@ -169,7 +169,7 @@ class ManageClient:
             publish_period: Optional[Literal[1, 3, 6]] = None,
             tier: Optional[SubscriberTier] = None,
             nickname: Optional[str] = None
-    ) -> ManageResult[Subcriber]:
+    ) -> LookupResult[Subcriber]:
         data = await self._http.subcribers(
             channel_id=self.channel_id,
             page=page,
@@ -186,7 +186,7 @@ class ManageClient:
             page: int = 0,
             size: int = 50,
             sort_type: SortType = SortType.recent
-    ):
+    ) -> LookupResult[Follower]:
         data = await self._http.followers(
             channel_id=self.channel_id,
             page=page,
@@ -194,3 +194,18 @@ class ManageClient:
             sort_type=sort_type.value
         )
         return data.content
+    
+    async def restrict(
+            self,
+            page: int = 0,
+            size: int = 50,
+            nickname: Optional[str] = None
+    ) -> LookupResult[RestrictUser]:
+        data = await self._http.restricts(
+            channel_id=self.channel_id,
+            page=page,
+            size=size,
+            user_nickname=nickname
+        )
+        return data.content
+        
