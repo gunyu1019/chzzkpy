@@ -31,7 +31,7 @@ from ..user import ParticleUser
 T = TypeVar("T")
 
 
-class ManageResult(ChzzkModel, Generic[T]):
+class LookupResult(ChzzkModel, Generic[T]):
     page: int
     size: int
     total_count: int
@@ -62,3 +62,11 @@ class Follower(ChzzkModel):
     user: ParticleUser
     following: FollowingInfo
     channel_following: FollowingInfo
+
+
+class RestrictUser(ChzzkModel):
+    seq: int
+    user_id_hash: str
+    nickname: str
+    execute_nickname: str
+    created_date: datetime.datetime
