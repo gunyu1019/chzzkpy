@@ -23,13 +23,15 @@ SOFTWARE.
 
 from __future__ import annotations
 
-from typing import List, Optional, TYPE_CHECKING
+from typing import List, Literal, Optional, TYPE_CHECKING
 from ..error import LoginRequired
 from ..user import ParticleUser, UserRole
+from .enums import SortType, SubscriberTier
 from .http import ChzzkManageSession
 from .chat_activity_count import ChatAcitivityCount
 from .prohibit_word import ProhibitWord
 from .stream import Stream
+from .lookup_manage import ManageResult, Subcriber, Follower
 
 if TYPE_CHECKING:
     from ..client import Client
@@ -156,5 +158,25 @@ class ManageClient:
 
         data = await self._http.chat_activity_count(
             channel_id=self.channel_id, target_id=user_id
+        )
+        return data.content
+    
+    async def subcribers(
+            self,
+            page: int = 0,
+            size: int = 50,
+            sort_type: SortType = SortType.recent,
+            publish_period: Optional[Literal[1, 3, 6]] = None,
+            tier: Optional[SubscriberTier] = None,
+            nickname: Optional[str] = None
+    ) -> ManageResult[Subcriber]:
+        data = await self._http.subcribers(
+            channel_id=self.channel_id,
+            page=page,
+            size=size,
+            sort_type=sort_type.value,
+            publish_period=publish_period,
+            tier=None if tier is not None else tier.value,
+            user_nickname=nickname
         )
         return data.content
