@@ -23,7 +23,7 @@ SOFTWARE.
 
 import datetime
 
-from typing import Optional, Generic, TypeVar
+from typing import List, Optional, Generic, TypeVar
 
 from ..base_model import ChzzkModel
 from ..user import ParticleUser
@@ -36,7 +36,7 @@ class ManageResult(ChzzkModel, Generic[T]):
     size: int
     total_count: int
     total_page: int
-    data: T
+    data: List[T]
 
 
 class FollowingInfo(ChzzkModel):
