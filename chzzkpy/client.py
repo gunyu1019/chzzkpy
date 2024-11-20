@@ -57,7 +57,10 @@ class Client:
             self.login(authorization_key, session_key)
 
         self._session_initial_set()
-        self._manage_client = None
+
+        # For management feature
+        self._manage_client = dict()
+        self._latest_manage_client_id = None
 
     def _session_initial_set(self):
         self._api_session = ChzzkAPISession(loop=self.loop)
@@ -223,7 +226,11 @@ class Client:
         data = res.content.data
         return data
 
-    async def manage(self, channel_id: str):
-        if self._manage_client is None:
-            self._manage_client = ManageClient(channel_id, self)
-        return self._manage_client
+    def manage(self, channel_id: Optional[str] = None) -> ManageClient:
+        if channel_id is None:
+            channel_id = self._latest_manage_client_id
+
+        if channel_id not in self._manage_client.keys():
+            self._manage_client[channel_id] = ManageClient(channel_id, self)
+        self._latest_manage_client_id = channel_id
+        return self._manage_client[channel_id]

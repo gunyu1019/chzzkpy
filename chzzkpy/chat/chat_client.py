@@ -36,6 +36,7 @@ from .http import ChzzkAPIChatSession, NaverGameChatSession
 from .state import ConnectionState
 from ..client import Client
 from ..error import LoginRequired
+from ..manage.manage_client import ManageClient
 from ..user import ParticleUser
 
 if TYPE_CHECKING:
@@ -434,7 +435,11 @@ class ChatClient(Client):
             channel_id = self.channel_id
         return await super().live_detail(channel_id)
     
-    async def manage(self, channel_id: Optional[str] = None):
-        if channel_id is None:
+    def manage(self, channel_id: Optional[str] = None) -> ManageClient:
+        if channel_id is None and self._latest_manage_client_id is None:
             channel_id = self.channel_id
-        return await super().manage(channel_id)
+        return super().manage(channel_id=channel_id)
+    
+    @property
+    def manage_self(self) -> ManageClient:
+        return self.manage(channel_id=self.channel_id)
