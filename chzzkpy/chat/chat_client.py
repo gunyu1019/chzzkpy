@@ -424,22 +424,22 @@ class ChatClient(Client):
             target_id=user_id,
         )
         return response
-    
+
     async def live_status(self, channel_id: Optional[str] = None):
         if channel_id is None:
             channel_id = self.channel_id
         return await super().live_status(channel_id)
-    
+
     async def live_detail(self, channel_id: Optional[str] = None):
         if channel_id is None:
             channel_id = self.channel_id
         return await super().live_detail(channel_id)
-    
+
     def manage(self, channel_id: Optional[str] = None) -> ManageClient:
         if channel_id is None and self._latest_manage_client_id is None:
             channel_id = self.channel_id
         return super().manage(channel_id=channel_id)
-    
+
     @property
     def manage_self(self) -> ManageClient:
         return self.manage(channel_id=self.channel_id)

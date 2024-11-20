@@ -90,9 +90,7 @@ class ManageClient:
         else:
             prohibit_word_number = prohibit_word
 
-        await self._http.remove_prohibit_word(
-            self.channel_id, prohibit_word_number
-        )
+        await self._http.remove_prohibit_word(self.channel_id, prohibit_word_number)
 
     async def remove_prohibit_words(self) -> None:
         await self._http.remove_prohibit_word_all(self.channel_id)
@@ -136,9 +134,7 @@ class ManageClient:
             raise TypeError(f"You cannot give role({role.name}) to user.")
 
         data = await self._http.add_role(
-            channel_id=self.channel_id,
-            target_id=user_id,
-            role=role.value
+            channel_id=self.channel_id, target_id=user_id, role=role.value
         )
         return data.content
 
@@ -147,9 +143,7 @@ class ManageClient:
         if isinstance(user, ParticleUser):
             user_id = user.user_id_hash
 
-        await self._http.remove_role(
-            channel_id=self.channel_id, target_id=user_id
-        )
+        await self._http.remove_role(channel_id=self.channel_id, target_id=user_id)
 
     async def chat_activity_count(self, user: str | ParticleUser) -> ChatAcitivityCount:
         user_id = user
@@ -160,15 +154,15 @@ class ManageClient:
             channel_id=self.channel_id, target_id=user_id
         )
         return data.content
-    
+
     async def subcribers(
-            self,
-            page: int = 0,
-            size: int = 50,
-            sort_type: SortType = SortType.recent,
-            publish_period: Optional[Literal[1, 3, 6]] = None,
-            tier: Optional[SubscriberTier] = None,
-            nickname: Optional[str] = None
+        self,
+        page: int = 0,
+        size: int = 50,
+        sort_type: SortType = SortType.recent,
+        publish_period: Optional[Literal[1, 3, 6]] = None,
+        tier: Optional[SubscriberTier] = None,
+        nickname: Optional[str] = None,
     ) -> LookupResult[Subcriber]:
         data = await self._http.subcribers(
             channel_id=self.channel_id,
@@ -177,35 +171,22 @@ class ManageClient:
             sort_type=sort_type.value,
             publish_period=publish_period,
             tier=None if tier is not None else tier.value,
-            user_nickname=nickname
+            user_nickname=nickname,
         )
         return data.content
 
     async def followers(
-            self,
-            page: int = 0,
-            size: int = 50,
-            sort_type: SortType = SortType.recent
+        self, page: int = 0, size: int = 50, sort_type: SortType = SortType.recent
     ) -> LookupResult[Follower]:
         data = await self._http.followers(
-            channel_id=self.channel_id,
-            page=page,
-            size=size,
-            sort_type=sort_type.value
+            channel_id=self.channel_id, page=page, size=size, sort_type=sort_type.value
         )
         return data.content
-    
+
     async def restrict(
-            self,
-            page: int = 0,
-            size: int = 50,
-            nickname: Optional[str] = None
+        self, page: int = 0, size: int = 50, nickname: Optional[str] = None
     ) -> LookupResult[RestrictUser]:
         data = await self._http.restricts(
-            channel_id=self.channel_id,
-            page=page,
-            size=size,
-            user_nickname=nickname
+            channel_id=self.channel_id, page=page, size=size, user_nickname=nickname
         )
         return data.content
-        

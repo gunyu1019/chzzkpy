@@ -23,7 +23,13 @@ SOFTWARE.
 
 from .chat_activity_count import ChatAcitivityCount
 from .chat_rule import ChatRule
-from .lookup_manage import LookupResult, Follower, Subcriber, FollowingInfo, RestrictUser
+from .lookup_manage import (
+    LookupResult,
+    Follower,
+    Subcriber,
+    FollowingInfo,
+    RestrictUser,
+)
 from .manage_client import ManageClient
 from .prohibit_word import ProhibitWord
 from .stream import Stream
