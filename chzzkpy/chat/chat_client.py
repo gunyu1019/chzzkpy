@@ -336,7 +336,7 @@ class ChatClient(Client):
 
         Parameters
         ----------
-        count : int, optional
+        count : Optional[int]
             Number of messages to fetch from the most recent, by default 50
 
         Raises
@@ -424,8 +424,17 @@ class ChatClient(Client):
         )
         return response
     
-    async def add_role(
-            self,
-            user: ParticleUser | str,
-            role
-    )
+    async def live_status(self, channel_id: Optional[str] = None):
+        if channel_id is None:
+            channel_id = self.channel_id
+        return await super().live_status(channel_id)
+    
+    async def live_detail(self, channel_id: Optional[str] = None):
+        if channel_id is None:
+            channel_id = self.channel_id
+        return await super().live_detail(channel_id)
+    
+    async def manage(self, channel_id: Optional[str] = None):
+        if channel_id is None:
+            channel_id = self.channel_id
+        return await super().manage(channel_id)

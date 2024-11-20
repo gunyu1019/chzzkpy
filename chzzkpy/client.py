@@ -223,7 +223,7 @@ class Client:
         data = res.content.data
         return data
 
-    async def manage(self, channel_id):
+    async def manage(self, channel_id: str):
         if self._manage_client is None:
             self._manage_client = ManageClient(channel_id, self)
         return self._manage_client
