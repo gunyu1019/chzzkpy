@@ -207,7 +207,7 @@ class ChzzkManageSession(ChzzkSession):
             Optional[Literal["RECENT", "LONGER"]], Query.to_camel()
         ] = "RECENT",
         publish_period: Annotated[
-            Optional[Literal["1", "3", "6"]], Query.to_camel()
+            Optional[Literal[1, 3, 6]], Query.to_camel()
         ] = None,
         tier: Annotated[Optional[Literal["TIER_1", "TIER_2"]], Query.to_camel()] = None,
         user_nickname: Annotated[Optional[str], Query.to_camel()] = None,
