@@ -32,7 +32,7 @@ from ..http import ChzzkSession
 from ..user import ParticleUser
 from .chat_activity_count import ChatAcitivityCount
 from .chat_rule import ChatRule
-from .lookup_manage import ManageResult, Follower, Subcriber
+from .lookup_manage import LookupResult, Follower, Subcriber, RestrictUser
 from .prohibit_word import ProhibitWordResponse
 from .stream import Stream
 
@@ -41,7 +41,7 @@ class ChzzkManageSession(ChzzkSession):
     def __init__(self, loop: Optional[asyncio.AbstractEventLoop] = None):
         super().__init__(base_url="https://api.chzzk.naver.com", loop=loop)
 
-        self.restrict.before_hook(self.query_to_json)
+        self.add_restrict.before_hook(self.query_to_json)
         self.set_role.before_hook(self.query_to_json)
         self.add_prohibit_word.before_hook(self.query_to_json)
         self.edit_prohibit_word.before_hook(self.query_to_json)
@@ -50,7 +50,7 @@ class ChzzkManageSession(ChzzkSession):
     @get_pydantic_response_model()
     @post("/manage/v1/channels/{channel_id}/restrict-users", directory_response=True)
     @ChzzkSession.configuration(login_able=True, login_required=True)
-    async def restrict(
+    async def add_restrict(
         self,
         channel_id: Annotated[str, Path],
         target_id: Annotated[str, Query.to_camel()],
@@ -211,7 +211,7 @@ class ChzzkManageSession(ChzzkSession):
         ] = None,
         tier: Annotated[Optional[Literal["TIER_1", "TIER_2"]], Query.to_camel()] = None,
         user_nickname: Annotated[Optional[str], Query.to_camel()] = None,
-    ) -> Content[ManageResult[Subcriber]]:
+    ) -> Content[LookupResult[Subcriber]]:
         pass
 
     @get_pydantic_response_model()
@@ -225,5 +225,19 @@ class ChzzkManageSession(ChzzkSession):
         sort_type: Annotated[
             Optional[Literal["RECENT", "LONGER"]], Query.to_camel()
         ] = "RECENT",
-    ) -> Content[ManageResult[Follower]]:
+    ) -> Content[LookupResult[Follower]]:
         pass
+
+    @get_pydantic_response_model()
+    @get("/manage/v1/channels/{channel_id}/restrict-users", directory_response=True)
+    @ChzzkSession.configuration(login_able=True, login_required=True)
+    async def restricts(
+        self,
+        channel_id: Annotated[str, Path],
+        page: Annotated[int, Query.to_camel()] = 0,
+        size: Annotated[int, Query.to_camel()] = 50,
+        user_nickname: Annotated[Optional[str], Query.to_camel()] = None,
+    ) -> Content[LookupResult[RestrictUser]]:
+        pass
+
+    
