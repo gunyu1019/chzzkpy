@@ -180,3 +180,17 @@ class ManageClient:
             user_nickname=nickname
         )
         return data.content
+
+    async def followers(
+            self,
+            page: int = 0,
+            size: int = 50,
+            sort_type: SortType = SortType.recent
+    ):
+        data = await self._http.followers(
+            channel_id=self.channel_id,
+            page=page,
+            size=size,
+            sort_type=sort_type.value
+        )
+        return data.content
