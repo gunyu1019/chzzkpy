@@ -48,7 +48,7 @@ class ChzzkManageSession(ChzzkSession):
         self.set_chat_rule.before_hook(self.query_to_json)
 
     @get_pydantic_response_model()
-    @post("/manage/v1/channels/{channel_id}/restrict-users", directory_response=True)
+    @post("/manage/v1/channels/{channel_id}/restrict-users", directly_response=True)
     @ChzzkSession.configuration(login_able=True, login_required=True)
     async def add_restrict(
         self,
@@ -60,7 +60,7 @@ class ChzzkManageSession(ChzzkSession):
     @get_pydantic_response_model()
     @delete(
         "/manage/v1/channels/{channel_id}/restrict-users/{target_id}",
-        directory_response=True,
+        directly_response=True,
     )
     @ChzzkSession.configuration(login_able=True, login_required=True)
     async def remove_restrict(
@@ -69,7 +69,7 @@ class ChzzkManageSession(ChzzkSession):
         pass
 
     @get_pydantic_response_model()
-    @post("/manage/v1/channels/{channel_id}/streaming-roles", directory_response=True)
+    @post("/manage/v1/channels/{channel_id}/streaming-roles", directly_response=True)
     @ChzzkSession.configuration(login_able=True, login_required=True)
     async def add_role(
         self,
@@ -85,7 +85,7 @@ class ChzzkManageSession(ChzzkSession):
     @get_pydantic_response_model()
     @delete(
         "/manage/v1/channels/{channel_id}/streaming-roles/{target_id}",
-        directory_response=True,
+        directly_response=True,
     )
     @ChzzkSession.configuration(login_able=True, login_required=True)
     async def remove_role(
@@ -97,7 +97,7 @@ class ChzzkManageSession(ChzzkSession):
 
     @get_pydantic_response_model()
     @get(
-        "/manage/v1/channels/{channel_id}/chats/prohibit-words", directory_response=True
+        "/manage/v1/channels/{channel_id}/chats/prohibit-words", directly_response=True
     )
     @ChzzkSession.configuration(login_able=True, login_required=True)
     async def get_prohibit_words(
@@ -108,7 +108,7 @@ class ChzzkManageSession(ChzzkSession):
 
     @get_pydantic_response_model()
     @post(
-        "/manage/v1/channels/{channel_id}/chats/prohibit-words", directory_response=True
+        "/manage/v1/channels/{channel_id}/chats/prohibit-words", directly_response=True
     )
     @ChzzkSession.configuration(login_able=True, login_required=True)
     async def add_prohibit_word(
@@ -121,7 +121,7 @@ class ChzzkManageSession(ChzzkSession):
     @get_pydantic_response_model()
     @delete(
         "/manage/v1/channels/{channel_id}/chats/prohibit-words/{prohibit_word_number}",
-        directory_response=True,
+        directly_response=True,
     )
     @ChzzkSession.configuration(login_able=True, login_required=True)
     async def remove_prohibit_word(
@@ -133,7 +133,7 @@ class ChzzkManageSession(ChzzkSession):
 
     @get_pydantic_response_model()
     @delete(
-        "/manage/v1/channels/{channel_id}/chats/prohibit-words", directory_response=True
+        "/manage/v1/channels/{channel_id}/chats/prohibit-words", directly_response=True
     )
     @ChzzkSession.configuration(login_able=True, login_required=True)
     async def remove_prohibit_word_all(
@@ -145,7 +145,7 @@ class ChzzkManageSession(ChzzkSession):
     @get_pydantic_response_model()
     @put(
         "/manage/v1/channels/{channel_id}/chats/prohibit-words/{prohibit_word_number}",
-        directory_response=True,
+        directly_response=True,
     )
     @ChzzkSession.configuration(login_able=True, login_required=True)
     async def edit_prohibit_word(
@@ -157,7 +157,7 @@ class ChzzkManageSession(ChzzkSession):
         pass
 
     @get_pydantic_response_model()
-    @get("/manage/v1/channels/{channel_id}/streams", directory_response=True)
+    @get("/manage/v1/channels/{channel_id}/streams", directly_response=True)
     @ChzzkSession.configuration(login_able=True, login_required=True)
     async def stream(
         self,
@@ -166,7 +166,7 @@ class ChzzkManageSession(ChzzkSession):
         pass
 
     @get_pydantic_response_model()
-    @get("/manage/v1/channels/{channel_id}/chat-rules", directory_response=True)
+    @get("/manage/v1/channels/{channel_id}/chat-rules", directly_response=True)
     @ChzzkSession.configuration(login_able=True, login_required=True)
     async def get_chat_rule(
         self,
@@ -175,7 +175,7 @@ class ChzzkManageSession(ChzzkSession):
         pass
 
     @get_pydantic_response_model()
-    @put("/manage/v1/channels/{channel_id}/chat-rules", directory_response=True)
+    @put("/manage/v1/channels/{channel_id}/chat-rules", directly_response=True)
     @ChzzkSession.configuration(login_able=True, login_required=True)
     async def set_chat_rule(
         self, channel_id: Annotated[str, Path], rule: Annotated[str, Query.to_camel()]
@@ -185,7 +185,7 @@ class ChzzkManageSession(ChzzkSession):
     @get_pydantic_response_model()
     @get(
         "/manage/v1/channels/{channel_id}/users/{target_id}/chat-activity-count",
-        directory_response=True,
+        directly_response=True,
     )
     @ChzzkSession.configuration(login_able=True, login_required=True)
     async def chat_activity_count(
@@ -196,7 +196,7 @@ class ChzzkManageSession(ChzzkSession):
         pass
 
     @get_pydantic_response_model()
-    @get("/manage/v1/channels/{channel_id}/subscribers", directory_response=True)
+    @get("/manage/v1/channels/{channel_id}/subscribers", directly_response=True)
     @ChzzkSession.configuration(login_able=True, login_required=True)
     async def subcribers(
         self,
@@ -213,7 +213,7 @@ class ChzzkManageSession(ChzzkSession):
         pass
 
     @get_pydantic_response_model()
-    @get("/manage/v1/channels/{channel_id}/followers", directory_response=True)
+    @get("/manage/v1/channels/{channel_id}/followers", directly_response=True)
     @ChzzkSession.configuration(login_able=True, login_required=True)
     async def followers(
         self,
@@ -227,7 +227,7 @@ class ChzzkManageSession(ChzzkSession):
         pass
 
     @get_pydantic_response_model()
-    @get("/manage/v1/channels/{channel_id}/restrict-users", directory_response=True)
+    @get("/manage/v1/channels/{channel_id}/restrict-users", directly_response=True)
     @ChzzkSession.configuration(login_able=True, login_required=True)
     async def restricts(
         self,
