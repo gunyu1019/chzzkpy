@@ -19,7 +19,7 @@ class ChzzkAPIChatSession(ChzzkAPISession):
     @get_pydantic_response_model()
     @post(
         "/manage/v1/channels/{channel_id}/temporary-restrict-users",
-        directory_response=True,
+        directly_response=True,
     )
     @ChzzkSession.configuration(login_able=True, login_required=True)
     async def temporary_restrict(
