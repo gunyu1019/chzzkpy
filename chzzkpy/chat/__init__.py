@@ -41,8 +41,10 @@ from .message import (
     ChatDonationExtra,
     VideoDonationExtra,
     MissionDonationExtra,
+    SubscriptionExtra,
     NoticeExtra,
     SystemExtra,
+    SystemExtraParameter,
 )
 from .profile import Profile, ActivityBadge, StreamingProperty, Badge
 from .recent_chat import RecentChat
