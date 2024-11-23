@@ -117,6 +117,7 @@ class ChatClient(Client):
             if status is None:
                 raise ChatConnectFailed(self.channel_id)
             self.chat_channel_id = status.chat_channel_id
+            self._status = status.status
 
         if self._game_session.has_login:
             user = await self.user()
