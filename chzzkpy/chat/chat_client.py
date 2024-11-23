@@ -23,13 +23,11 @@ SOFTWARE.
 
 from __future__ import annotations
 
+import aiohttp
 import asyncio
+import datetime
 import logging
 from typing import Any, Optional, Callable, Coroutine, TYPE_CHECKING
-
-import aiohttp
-
-from chzzkpy.live import LiveDetail, LiveStatus
 
 from .enums import ChatCmd
 from .error import ChatConnectFailed
@@ -38,6 +36,7 @@ from .http import ChzzkChatSession
 from .state import ConnectionState
 from ..client import Client
 from ..error import LoginRequired
+from ..live import LiveDetail, LiveStatus
 from ..http import ChzzkAPISession
 
 if TYPE_CHECKING:
@@ -153,9 +152,24 @@ class ChatClient(Client):
                         user_id=self.user_id,
                     )
                     session_id = self._gateway.session_id
+                
+                last_check_time = datetime.datetime.now()
 
                 while True:
                     await self._gateway.poll_event()
+
+                    # Confirm chat-channel-id with live_status() method.
+                    # When a streamer starts a new broadcast, a chat-channel-id will regenrated.
+                    # 
+                    # https://github.com/gunyu1019/chzzkpy/issues/31
+                    relative_time = datetime.datetime.now() - last_check_time
+                    if relative_time.total_seconds() >= 60:
+                        live_status = await self.live_status(channel_id=self.channel_id)
+
+                        if live_status.chat_channel_id != self.chat_channel_id:
+                            # need re-generation
+                            session_id = None
+                            continue
             except ReconnectWebsocket:
                 self.dispatch("disconnect")
                 continue
