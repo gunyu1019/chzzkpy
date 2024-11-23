@@ -64,7 +64,7 @@ class ChzzkWebSocket:
 
     def remove_hook(self, cmd: ChatCmd):
         self._event_hook[cmd] = None
-    
+
     async def close(self):
         self.session_id = None
         await self.socket.close()

@@ -140,8 +140,8 @@ class ChatClient(Client):
     async def _confirm_live_status(self):
         live_status = await self.live_status(channel_id=self.channel_id)
         if live_status is None:
-            return 
-        
+            return
+
         if self._status != live_status.status:
             self._status = live_status.status
             if self._status == "OPEN":
@@ -175,7 +175,7 @@ class ChatClient(Client):
                         user_id=self.user_id,
                     )
                     session_id = self._gateway.session_id
-                
+
                 last_check_time = datetime.datetime.now()
 
                 while True:
@@ -183,7 +183,7 @@ class ChatClient(Client):
 
                     # Confirm chat-channel-id with live_status() method.
                     # When a streamer starts a new broadcast, a chat-channel-id will regenrated.
-                    # 
+                    #
                     # https://github.com/gunyu1019/chzzkpy/issues/31
                     relative_time = datetime.datetime.now() - last_check_time
                     if relative_time.total_seconds() >= 59:
@@ -447,13 +447,17 @@ class ChatClient(Client):
             streaming_channel_id=message.extras.streaming_channel_id,
         )
         return
-    
-    async def live_status(self, channel_id: Optional[str] = None) -> Optional[LiveStatus]:
+
+    async def live_status(
+        self, channel_id: Optional[str] = None
+    ) -> Optional[LiveStatus]:
         if channel_id is None:
             channel_id = self.channel_id
         return await super().live_status(channel_id)
-    
-    async def live_detail(self, channel_id: Optional[str] = None) -> Optional[LiveDetail]:
+
+    async def live_detail(
+        self, channel_id: Optional[str] = None
+    ) -> Optional[LiveDetail]:
         if channel_id is None:
             channel_id = self.channel_id
         return await super().live_detail(channel_id)
