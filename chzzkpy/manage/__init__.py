@@ -29,6 +29,7 @@ from .manage_search import (
     ManageSubcriber,
     FollowingInfo,
     RestrictUser,
+    ManageVideo,
 )
 from .manage_client import ManageClient
 from .prohibit_word import ProhibitWord
