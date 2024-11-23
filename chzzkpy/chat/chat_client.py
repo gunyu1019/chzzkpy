@@ -89,6 +89,8 @@ class ChatClient(Client):
         self._gateway: Optional[ChzzkWebSocket] = None
         self._status: Literal["OPEN", "CLOSE"] = None
 
+        self._manage_client[channel_id] = ManageClient(channel_id, self)
+
     def _session_initial_set(self):
         self._api_session = ChzzkAPIChatSession(loop=self.loop)
         self._game_session = NaverGameChatSession(loop=self.loop)
