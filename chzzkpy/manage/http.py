@@ -32,7 +32,7 @@ from ..http import ChzzkSession
 from ..user import ParticleUser
 from .chat_activity_count import ChatAcitivityCount
 from .chat_rule import ChatRule
-from .lookup_manage import LookupResult, Follower, Subcriber, RestrictUser
+from .manage_search import ManageResult, ManageFollower, ManageSubcriber, RestrictUser
 from .prohibit_word import ProhibitWordResponse
 from .stream import Stream
 
@@ -209,7 +209,7 @@ class ChzzkManageSession(ChzzkSession):
         publish_period: Annotated[Optional[Literal[1, 3, 6]], Query.to_camel()] = None,
         tier: Annotated[Optional[Literal["TIER_1", "TIER_2"]], Query.to_camel()] = None,
         user_nickname: Annotated[Optional[str], Query.to_camel()] = None,
-    ) -> Content[LookupResult[Subcriber]]:
+    ) -> Content[ManageResult[ManageSubcriber]]:
         pass
 
     @get_pydantic_response_model()
@@ -223,7 +223,7 @@ class ChzzkManageSession(ChzzkSession):
         sort_type: Annotated[
             Optional[Literal["RECENT", "LONGER"]], Query.to_camel()
         ] = "RECENT",
-    ) -> Content[LookupResult[Follower]]:
+    ) -> Content[ManageResult[ManageFollower]]:
         pass
 
     @get_pydantic_response_model()
@@ -235,5 +235,5 @@ class ChzzkManageSession(ChzzkSession):
         page: Annotated[int, Query.to_camel()] = 0,
         size: Annotated[int, Query.to_camel()] = 50,
         user_nickname: Annotated[Optional[str], Query.to_camel()] = None,
-    ) -> Content[LookupResult[RestrictUser]]:
+    ) -> Content[ManageResult[RestrictUser]]:
         pass

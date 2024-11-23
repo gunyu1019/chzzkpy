@@ -31,7 +31,7 @@ from .http import ChzzkManageSession
 from .chat_activity_count import ChatAcitivityCount
 from .prohibit_word import ProhibitWord
 from .stream import Stream
-from .lookup_manage import LookupResult, Subcriber, Follower, RestrictUser
+from .manage_search import ManageResult, ManageSubcriber, ManageFollower, RestrictUser
 
 if TYPE_CHECKING:
     from ..client import Client
@@ -163,7 +163,7 @@ class ManageClient:
         publish_period: Optional[Literal[1, 3, 6]] = None,
         tier: Optional[SubscriberTier] = None,
         nickname: Optional[str] = None,
-    ) -> LookupResult[Subcriber]:
+    ) -> ManageResult[ManageSubcriber]:
         data = await self._http.subcribers(
             channel_id=self.channel_id,
             page=page,
@@ -177,7 +177,7 @@ class ManageClient:
 
     async def followers(
         self, page: int = 0, size: int = 50, sort_type: SortType = SortType.recent
-    ) -> LookupResult[Follower]:
+    ) -> ManageResult[ManageFollower]:
         data = await self._http.followers(
             channel_id=self.channel_id, page=page, size=size, sort_type=sort_type.value
         )
@@ -185,7 +185,7 @@ class ManageClient:
 
     async def restrict(
         self, page: int = 0, size: int = 50, nickname: Optional[str] = None
-    ) -> LookupResult[RestrictUser]:
+    ) -> ManageResult[RestrictUser]:
         data = await self._http.restricts(
             channel_id=self.channel_id, page=page, size=size, user_nickname=nickname
         )

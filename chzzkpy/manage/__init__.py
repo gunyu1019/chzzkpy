@@ -23,10 +23,10 @@ SOFTWARE.
 
 from .chat_activity_count import ChatAcitivityCount
 from .chat_rule import ChatRule
-from .lookup_manage import (
-    LookupResult,
-    Follower,
-    Subcriber,
+from .manage_search import (
+    ManageResult,
+    ManageFollower,
+    ManageSubcriber,
     FollowingInfo,
     RestrictUser,
 )

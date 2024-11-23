@@ -37,8 +37,8 @@ class ParticleVideo(ChzzkModel):
     type: str = Field(alias="videoType")
     duration: int
     publish_date: Annotated[
-        datetime.datetime, BeforeValidator(ChzzkModel.special_date_parsing_validator)
-    ]
+        Optional[datetime.datetime], BeforeValidator(ChzzkModel.special_date_parsing_validator)
+    ] = None
     thumbnail_image_url: Optional[str]
 
 
