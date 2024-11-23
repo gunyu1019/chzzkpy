@@ -131,7 +131,7 @@ class ChatClient(Client):
         self._ready.clear()
 
         if self._gateway is not None:
-            await self._gateway.socket.close()
+            await self._gateway.close()
         await self.ws_session.close()
         await super().close()
 
@@ -164,12 +164,21 @@ class ChatClient(Client):
                     # https://github.com/gunyu1019/chzzkpy/issues/31
                     relative_time = datetime.datetime.now() - last_check_time
                     if relative_time.total_seconds() >= 60:
+                        last_check_time = datetime.datetime.now()
                         live_status = await self.live_status(channel_id=self.channel_id)
+                        if live_status is None:
+                            continue 
 
-                        if live_status.chat_channel_id != self.chat_channel_id:
-                            # need re-generation
-                            session_id = None
+                        if live_status.chat_channel_id == self.chat_channel_id:
                             continue
+
+                        _log.debug("A chat_channel_id has been updated. Reconnect websocket.")
+                        session_id = None
+                        await self._gateway.close()
+
+                        self.chat_channel_id = live_status.chat_channel_id
+                        raise ReconnectWebsocket()
+                    
             except ReconnectWebsocket:
                 self.dispatch("disconnect")
                 continue
