@@ -1,0 +1,211 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2024, gunyu1019
+# This file is distributed under the same license as the chzzkpy package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2024.
+#
+#, fuzzy
+msgstr ""
+"Project-Id-Version: chzzkpy \n"
+"Report-msgstr-Bugs-To: \n"
+"POT-Creation-Date: 2024-11-14 11:28+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: 건유1019 <gunyu1019@gmail.com>\n"
+"Language: ko\n"
+"Language-Team: ko <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.16.0\n"
+
+#: ../../source/basic.rst:2
+msgid "Basic Feature"
+msgstr "기본 기능"
+
+#: ../../source/basic.rst:5
+msgid "Client"
+msgstr "클라이언트 (Client)"
+
+#: chzzkpy.client.Client:1 of
+msgid "Represents a client to connect Chzzk (Naver Live Streaming)."
+msgstr "치지직(네이버 스트리밍 서비스) 기능을 제공하기 위한 객체를 제공합니다."
+
+#: chzzkpy.client.Client.autocomplete:1 of
+msgstr "치지직의 검색 기능의 자동 완성 단어를 불러옵니다."
+
+#: ../../source/basic.rst
+msgid "Parameters"
+msgstr "Parameters"
+
+#: chzzkpy.client.Client.autocomplete:3 of
+msgid "Incomplete keywords"
+msgstr "검색할 단어입니다."
+
+#: ../../source/basic.rst
+msgid "Returns"
+msgstr "Returns"
+
+#: chzzkpy.client.Client.autocomplete:6 of
+msgid "Autocompleted keywords"
+msgstr "자동 완성된 단어입니다."
+
+#: ../../source/basic.rst
+msgid "Return type"
+msgstr "Return type"
+
+#: chzzkpy.client.Client.close:1 of
+msgid "Closes the connection to chzzk."
+msgstr "치지직과 연결을 종료합니다."
+
+#: chzzkpy.client.Client.is_closed:1 of
+msgid "Indicates if the session is closed."
+msgstr "치지직 연결을 종료한 유/무를 불러옵니다."
+
+#: chzzkpy.client.Client.live_detail:1 of
+msgid "Get a live detail info of broadcaster."
+msgstr "채널의 실시간 방송 정보(live detail)를 불러오는 함수입니다."
+
+#: chzzkpy.client.Client.live_detail:3 chzzkpy.client.Client.live_status:3 of
+msgid "The channel ID of broadcaster"
+msgstr "채널의 ID 값입니다."
+
+#: chzzkpy.client.Client.live_detail:6 of
+msgid ""
+"Return LiveDetail info. Sometimes the broadcaster is not broadcasting, "
+"returns None."
+msgstr ""
+"자세한 정보가 담긴 실시간 방송(LiveDetail)를 불러옵니다."
+"스트리머가 오랫동안 방송하지 않으면 `None`을 응답받을 수 있습니다."
+
+#: chzzkpy.client.Client.live_status:1 of
+msgid "Get a live status info of broadcaster."
+msgstr "채널의 실시간 방송 상태(live status)를 불러옵니다."
+
+#: chzzkpy.client.Client.live_status:6 of
+msgid ""
+"Return LiveStatus info. Sometimes the broadcaster is not broadcasting, "
+"returns None."
+msgstr ""
+"실시간 방송 상태(LiveStatus)를 불러옵니다."
+"스트리머가 오랫동안 방송하지 않으면 `None`을 응답받을 수 있습니다."
+
+#: chzzkpy.client.Client.login:1 of
+msgid "Login at Chzzk. Used for features that require a login. (ex. user method)"
+msgstr "네이버 로그인을 합니다. 일부 기능을 이용하려면 로그인이 필요합니다."
+
+#: chzzkpy.client.Client.login:4 of
+msgid "A `NID_AUT` value in the cookie."
+msgstr "HTTP 전송되는 쿠키 중의 `NID_AUT` 값을 의미합니다."
+
+#: chzzkpy.client.Client.login:6 of
+msgid "A `NID_SES` value in the cookie."
+msgstr "HTTP 전송되는 쿠키 중의 `NID_SES` 값을 의미합니다."
+
+#: chzzkpy.client.Client.search_channel:1 of
+msgid "Search the channel with keyword."
+msgstr "키워드를 이용하여 채널을 검색합니다."
+
+#: chzzkpy.client.Client.search_channel:3 of
+msgid "A keyword to search channel"
+msgstr "검색할 채널 입니다."
+
+#: chzzkpy.client.Client.search_channel:6 of
+msgid "Returns channels with searching."
+msgstr "검색된 채널을 반환받습니다."
+
+#: chzzkpy.client.Client.search_live:1 of
+msgid "Search the live with keyword."
+msgstr "키워드를 이용하여 실시간 방송을 검색합니다."
+
+#: chzzkpy.client.Client.search_live:3 of
+msgid "A keyword to search live"
+msgstr "검색할 실시간 방송입니다."
+
+#: chzzkpy.client.Client.search_live:6 of
+msgid "Returns lives with searching."
+msgstr "검색된 실시간 방송 정보를 반환받습니다."
+
+#: chzzkpy.client.Client.search_video:1 of
+msgid "Search the video with keyword."
+msgstr "키워드를 이용하여 영상을 검색합니다."
+
+#: chzzkpy.client.Client.search_video:3 of
+msgid "A keyword to search video"
+msgstr "검색할 영상입니다."
+
+#: chzzkpy.client.Client.search_video:6 of
+msgid "Returns videos with searching."
+msgstr "검색된 영상 정보를 반환받습니다."
+
+#: chzzkpy.client.Client.user:1 of
+msgid "Get my user info. This method should be used after login."
+msgstr "내 정보를 불러옵니다. 이 기능을 사용하려면 로그인이 필요합니다."
+
+#: chzzkpy.client.Client.user:4 of
+msgid "Information for logged-in user."
+msgstr "로그인된 나의 정보입니다."
+
+#: ../../source/basic.rst:11
+msgid "Channel"
+msgstr "Channel"
+
+#: chzzkpy.channel.Channel:1 of
+msgid "Bases: :py:class:`~chzzkpy.channel.PartialChannel`"
+msgstr "상위 클래스: :py:class:`~chzzkpy.channel.PartialChannel`"
+
+#: ../../source/basic.rst:30
+msgid "Search"
+msgstr "Search"
+
+#: chzzkpy.search.SearchResult:1 of
+msgid "Bases: :py:class:`~chzzkpy.base_model.ChzzkModel`"
+msgstr "상위 클래스: :py:class:`~chzzkpy.base_model.ChzzkModel`"
+
+#: ../../source/basic.rst:43
+msgid "User"
+msgstr "User"
+
+#: ../../source/basic.rst:50
+msgid "Video"
+msgstr "Video"
+
+#: chzzkpy.video.Video:1 of
+msgid "_summary_"
+msgstr ""
+
+#: chzzkpy.video.Video:5 of
+msgid "Whether the video is adult-oriented."
+msgstr ""
+
+#: chzzkpy.video.Video of
+msgid "type"
+msgstr ""
+
+#: chzzkpy.video.Video:7 of
+msgid "bool"
+msgstr "bool"
+
+#: chzzkpy.video.Video:11 of
+msgid "The video's type"
+msgstr ""
+
+#: chzzkpy.video.Video:13 of
+msgid "Optional[str]"
+msgstr ""
+
+#: ../../source/basic.rst:57
+msgid "예외 (Exceptions)"
+msgstr ""
+
+#: chzzkpy.error.LoginRequired:1 of
+msgid "Exception that’s raised when a method need login."
+msgstr "이 기능을 이용하기 위해서는 로그인이 필요합니다. `Client.login` 함수를 이용하여 로그인해주세요."
+
+#: chzzkpy.error.HTTPException:1 of
+msgid "Exception that’s raised when an HTTP request operation fails."
+msgstr "치지직 호출 중에 HTTP 예외가 발생하였습니다."
+
+#: chzzkpy.error.NotFound:1 of
+msgid "Exception that’s raised for when status code 404 occurs."
+msgstr "조회된 결과가 없습니다."
+

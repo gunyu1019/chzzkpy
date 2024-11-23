@@ -1,0 +1,116 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2024, gunyu1019
+# This file is distributed under the same license as the chzzkpy package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2024.
+#
+#, fuzzy
+msgstr ""
+
+"Project-Id-Version: chzzkpy \n"
+"Report-msgstr-Bugs-To: \n"
+"POT-Creation-Date: 2024-11-14 11:28+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: 건유1019 <gunyu1019@gmail.com>\n"
+"Language: ko\n"
+"Language-Team: ko <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.16.0\n"
+
+#: ../../source/index.rst:2 ../../source/index.rst:88
+msgid "Introduction"
+msgstr "소개"
+
+
+#: ../../source/index.rst:88
+msgid "Basic Feature"
+msgstr "기본(검색) 기능"
+
+
+#: ../../source/index.rst:88
+msgid "Chat Feature"
+msgstr "채팅 기능"
+
+
+#: ../../source/index.rst:88
+msgid "Table of Contents"
+msgstr "목차"
+
+
+#: ../../source/index.rst:3
+msgid "파이썬 기반의 치지직(네이버 라이브 스트리밍 서비스)의 비공식 라이브러리 입니다."
+msgstr "파이썬 기반의 치지직(네이버 라이브 스트리밍 서비스)의 비공식 라이브러리 입니다."
+
+
+#: ../../source/index.rst:4
+msgid "An unofficial python library for Chzzk(Naver Live Streaming Service)."
+msgstr "An unofficial python library for Chzzk(Naver Live Streaming Service)."
+
+
+#: ../../source/index.rst:6
+msgid "**Feature**"
+msgstr "**기능**"
+
+
+#: ../../source/index.rst:8
+msgid "Chatting in live."
+msgstr "치지직 방송 채팅"
+
+
+#: ../../source/index.rst:9
+msgid "Search broadcaster, live, video."
+msgstr "영상, 실시간 방송, 채널 검색"
+
+
+#: ../../source/index.rst:10
+msgid "Lookup a live of broadcaster."
+msgstr "치지직 실시간 방송 정보"
+
+
+#: ../../source/index.rst:11
+msgid "(WIP) Manage broadcast."
+msgstr "(작업 중) 치지직 방송 관리"
+
+
+#: ../../source/index.rst:14
+msgid "Installation"
+msgstr "설치"
+
+
+#: ../../source/index.rst:16
+msgid "**Python 3.10 or higher is required.**"
+msgstr "**Python 3.10 이상의 버전이 요구됩니다.**"
+
+
+#: ../../source/index.rst:26
+msgid "To install the development version."
+msgstr "개발 버전 설치 방법: "
+
+
+#: ../../source/index.rst:35
+msgid "Quick Example"
+msgstr "빠른 예제"
+
+
+#: ../../source/index.rst:36
+msgid ""
+"This section is a simple example used in chzzpkpy. You can see more "
+"examples at `Example Repository "
+"<https://github.com/gunyu1019/chzzkpy/tree/main/examples>`__ ."
+msgstr ""
+"이 섹션은 간단한 예제를 보여줍니다. chzzkpy를 사용한 사례를 보시려면, `이곳 "
+"<https://github.com/gunyu1019/chzzkpy/tree/main/examples>`__ 을 확인해주세요.."
+
+
+#: ../../source/index.rst:40
+msgid "Searching broadcaster"
+msgstr "방송인 검색"
+
+
+#: ../../source/index.rst:65
+msgid "Chat Bot"
+msgstr "채팅 봇"
+
+

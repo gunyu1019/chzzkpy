@@ -30,6 +30,7 @@ class ChzzkpyException(Exception):
 
 
 class LoginRequired(ChzzkpyException):
+    """Exception that’s raised when a method need login."""
     def __init__(self):
         super(LoginRequired, self).__init__(
             "This method(feature) needs to login. Please use `login()` method."
@@ -37,6 +38,7 @@ class LoginRequired(ChzzkpyException):
 
 
 class NotFound(ChzzkpyException):
+    """Exception that’s raised for when status code 404 occurs."""
     def __init__(self, message: Optional[str] = None):
         if message is None:
             message = "Not Found"
@@ -44,6 +46,7 @@ class NotFound(ChzzkpyException):
 
 
 class HTTPException(ChzzkpyException):
+    """Exception that’s raised when an HTTP request operation fails."""
     def __init__(self, code: int, message: Optional[str] = None):
         if message is None:
             message = f"Reponsed error code ({code})"

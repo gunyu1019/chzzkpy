@@ -25,6 +25,8 @@ from .blind import Blind
 from .chat_client import ChatClient
 from .connected import ConnectedInfo
 from .donation import (
+    DonationRank,
+    BaseDonation,
     ChatDonation,
     VideoDonation,
     MissionDonation,
@@ -32,6 +34,8 @@ from .donation import (
 from .enums import ChatType, ChatCmd, UserRole
 from .error import *
 from .message import (
+    Message,
+    MessageDetail,
     ChatMessage,
     NoticeMessage,
     DonationMessage,
