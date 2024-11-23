@@ -140,6 +140,13 @@ class ChatClient(Client):
         live_status = await self.live_status(channel_id=self.channel_id)
         if live_status is None:
             return 
+        
+        if self._status != live_status.status:
+            self._status = live_status.status
+            if self._status == "OPEN":
+                self.dispatch("broadcast_open")
+            elif self._status == "CLOSE":
+                self.dispatch("broadcast_close")
 
         if live_status.chat_channel_id == self.chat_channel_id:
             return
