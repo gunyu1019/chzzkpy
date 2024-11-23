@@ -31,7 +31,7 @@ from .http import ChzzkManageSession
 from .chat_activity_count import ChatAcitivityCount
 from .prohibit_word import ProhibitWord
 from .stream import Stream
-from .manage_search import ManageResult, ManageSubcriber, ManageFollower, RestrictUser
+from .manage_search import ManageResult, ManageSubcriber, ManageFollower, RestrictUser, ManageVideo
 
 if TYPE_CHECKING:
     from ..client import Client
@@ -188,5 +188,21 @@ class ManageClient:
     ) -> ManageResult[RestrictUser]:
         data = await self._http.restricts(
             channel_id=self.channel_id, page=page, size=size, user_nickname=nickname
+        )
+        return data.content
+    
+    async def live_replay(self, page: int = 0, size: int = 50) -> ManageResult[ManageVideo]:
+        data = await self._http.videos(
+            channel_id=self.channel_id,
+            video_type="REPLAY",
+            page=page, size=size
+        )
+        return data.content
+    
+    async def videos(self, page: int = 0, size: int = 50) -> ManageResult[ManageVideo]:
+        data = await self._http.videos(
+            channel_id=self.channel_id,
+            video_type="UPLOAD",
+            page=page, size=size
         )
         return data.content
