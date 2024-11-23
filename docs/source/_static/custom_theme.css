@@ -1,0 +1,27 @@
+#content ul:not(.search) p, #content ul:not(.search)>li {
+    margin-top: 0 !important;
+}
+
+.sig {
+    border-top-width: 0 !important;
+    padding: 0 !important;
+}
+
+.py.class > .sig.sig-object, 
+.py.method > .sig.sig-object,
+.py.function > .sig.sig-object, 
+.py.property > .sig.sig-object,
+.py.exception > .sig.sig-object {
+    padding: .2rem .5rem !important;
+    background: hsl(var(--border));
+    border-radius: .5rem;
+}
+
+
+.py.class > .sig.sig-object .property .pre, 
+.py.method > .sig.sig-object .property .pre,
+.py.function > .sig.sig-object .property .pre, 
+.py.property > .sig.sig-object .property .pre,
+.py.exception > .sig.sig-object .property .pre {
+    color: #f0a63c !important;
+}

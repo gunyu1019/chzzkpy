@@ -1,0 +1,542 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2024, gunyu1019
+# This file is distributed under the same license as the chzzkpy package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2024.
+#
+#, fuzzy
+msgstr ""
+
+"Project-Id-Version: chzzkpy \n"
+"Report-msgstr-Bugs-To: \n"
+"POT-Creation-Date: 2024-11-14 11:28+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: 건유1019 <gunyu1019@gmail.com>\n"
+"Language: ko\n"
+"Language-Team: ko <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.16.0\n"
+
+#: ../../source/chat.rst:2
+msgid "Chat Feature"
+msgstr "채팅 기능"
+
+
+#: ../../source/chat.rst:5
+msgid "Client"
+msgstr "클라이언트 (Client)"
+
+
+#: chzzkpy.chat.chat_client.ChatClient:1 of
+msgid "Bases: :py:class:`~chzzkpy.client.Client`"
+msgstr "상위 클래스: :py:class:`~chzzkpy.client.Client`"
+
+
+#: chzzkpy.chat.chat_client.ChatClient:1 of
+msgid ""
+"Represents a client to connect Chzzk (Naver Live Streaming). Addition, "
+"this class includes chat feature."
+msgstr ""
+"채팅 기능이 포함된, 치지직(네이버 스트리밍 서비스)와 연결하기 위한 객체를 제공합니다."
+
+
+#: chzzkpy.chat.chat_client.ChatClient.blind_message:1 of
+msgid "Blinds a chat."
+msgstr "채팅 운영자 권한으로 사용자의 메시지를 삭제합니다."
+
+
+#: ../../source/chat.rst
+msgid "Parameters"
+msgstr "Parameters"
+
+
+#: chzzkpy.chat.chat_client.ChatClient.blind_message:3 of
+msgid "A Chat to blind."
+msgstr "삭제할 채팅이 담긴 객체입니다."
+
+
+#: chzzkpy.chat.chat_client.ChatClient.close:1 of
+msgid "Close the connection to chzzk."
+msgstr "치지직 채팅 서버 연결을 종료합니다."
+
+
+#: chzzkpy.chat.chat_client.ChatClient.delete_notice_message:1 of
+msgid "Delete a pinned message."
+msgstr "고정된 메시지를 해제합니다.."
+
+
+#: chzzkpy.chat.chat_client.ChatClient.history:1 of
+msgid "Get messages the user has previously sent."
+msgstr "과거 채팅 기록을 불러옵니다."
+
+
+#: chzzkpy.chat.chat_client.ChatClient.history:3
+#: chzzkpy.chat.chat_client.ChatClient.request_recent_chat:5 of
+msgid "Number of messages to fetch from the most recent, by default 50"
+msgstr "최신 메시지를 기준으로 불러올 과거의 채팅 개수입니다. 기본 값은 50입니다."
+
+
+#: ../../source/chat.rst
+msgid "Returns"
+msgstr "Returns"
+
+
+#: chzzkpy.chat.chat_client.ChatClient.history:6 of
+msgid "Returns the user's most recently sent messages, in order of appearance"
+msgstr "방송인의 과거 채팅 기록을 최신 기록부터 불러옵니다."
+
+
+#: ../../source/chat.rst
+msgid "Return type"
+msgstr "Return type"
+
+
+#: chzzkpy.chat.ChatClient.is_connected:1 of
+msgid "Specifies if the client successfully connected with chzzk."
+msgstr "치지직 채팅 서버와 올바르게 연결되었는지 확인합니다."
+
+
+#: chzzkpy.chat.chat_client.ChatClient.request_recent_chat:1 of
+msgid ""
+"Send a request recent chat to chzzk. This method only makes a “request”. "
+"If you want to get the recent chats of participants, use the `history` "
+"method."
+msgstr ""
+"치지직 채팅 서버에 과거 채팅 기록을 불러오는 요청을 보냅니다. 이 함수는 `요청`만 합니다. "
+"만약에 과거 채팅 기록을 불러오고 싶다면, `history()` 함수를 이용해주세요."
+
+
+#: ../../source/chat.rst
+msgid "Raises"
+msgstr "Raises"
+
+
+#: chzzkpy.chat.chat_client.ChatClient.request_recent_chat:8
+#: chzzkpy.chat.chat_client.ChatClient.send_chat:6 of
+msgid "Occurs when the client can't connect to a broadcaster's chat"
+msgstr "치지직의 채팅 서버와 연결되지 않았을 때, 발생하는 예외입니다."
+
+
+#: chzzkpy.chat.chat_client.ChatClient.send_chat:1 of
+msgid "Send a message."
+msgstr "실시간 방송에 채팅 메시지를 보냅니다."
+
+
+#: chzzkpy.chat.chat_client.ChatClient.send_chat:3 of
+msgid "Message to Broadcasters"
+msgstr "실시간 방송에 보낼 메시지입니다."
+
+
+#: chzzkpy.chat.chat_client.ChatClient.set_notice_message:1 of
+msgid "Set a pinned messsage."
+msgstr "메시지를 고정합니다."
+
+
+#: chzzkpy.chat.chat_client.ChatClient.set_notice_message:3 of
+msgid "A Chat to pin."
+msgstr "고정할 메시지가 담긴 객체입니다."
+
+
+#: chzzkpy.chat.chat_client.ChatClient.wait_for:1 of
+msgid "Waits for a WebSocket event to be dispatched."
+msgstr "Websocket에서 호출되는 이벤트 함수를 대기합니다."
+
+
+#: chzzkpy.chat.chat_client.ChatClient.wait_for:3 of
+msgid "The event name. For a list of events, read :method:`event`"
+msgstr "대기할 이벤트 함수입니다. 이벤트 함수는 `Event Reference`를 참고해주세요."
+
+
+#: chzzkpy.chat.chat_client.ChatClient.wait_for:6 of
+msgid ""
+"A predicate to check what to wait for. The arguments must meet the "
+"parameters of the event being waited for."
+msgstr ""
+"조건에 충족하는지 확인하는 콜백 함수입니다."
+
+
+#: chzzkpy.chat.chat_client.ChatClient.wait_for:9 of
+msgid ""
+"The number of seconds to wait before timing out and raising "
+":exc:`asyncio.TimeoutError`."
+msgstr ""
+"대기할 시간을 설정합니다. 시간 초과하면"
+":exc:`asyncio.TimeoutError` 예외처리가 발생합니다."
+
+
+#: chzzkpy.chat.chat_client.ChatClient.wait_until_connected:1 of
+msgid "Waits until the client's internal cache is all ready."
+msgstr "치지직 채팅 서버 연결이 될 때까지 기다리는 함수입니다."
+
+
+#: ../../source/chat.rst:13
+msgid "Event Refenence"
+msgstr "이벤트 함수 (Event Refenence)"
+
+
+#: ../../source/chat.rst:15
+msgid ""
+"This section describes the events listened that "
+":class:`ChatClient<chzzkpy.chat.ChatClient>` received. You can received "
+"event with decorator `event` method."
+msgstr ""
+"이 섹션은 :class:`ChatClient<chzzkpy.chat.ChatClient>` 에서 호출되는"
+"이벤트 함수를 나열하였습니다. `ChatClient.event` 데코레이터를 이용하여 이벤트를 수신받을 수 있습니다."
+
+
+#: ../../source/chat.rst:18
+msgid "For example:"
+msgstr "예제:"
+
+
+#: ../../source/chat.rst:26
+msgid ""
+"All event method must be a coroutine. Otherwise, unexpected errors may "
+"occur."
+msgstr ""
+"모든 이벤트 함수는 비동기(Coroutine) 함수여야 합니다. 그러지 않으면, 예상치 못한 오류를 초래할 수 있습니다."
+
+
+#: ../../source/chat.rst:31
+msgid ""
+"Call when a :class:`ChatMesage<chzzkpy.chat.ChatMessage>` is created and "
+"sent."
+msgstr ""
+"방송 채널에서 :class:`메시지<chzzkpy.chat.ChatMessage>`.가 작성되면 호출되는 이벤트 함수입니다."
+
+
+#: ../../source/chat.rst:33
+msgid "The current message."
+msgstr "새롭게 만들어진 메시지입니다."
+
+
+#: ../../source/chat.rst:38
+msgid "Called when the client has successfully connected to chzzk chat."
+msgstr "치지직 채팅 서버와 연결을 성공하면 호출하는 이벤트 함수입니다."
+
+
+#: ../../source/chat.rst:43
+msgid ""
+"Called when a broadcaster received donation. Donation types include Chat,"
+" Video, and Mission, which are all invoked."
+msgstr ""
+"방송인이 채팅 후원, 영상 후원, 미션 후원 등의 후원을 받으면 호출하는 이벤트 함수입니다,"
+
+
+#: ../../source/chat.rst:46
+msgid "The message included donation info."
+msgstr "후원 메시지가 담긴 객체입니다."
+
+
+#: ../../source/chat.rst:51
+msgid ""
+"Called when a :class:`SystemMessage<chzzkpy.chat.SystemMessage>` is "
+"created and sent."
+msgstr ""
+"새로운 :class:`시스템 메시지<chzzkpy.chat.SystemMessage>` 가 만들어지면 호출되는"
+"이벤트 함수입니다."
+
+
+#: ../../source/chat.rst:53
+msgid "The system message."
+msgstr "시스템 메시지입니다."
+
+
+#: ../../source/chat.rst:58
+msgid "Called when a broadcast participant registered a new subscription."
+msgstr "시청자가 방송인의 채널에 새로운 구독을하면 호출되는 이벤트 함수입니다."
+
+
+#: ../../source/chat.rst:60
+msgid "The message included subscription info."
+msgstr "구독 정보가 담긴 메시지 객체 입니다."
+
+
+#: ../../source/chat.rst:65
+msgid "Called when a client requests a recent chat and receives a response."
+msgstr ""
+"과거 채팅 기록을 요청하는 함수가 호출되고, 응답을 받으면 호출되는 이벤트 함수입니다."
+"요청은 `ChatClient.request_recent_chat` 함수로 호출할 수 있습니다."
+
+
+#: ../../source/chat.rst:67
+msgid "The historical messages"
+msgstr "과거 채팅 기록입니다."
+
+
+#: ../../source/chat.rst:73
+msgid ""
+"Called when a broadcaster created a pin message. You can use `on_notice` "
+"event hanlder, instead of `on_pin` event handler."
+msgstr ""
+"방송인이 메시지를 고정하면 호출되는 이벤트 함수입니다. `on_pin` 대신에 `on_notice` "
+"이벤트 함수로 대체할 수 있습니다."
+
+
+#: ../../source/chat.rst:76
+msgid "The notice message that a broadcaster pinned."
+msgstr "고정한 메시지가 담긴 객체입니다."
+
+
+#: ../../source/chat.rst:82
+msgid "Called when a broadcaster removed a pin message."
+msgstr "고정된 메시지가 삭제되면 호출되는 이벤트 함수입니다."
+
+
+#: ../../source/chat.rst:84
+msgid "The notice message that a broadcaster un-pinned."
+msgstr "고정이 해제된 메시지가 담긴 객체입니다."
+
+
+#: ../../source/chat.rst:90
+msgid "Called when a broadcaster or manager blinded a chat."
+msgstr "채팅 운영자가 메시지를 삭제하면 호출하는 함수입니다."
+
+
+#: ../../source/chat.rst:92
+msgid "The blinded message."
+msgstr "삭제된 메시지가 담긴 객체입니다."
+
+
+#: ../../source/chat.rst:97
+msgid "Called when a broadcaster completed a mission."
+msgstr "방송인이 미션을 성공하면 호출되는 이벤트 함수입니다."
+
+
+#: ../../source/chat.rst:99 ../../source/chat.rst:106
+msgid "The mission donation that a broadcaster cleared."
+msgstr "성공한 미션 정보가 담긴 객체입니다."
+
+
+#: ../../source/chat.rst:104
+msgid "Called when a broadcast participant created a new mission."
+msgstr "방송인이 새로운 미션을 요청받으면 호출되는 이벤트 함수입니다."
+
+
+#: ../../source/chat.rst:111
+msgid "Called when a broadcaster approved a mission."
+msgstr "요청받은 미션을 방송인이 승인하면 호출되는 이벤트 함수입니다."
+
+
+#: ../../source/chat.rst:113
+msgid "The mission donation that a broadcaster approved."
+msgstr "승인된 미션 정보가 담긴 객체입니다."
+
+
+#: ../../source/chat.rst:118
+msgid "Called when a broadcaster rejected a mission."
+msgstr "요청받은 미션을 방송인이 거부하면 호출되는 이벤트 함수입니다."
+
+
+#: ../../source/chat.rst:120
+msgid "The mission donation that a broadcaster rejected."
+msgstr "거절된 미션 정보가 담긴 객체입니다."
+
+
+#: ../../source/chat.rst:125
+msgid ""
+"Called when an event hanlder raised exception. The `*args` and `**kwargs`"
+" argument includes event handler arguments."
+msgstr ""
+"이벤트 호출간에 예외가 발생하면 호출되는 이벤트 함수입니다. `*args`과 `**kwargs`"
+"에는 예외가 발생한 이벤트 함수의 인수(Parameter) 값이 들어있습니다."
+
+
+#: ../../source/chat.rst:129
+msgid "Enumerations"
+msgstr "Enumerations"
+
+
+#: ../../source/chat.rst:136
+msgid "Blind"
+msgstr "Blind"
+
+
+#: ../../source/chat.rst:137
+msgid ""
+"This model is used in the `on_blind` event handler, which contains the "
+"blinded message."
+msgstr ""
+"이 데이터 모델은 `on_blind` 이벤트 함수를 호출하는 데 사용됩니다."
+
+
+#: ../../source/chat.rst:145
+msgid "Connection"
+msgstr "Connection"
+
+
+#: ../../source/chat.rst:153
+msgid "Donation"
+msgstr "Donation"
+
+
+#: chzzkpy.chat.donation.ChatDonation:1 chzzkpy.chat.donation.MissionDonation:1
+#: chzzkpy.chat.donation.VideoDonation:1 of
+msgid "Bases: :py:class:`~chzzkpy.chat.donation.BaseDonation`"
+msgstr "상위 클래스: :py:class:`~chzzkpy.chat.donation.BaseDonation`"
+
+
+#: ../../source/chat.rst:184
+msgid "Message"
+msgstr "Message"
+
+
+#: chzzkpy.chat.message.MessageDetail:1 of
+msgid ""
+"Bases: :py:class:`~chzzkpy.chat.message.Message`, "
+":py:class:`~typing.Generic`\\ [:py:obj:`~chzzkpy.chat.message.E`]"
+msgstr ""
+"상위 클래스: :py:class:`~chzzkpy.chat.message.Message`, "
+":py:class:`~typing.Generic`\\ [:py:obj:`~chzzkpy.chat.message.E`]"
+
+
+#: chzzkpy.chat.message.ChatMessage:1 of
+msgid "Bases: :py:class:`~chzzkpy.chat.message.MessageDetail[Extra]`"
+msgstr "상위 클래스: :py:class:`~chzzkpy.chat.message.MessageDetail[Extra]`"
+
+
+#: chzzkpy.chat.message.ChatMessage.blind:1 of
+msgid "Blind this message."
+msgstr "채팅 운영자의 권한으로 메시지를 삭제합니다."
+
+
+#: chzzkpy.chat.ChatMessage.is_me:1 of
+msgid "Verify that this message is from a user signed in to the client."
+msgstr "메시지가 자신이 보낸 메시지인지 확인합니다. 로그인이 필요한 기능입니다."
+
+
+#: chzzkpy.chat.message.ChatMessage.pin:1 of
+msgid "Pin this message."
+msgstr "메시지를 고정합니다."
+
+
+#: chzzkpy.chat.message.ChatMessage.send:1 of
+msgid "Send message to broadcaster."
+msgstr "방송인의 채널에 메시지를 보냅니다."
+
+
+#: chzzkpy.chat.message.ChatMessage.unpin:1 of
+msgid "Unpin this message."
+msgstr "메시지 고정을 해제합니다."
+
+
+#: chzzkpy.chat.message.NoticeMessage:1 of
+msgid "Bases: :py:class:`~chzzkpy.chat.message.Message[NoticeExtra]`"
+msgstr "상위 클래스: :py:class:`~chzzkpy.chat.message.Message[NoticeExtra]`"
+
+
+#: chzzkpy.chat.message.DonationMessage:1 of
+msgid ""
+"Bases: "
+":py:class:`~chzzkpy.chat.message.MessageDetail[Union[ChatDonationExtra, "
+"VideoDonationExtra, MissionDonationExtra]]`"
+msgstr ""
+"상위 클래스: "
+":py:class:`~chzzkpy.chat.message.MessageDetail[Union[ChatDonationExtra, "
+"VideoDonationExtra, MissionDonationExtra]]`"
+
+
+#: chzzkpy.chat.message.SubscriptionMessage:1 of
+msgid "Bases: :py:class:`~chzzkpy.chat.message.MessageDetail[SubscriptionExtra]`"
+msgstr "상위 클래스: :py:class:`~chzzkpy.chat.message.MessageDetail[SubscriptionExtra]`"
+
+
+#: chzzkpy.chat.message.SystemMessage:1 of
+msgid "Bases: :py:class:`~chzzkpy.chat.message.MessageDetail[SystemExtra]`"
+msgstr "상위 클래스: :py:class:`~chzzkpy.chat.message.MessageDetail[SystemExtra]`"
+
+
+#: ../../source/chat.rst:227
+msgid "Message Extra"
+msgstr "Message Extra"
+
+
+#: chzzkpy.chat.message.NoticeExtra:1 of
+msgid "Bases: :py:class:`~chzzkpy.chat.message.Extra`"
+msgstr "상위 클래스: :py:class:`~chzzkpy.chat.message.Extra`"
+
+
+#: chzzkpy.chat.message.ChatDonationExtra:1 of
+msgid "Bases: :py:class:`~chzzkpy.chat.donation.ChatDonation`"
+msgstr "상위 클래스: :py:class:`~chzzkpy.chat.donation.ChatDonation`"
+
+
+#: chzzkpy.chat.message.VideoDonationExtra:1 of
+msgid "Bases: :py:class:`~chzzkpy.chat.donation.VideoDonation`"
+msgstr "상위 클래스: :py:class:`~chzzkpy.chat.donation.VideoDonation`"
+
+
+#: chzzkpy.chat.message.MissionDonationExtra:1 of
+msgid "Bases: :py:class:`~chzzkpy.chat.donation.MissionDonation`"
+msgstr "상위 클래스: :py:class:`~chzzkpy.chat.donation.MissionDonation`"
+
+
+#: chzzkpy.chat.message.SubscriptionExtra:1 chzzkpy.chat.message.SystemExtra:1
+#: of
+msgid "Bases: :py:class:`~chzzkpy.chat.message.ExtraBase`"
+msgstr "상위 클래스: :py:class:`~chzzkpy.chat.message.ExtraBase`"
+
+
+#: chzzkpy.chat.message.SystemExtraParameter:1 of
+msgid "Bases: :py:class:`~chzzkpy.base_model.ChzzkModel`"
+msgstr "상위 클래스: :py:class:`~chzzkpy.base_model.ChzzkModel`"
+
+
+#: ../../source/chat.rst:277
+msgid "Profile"
+msgstr "Profile"
+
+#: of pydantic._internal._model_construction.init_private_attributes:1
+msgid ""
+"This function is meant to behave like a BaseModel method to initialise "
+"private attributes."
+msgstr ""
+
+#: of pydantic._internal._model_construction.init_private_attributes:3
+msgid ""
+"It takes context as an argument since that's what pydantic-core passes "
+"when calling it."
+msgstr ""
+
+#: of pydantic._internal._model_construction.init_private_attributes:5
+msgid "The BaseModel instance."
+msgstr ""
+
+#: of pydantic._internal._model_construction.init_private_attributes:6
+msgid "The context."
+msgstr ""
+
+#: chzzkpy.chat.profile.ActivityBadge:1 of
+msgid "Bases: :py:class:`~chzzkpy.chat.profile.Badge`"
+msgstr "상위 클래스: :py:class:`~chzzkpy.chat.profile.Badge`"
+
+#: ../../source/chat.rst:300
+msgid "Recent Chat"
+msgstr ""
+
+#: ../../source/chat.rst:301
+msgid ""
+"This model is used in the `on_recent_chat` event handler, which contains "
+"the historical messages."
+msgstr ""
+"이 데이터 모델은 `on_recent_chat` 이벤트 함수에서 사용됩니다."
+"방송인의 채널의 과거 채팅 기록을 담고 있습니다."
+
+
+#: ../../source/chat.rst:310
+msgid "Exceptions"
+msgstr "예외 (Exceptions)"
+
+
+#: ../../source/chat.rst:311
+msgid ""
+"The `Chat Features` exceptions section describes exceptions that can be "
+"thrown by `ChatClient`. Exceptions that occur in the `Basic Features` "
+"exceptions section can also occur."
+msgstr ""
+"`Chat Features` 페이지에서 발생하는 예외는 `ChatClient`에서 발생할 수 있는 추가적인 예외상황입니다. "
+"`Basic Features` 페이지에서 발생하는 예외도 발생할 수 있습니다. "
+
+

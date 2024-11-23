@@ -23,11 +23,11 @@ SOFTWARE.
 
 from __future__ import annotations
 
-import asyncio
-import logging
-from typing import Any, Optional, Callable, Coroutine, TYPE_CHECKING
-
 import aiohttp
+import asyncio
+import datetime
+import logging
+from typing import Any, Optional, Callable, Coroutine, Literal, TYPE_CHECKING
 
 from .enums import ChatCmd
 from .error import ChatConnectFailed
@@ -38,6 +38,8 @@ from ..client import Client
 from ..error import LoginRequired
 from ..manage.manage_client import ManageClient
 from ..user import ParticleUser
+from ..live import LiveDetail, LiveStatus
+from ..http import ChzzkAPISession
 
 if TYPE_CHECKING:
     from .access_token import AccessToken
@@ -85,6 +87,7 @@ class ChatClient(Client):
             dispatch=self.dispatch, handler=handler, client=self
         )
         self._gateway: Optional[ChzzkWebSocket] = None
+        self._status: Literal["OPEN", "CLOSE"] = None
 
     def _session_initial_set(self):
         self._api_session = ChzzkAPIChatSession(loop=self.loop)
@@ -116,6 +119,7 @@ class ChatClient(Client):
             if status is None:
                 raise ChatConnectFailed(self.channel_id)
             self.chat_channel_id = status.chat_channel_id
+            self._status = status.status
 
         if self._game_session.has_login:
             user = await self.user()
@@ -131,9 +135,30 @@ class ChatClient(Client):
         self._ready.clear()
 
         if self._gateway is not None:
-            await self._gateway.socket.close()
+            await self._gateway.close()
         await self.ws_session.close()
         await super().close()
+
+    async def _confirm_live_status(self):
+        live_status = await self.live_status(channel_id=self.channel_id)
+        if live_status is None:
+            return
+
+        if self._status != live_status.status:
+            self._status = live_status.status
+            if self._status == "OPEN":
+                self.dispatch("broadcast_open")
+            elif self._status == "CLOSE":
+                self.dispatch("broadcast_close")
+
+        if live_status.chat_channel_id == self.chat_channel_id:
+            return
+
+        _log.debug("A chat_channel_id has been updated. Reconnect websocket.")
+        await self._gateway.close()
+
+        self.chat_channel_id = live_status.chat_channel_id
+        raise ReconnectWebsocket()
 
     async def polling(self) -> None:
         session_id: Optional[str] = None
@@ -153,10 +178,22 @@ class ChatClient(Client):
                     )
                     session_id = self._gateway.session_id
 
+                last_check_time = datetime.datetime.now()
+
                 while True:
                     await self._gateway.poll_event()
+
+                    # Confirm chat-channel-id with live_status() method.
+                    # When a streamer starts a new broadcast, a chat-channel-id will regenrated.
+                    #
+                    # https://github.com/gunyu1019/chzzkpy/issues/31
+                    relative_time = datetime.datetime.now() - last_check_time
+                    if relative_time.total_seconds() >= 59:
+                        last_check_time = datetime.datetime.now()
+                        await self._confirm_live_status()
             except ReconnectWebsocket:
                 self.dispatch("disconnect")
+                session_id = None
                 continue
 
     # Event Handler
@@ -412,6 +449,20 @@ class ChatClient(Client):
             streaming_channel_id=message.extras.streaming_channel_id,
         )
         return
+
+    async def live_status(
+        self, channel_id: Optional[str] = None
+    ) -> Optional[LiveStatus]:
+        if channel_id is None:
+            channel_id = self.channel_id
+        return await super().live_status(channel_id)
+
+    async def live_detail(
+        self, channel_id: Optional[str] = None
+    ) -> Optional[LiveDetail]:
+        if channel_id is None:
+            channel_id = self.channel_id
+        return await super().live_detail(channel_id)
 
     async def temporary_restrict(self, user: ParticleUser | str) -> ParticleUser:
         user_id = user
