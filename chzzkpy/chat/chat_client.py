@@ -27,7 +27,7 @@ import aiohttp
 import asyncio
 import datetime
 import logging
-from typing import Any, Optional, Callable, Coroutine, TYPE_CHECKING
+from typing import Any, Optional, Callable, Coroutine, Literal, TYPE_CHECKING
 
 from .enums import ChatCmd
 from .error import ChatConnectFailed
@@ -85,6 +85,7 @@ class ChatClient(Client):
             dispatch=self.dispatch, handler=handler, client=self
         )
         self._gateway: Optional[ChzzkWebSocket] = None
+        self._status: Literal["OPEN", "CLOSE"]
 
     def _session_initial_set(self):
         self._api_session = ChzzkAPISession(loop=self.loop)
@@ -135,6 +136,20 @@ class ChatClient(Client):
         await self.ws_session.close()
         await super().close()
 
+    async def _confirm_live_status(self):
+        live_status = await self.live_status(channel_id=self.channel_id)
+        if live_status is None:
+            return 
+
+        if live_status.chat_channel_id == self.chat_channel_id:
+            return
+
+        _log.debug("A chat_channel_id has been updated. Reconnect websocket.")
+        await self._gateway.close()
+
+        self.chat_channel_id = live_status.chat_channel_id
+        raise ReconnectWebsocket()
+
     async def polling(self) -> None:
         session_id: Optional[str] = None
         while not self.is_closed:
@@ -165,22 +180,10 @@ class ChatClient(Client):
                     relative_time = datetime.datetime.now() - last_check_time
                     if relative_time.total_seconds() >= 60:
                         last_check_time = datetime.datetime.now()
-                        live_status = await self.live_status(channel_id=self.channel_id)
-                        if live_status is None:
-                            continue 
-
-                        if live_status.chat_channel_id == self.chat_channel_id:
-                            continue
-
-                        _log.debug("A chat_channel_id has been updated. Reconnect websocket.")
-                        session_id = None
-                        await self._gateway.close()
-
-                        self.chat_channel_id = live_status.chat_channel_id
-                        raise ReconnectWebsocket()
-                    
+                        await self._confirm_live_status()
             except ReconnectWebsocket:
                 self.dispatch("disconnect")
+                session_id = None
                 continue
 
     # Event Handler
