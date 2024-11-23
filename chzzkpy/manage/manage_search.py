@@ -23,15 +23,17 @@ SOFTWARE.
 
 import datetime
 
-from typing import List, Optional, Generic, TypeVar
+from typing import Annotated, List, Optional, Generic, TypeVar
+from pydantic import BeforeValidator
 
 from ..base_model import ChzzkModel
 from ..user import ParticleUser
+from ..video import ParticleVideo
 
 T = TypeVar("T")
 
 
-class LookupResult(ChzzkModel, Generic[T]):
+class ManageResult(ChzzkModel, Generic[T]):
     page: int
     size: int
     total_count: int
@@ -45,7 +47,7 @@ class FollowingInfo(ChzzkModel):
     follow_date: datetime.datetime
 
 
-class Subcriber(ChzzkModel):  # incomplete data
+class ManageSubcriber(ChzzkModel):  # incomplete data
     user_id_hash: Optional[str]
     nickname: Optional[str]
     profile_image_url: Optional[str]
@@ -58,7 +60,7 @@ class Subcriber(ChzzkModel):  # incomplete data
     created_date: datetime.datetime
 
 
-class Follower(ChzzkModel):
+class ManageFollower(ChzzkModel):
     user: ParticleUser
     following: FollowingInfo
     channel_following: FollowingInfo
@@ -70,3 +72,27 @@ class RestrictUser(ChzzkModel):
     nickname: str
     execute_nickname: str
     created_date: datetime.datetime
+
+
+class ManageVideo(ParticleVideo):
+    live_id: Optional[int] = None
+    created_date: Annotated[
+        datetime.datetime, BeforeValidator(ChzzkModel.special_date_parsing_validator)
+    ]
+    like_count: int
+    read_count: int
+    comment_count: int
+    vod_status: str
+    exposure: bool
+    publish: bool
+    publish_type: str
+    manual_publishable: bool
+    exposure_button: str
+    live_accumulate_count: int = 0
+    live_unique_view_count: int = 0
+    live_open_date: Annotated[
+        Optional[datetime.datetime], BeforeValidator(ChzzkModel.special_date_parsing_validator)
+    ] = None
+    deleted: bool
+    # download
+    # deletedBy: Type Unknown??? // Nullable
