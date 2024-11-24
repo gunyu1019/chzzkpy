@@ -38,6 +38,7 @@ if TYPE_CHECKING:
 
 
 class ManageClient:
+    """Represent a client that provides broadcast management functionality."""
     def __init__(self, channel_id: str, client: Client):
         self.channel_id = channel_id
         self.client = client
@@ -59,10 +60,30 @@ class ManageClient:
         return
 
     async def get_prohibit_words(self) -> List[ProhibitWord]:
+        """Get prohibit words in chat.
+
+        Returns
+        -------
+        List[ProhibitWord]
+            Returns the prohibit words.
+        """
         data = await self._http.get_prohibit_words(self.channel_id)
         return data.content.prohibit_words
 
     async def get_prohbit_word(self, word: str) -> Optional[ProhibitWord]:
+        """Get prohibit word with word.
+        When word does not contain prohibit word, returns None. 
+
+        Parameters
+        ----------
+        word : str
+            A word to find prohibit word.
+
+        Returns
+        -------
+        Optional[ProhibitWord]
+            When word contains prohibit words, return :class:`ProhibitWord` object.
+        """
         data = await self.get_prohibit_words()
         prohibit_words = [x for x in data if x.prohibit_word == word]
         if len(prohibit_words) <= 0:
@@ -70,12 +91,39 @@ class ManageClient:
         return prohibit_words[0]
 
     async def add_prohibit_word(self, word: str) -> Optional[ProhibitWord]:
+        """Add a prohibit word at chat.
+
+        Parameters
+        ----------
+        word : str
+            A word to prohibit.
+
+        Returns
+        -------
+        Optional[ProhibitWord]
+            Returns the generated prohibit word.
+        """
         await self._http.add_prohibit_word(self.channel_id, word)
         return await self.get_prohbit_word(word)
 
     async def edit_prohibit_word(
         self, prohibit_word: ProhibitWord | int, word: str
     ) -> Optional[ProhibitWord]:
+        """Modify a prohibit word.
+
+        Parameters
+        ----------
+        prohibit_word : ProhibitWord | int
+            The prohibit word object to modify.
+            Instead, it can be prohibit word id.
+        word : str
+            A new word to prohibit.
+
+        Returns
+        -------
+        Optional[ProhibitWord]
+            Returns the modified prohibit word.
+        """
         if isinstance(prohibit_word, ProhibitWord):
             prohibit_word_number = prohibit_word.prohibit_word_no
         else:
@@ -85,6 +133,14 @@ class ManageClient:
         return await self.get_prohbit_word(word)
 
     async def remove_prohibit_word(self, prohibit_word: ProhibitWord | int) -> None:
+        """Remove a prohibit word.
+
+        Parameters
+        ----------
+        prohibit_word : ProhibitWord | int
+            The prohibit word object to remove.
+            Instead, it can be prohibit word id.
+        """
         if isinstance(prohibit_word, ProhibitWord):
             prohibit_word_number = prohibit_word.prohibit_word_no
         else:
@@ -93,20 +149,55 @@ class ManageClient:
         await self._http.remove_prohibit_word(self.channel_id, prohibit_word_number)
 
     async def remove_prohibit_words(self) -> None:
+        """Remove all prohibit words."""
         await self._http.remove_prohibit_word_all(self.channel_id)
 
     async def get_chat_rule(self) -> str:
+        """Get chat rule of broadcast.
+
+        Returns
+        -------
+        str
+            Returns a chat rule.
+        """
         data = await self._http.get_chat_rule(self.channel_id)
         return data.content.rule
 
     async def set_chat_rule(self, word: str) -> None:
+        """Set chat rule of broadcast.
+
+        Parameters
+        ----------
+        word : str
+            A new chat rule to set up.
+        """
         await self._http.set_chat_rule(self.channel_id, word)
 
     async def stream(self) -> Stream:
+        """Get a stream key required for streamming.
+
+        Returns
+        -------
+        Stream
+            Return a stream key for streamming.
+        """
         data = await self._http.stream()
         return data.content
 
     async def add_restrict(self, user: str | ParticleUser) -> ParticleUser:
+        """Add an user to restrict activity.
+
+        Parameters
+        ----------
+        user : str | ParticleUser
+            A user object to add restrict activity.
+            Instead, it can be user id or nickname.
+
+        Returns
+        -------
+        ParticleUser
+            Returns an object containning activity-restricted users.
+        """
         target_id = user
         if isinstance(user, ParticleUser):
             target_id = user.user_id_hash
@@ -117,6 +208,19 @@ class ManageClient:
         return data.content
 
     async def remove_restrict(self, user: str | ParticleUser) -> None:
+        """Remove an user to restrict activity.
+
+        Parameters
+        ----------
+        user : str | ParticleUser
+            A user object to remove restrict activity.
+            Instead, it can be user id or nickname.
+
+        Returns
+        -------
+        ParticleUser
+            Returns an user whose activity is unrestricted.
+        """
         target_id = user
         if isinstance(user, ParticleUser):
             target_id = user.user_id_hash
