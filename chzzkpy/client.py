@@ -227,7 +227,25 @@ class Client:
         return data
 
     def manage(self, channel_id: Optional[str] = None) -> ManageClient:
+        """Get a client provided broadcast management functionality.
+
+        Parameters
+        ----------
+        channel_id : Optional[str]
+            A channel id to manage broadcasts.
+            The default value is the last channel id used.
+            If initally use the manage method and don't have a channel_id argument, 
+            it will raise a :exception:`TypeError` exception.
+            
+        Returns
+        -------
+        ManageClient
+            Return a client provided broadcast management functionality.
+        """
         if channel_id is None:
+            if self._latest_manage_client_id is None:
+                raise TypeError("manage() missing 1 required argument: 'channel_id'")
+            
             channel_id = self._latest_manage_client_id
 
         if channel_id not in self._manage_client.keys():
