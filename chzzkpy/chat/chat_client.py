@@ -452,20 +452,6 @@ class ChatClient(Client):
         )
         return
 
-    async def live_status(
-        self, channel_id: Optional[str] = None
-    ) -> Optional[LiveStatus]:
-        if channel_id is None:
-            channel_id = self.channel_id
-        return await super().live_status(channel_id)
-
-    async def live_detail(
-        self, channel_id: Optional[str] = None
-    ) -> Optional[LiveDetail]:
-        if channel_id is None:
-            channel_id = self.channel_id
-        return await super().live_detail(channel_id)
-
     async def temporary_restrict(self, user: ParticleUser | str) -> ParticleUser:
         user_id = user
         if isinstance(user, ParticleUser):
@@ -479,11 +465,35 @@ class ChatClient(Client):
         return response
 
     async def live_status(self, channel_id: Optional[str] = None):
+        """Get a live status info of broadcaster.
+
+        Parameters
+        ----------
+        channel_id : Optional[str]
+            The channel ID of broadcaster, default by channel id of ChatClient.
+
+        Returns
+        -------
+        Optional[LiveStatus]
+            Return LiveStatus info. Sometimes the broadcaster is not broadcasting, returns None.
+        """
         if channel_id is None:
             channel_id = self.channel_id
         return await super().live_status(channel_id)
 
     async def live_detail(self, channel_id: Optional[str] = None):
+        """Get a live detail info of broadcaster.
+
+        Parameters
+        ----------
+        channel_id : Optional[str]
+            The channel ID of broadcaster, default by channel id of ChatClient.
+
+        Returns
+        -------
+        Optional[LiveDetail]
+            Return LiveDetail info. Sometimes the broadcaster is not broadcasting, returns None.
+        """
         if channel_id is None:
             channel_id = self.channel_id
         return await super().live_detail(channel_id)
