@@ -92,7 +92,7 @@ class Client:
         for manage_client in self._manage_client.values():
             if manage_client.is_closed:
                 continue
-            
+
             await manage_client.close()
         return
 
@@ -240,9 +240,9 @@ class Client:
         channel_id : Optional[str]
             A channel id to manage broadcasts.
             The default value is the last channel id used.
-            If initally use the manage method and don't have a channel_id argument, 
+            If initally use the manage method and don't have a channel_id argument,
             it will raise a :exception:`TypeError` exception.
-            
+
         Returns
         -------
         ManageClient
@@ -251,7 +251,7 @@ class Client:
         if channel_id is None:
             if self._latest_manage_client_id is None:
                 raise TypeError("manage() missing 1 required argument: 'channel_id'")
-            
+
             channel_id = self._latest_manage_client_id
 
         if channel_id not in self._manage_client.keys():

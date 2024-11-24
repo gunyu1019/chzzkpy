@@ -52,7 +52,7 @@ class ManagerClientAccessable(BaseModel):
     @based_manage_client
     def channel_id(self) -> str:
         self._manage_client.channel_id
-    
+
     def set_manage_client(self, client: ManageClient):
         if self._manage_client is not None:
             raise ValueError("Manage Client already set.")

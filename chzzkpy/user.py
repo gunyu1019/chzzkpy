@@ -53,20 +53,20 @@ class ParticleUser(ChzzkModel, ManagerClientAccessable):
     async def add_restrict(self) -> Self:
         result = await self._manage_client.add_restrict(self)
         return result
-    
+
     @ManagerClientAccessable.based_manage_client
     async def remove_restrict(self):
         await self._manage_client.remove_restrict(self)
-        
+
     @ManagerClientAccessable.based_manage_client
     async def add_role(self, role: UserRole) -> Self:
         result = await self._manage_client.add_role(self, role)
         return result
-    
+
     @ManagerClientAccessable.based_manage_client
     async def remove_role(self):
         await self._manage_client.remove_role(self)
-    
+
     @ManagerClientAccessable.based_manage_client
     async def chat_activity_count(self) -> ChatAcitivityCount:
         data = await self._manage_client.chat_activity_count(self)

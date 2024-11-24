@@ -520,9 +520,9 @@ class ChatClient(Client):
         channel_id : Optional[str]
             A channel id to manage broadcasts.
             The default value is the last channel id used.
-            If initally use the manage method and don't have a channel_id argument, 
+            If initally use the manage method and don't have a channel_id argument,
             the default value is channel id of ChatClient.
-            
+
         Returns
         -------
         ManageClient

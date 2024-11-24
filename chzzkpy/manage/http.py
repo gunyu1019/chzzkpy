@@ -32,7 +32,13 @@ from ..http import ChzzkSession
 from ..user import ParticleUser
 from .chat_activity_count import ChatAcitivityCount
 from .chat_rule import ChatRule
-from .manage_search import ManageResult, ManageFollower, ManageSubcriber, RestrictUser, ManageVideo
+from .manage_search import (
+    ManageResult,
+    ManageFollower,
+    ManageSubcriber,
+    RestrictUser,
+    ManageVideo,
+)
 from .prohibit_word import ProhibitWordResponse
 from .stream import Stream
 
@@ -244,7 +250,7 @@ class ChzzkManageSession(ChzzkSession):
     async def videos(
         self,
         channel_id: Annotated[str, Path],
-        video_type: Annotated[Literal['UPLOAD', 'REPLAY'], Query.to_camel()],
+        video_type: Annotated[Literal["UPLOAD", "REPLAY"], Query.to_camel()],
         page: Annotated[int, Query.to_camel()] = 0,
         size: Annotated[int, Query.to_camel()] = 50,
     ) -> Content[ManageResult[ManageVideo]]:

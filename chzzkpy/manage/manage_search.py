@@ -91,7 +91,8 @@ class ManageVideo(ParticleVideo):
     live_accumulate_count: int = 0
     live_unique_view_count: int = 0
     live_open_date: Annotated[
-        Optional[datetime.datetime], BeforeValidator(ChzzkModel.special_date_parsing_validator)
+        Optional[datetime.datetime],
+        BeforeValidator(ChzzkModel.special_date_parsing_validator),
     ] = None
     deleted: bool
     # download

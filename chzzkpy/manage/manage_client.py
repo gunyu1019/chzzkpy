@@ -31,7 +31,13 @@ from .http import ChzzkManageSession
 from .chat_activity_count import ChatAcitivityCount
 from .prohibit_word import ProhibitWord
 from .stream import Stream
-from .manage_search import ManageResult, ManageSubcriber, ManageFollower, RestrictUser, ManageVideo
+from .manage_search import (
+    ManageResult,
+    ManageSubcriber,
+    ManageFollower,
+    RestrictUser,
+    ManageVideo,
+)
 
 if TYPE_CHECKING:
     from ..client import Client
@@ -39,6 +45,7 @@ if TYPE_CHECKING:
 
 class ManageClient:
     """Represent a client that provides broadcast management functionality."""
+
     def __init__(self, channel_id: str, client: Client):
         self.channel_id = channel_id
         self.client = client
@@ -59,7 +66,7 @@ class ManageClient:
         self._is_closed = True
         await self._http.close()
         return
-    
+
     @property
     def is_closed(self) -> bool:
         """Indicates if the session is closed."""
@@ -75,14 +82,13 @@ class ManageClient:
         """
         data = await self._http.get_prohibit_words(self.channel_id)
         prohibit_words = [
-            x.set_manage_client(self)
-            for x in data.content.prohibit_word_list
+            x.set_manage_client(self) for x in data.content.prohibit_word_list
         ]
         return prohibit_words
 
     async def get_prohbit_word(self, word: str) -> Optional[ProhibitWord]:
         """Get prohibit word with word.
-        When word does not contain prohibit word, returns None. 
+        When word does not contain prohibit word, returns None.
 
         Parameters
         ----------
@@ -251,7 +257,7 @@ class ManageClient:
             Instead, it can be user id or nickname.
         role : UserRole
             A enumeration class containing broadcast role.
-            It can only set the role to :attribute:`UserRole.chat_manager`, 
+            It can only set the role to :attribute:`UserRole.chat_manager`,
             :attribute:`UserRole.settlement_manager`, or :attribute:`UserRole.broadcast_manager`.
             Giving any other role will cause a :exception:`TypeError` exception.
 
@@ -301,7 +307,7 @@ class ManageClient:
         Returns
         -------
         ChatActivityCount
-            Returns a chat activity count object contains the count of temporary activity restrictions, 
+            Returns a chat activity count object contains the count of temporary activity restrictions,
         the count of activity restrictions, and the count of chats.
         """
         user_id = user
@@ -402,8 +408,10 @@ class ManageClient:
             channel_id=self.channel_id, page=page, size=size, user_nickname=nickname
         )
         return data.content
-    
-    async def live_replay(self, page: int = 0, size: int = 50) -> ManageResult[ManageVideo]:
+
+    async def live_replay(
+        self, page: int = 0, size: int = 50
+    ) -> ManageResult[ManageVideo]:
         """Get streamming replay video of channel.
 
         Parameters
@@ -419,12 +427,10 @@ class ManageClient:
             Returns a :class:`ManageResult` containing the streamming replay video.
         """
         data = await self._http.videos(
-            channel_id=self.channel_id,
-            video_type="REPLAY",
-            page=page, size=size
+            channel_id=self.channel_id, video_type="REPLAY", page=page, size=size
         )
         return data.content
-    
+
     async def videos(self, page: int = 0, size: int = 50) -> ManageResult[ManageVideo]:
         """Get uploaded video of channel.
 
@@ -441,8 +447,6 @@ class ManageClient:
             Returns a :class:`ManageResult` containing the video.
         """
         data = await self._http.videos(
-            channel_id=self.channel_id,
-            video_type="UPLOAD",
-            page=page, size=size
+            channel_id=self.channel_id, video_type="UPLOAD", page=page, size=size
         )
         return data.content
