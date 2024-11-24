@@ -215,7 +215,9 @@ class ManageClient:
         data = await self._http.add_restrict(
             channel_id=self.channel_id, target_id=target_id
         )
-        return data.content
+        user = data.content
+        user.set_manage_client(self)
+        return user
 
     async def remove_restrict(self, user: str | ParticleUser) -> None:
         """Remove an user to restrict activity.
@@ -268,7 +270,9 @@ class ManageClient:
         data = await self._http.add_role(
             channel_id=self.channel_id, target_id=user_id, role=role.value
         )
-        return data.content
+        user = data.content
+        user.set_manage_client(self)
+        return user
 
     async def remove_role(self, user: str | ParticleUser) -> None:
         """Remove a broadcast permission to user.
