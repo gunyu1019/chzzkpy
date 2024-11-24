@@ -230,6 +230,24 @@ class ManageClient:
         )
 
     async def add_role(self, user: str | ParticleUser, role: UserRole) -> ParticleUser:
+        """Add a broadcast permission to user.
+
+        Parameters
+        ----------
+        user : str | ParticleUser
+            A user object to add role.
+            Instead, it can be user id or nickname.
+        role : UserRole
+            A enumeration class containing broadcast role.
+            It can only set the role to :attribute:`UserRole.chat_manager`, 
+            :attribute:`UserRole.settlement_manager`, or :attribute:`UserRole.broadcast_manager`.
+            Giving any other role will cause a :exception:`TypeError` exception.
+
+        Returns
+        -------
+        ParticleUser
+            Returns an user with added role.
+        """
         user_id = user
         if isinstance(user, ParticleUser):
             user_id = user.user_id_hash
@@ -243,6 +261,14 @@ class ManageClient:
         return data.content
 
     async def remove_role(self, user: str | ParticleUser) -> None:
+        """Remove a broadcast permission to user.
+
+        Parameters
+        ----------
+        user : str | ParticleUser
+            A user object to remove role.
+            Instead, it can be user id or nickname.
+        """
         user_id = user
         if isinstance(user, ParticleUser):
             user_id = user.user_id_hash
@@ -250,6 +276,20 @@ class ManageClient:
         await self._http.remove_role(channel_id=self.channel_id, target_id=user_id)
 
     async def chat_activity_count(self, user: str | ParticleUser) -> ChatAcitivityCount:
+        """Get chat activity count of user.
+
+        Parameters
+        ----------
+        user : str | ParticleUser
+            A user object to get chat activity count.
+            Instead, it can be user id.
+
+        Returns
+        -------
+        ChatActivityCount
+            Returns a chat activity count object contains the count of temporary activity restrictions, 
+        the count of activity restrictions, and the count of chats.
+        """
         user_id = user
         if isinstance(user, ParticleUser):
             user_id = user.user_id_hash
