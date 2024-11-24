@@ -37,7 +37,11 @@ class ProhibitWord(ChzzkModel, ManagerClientAccessable):
     async def remove(self):
         await self._manage_client.remove_prohibit_word(self)
 
+    @ManagerClientAccessable.based_manage_client
+    async def edit(self, word: str):
+        data = await self._manage_client.edit_prohibit_word(self, word)
+        return data
 
 
 class ProhibitWordResponse(ChzzkModel):
-    prohibit_words: list[ProhibitWord]
+    prohibit_word_list: list[ProhibitWord]
