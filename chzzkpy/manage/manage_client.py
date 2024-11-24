@@ -44,7 +44,7 @@ class ManageClient:
         self.client = client
 
         # All manage feature needs login.
-        if not self._http.has_login:
+        if not self.client._api_session.has_login:
             raise LoginRequired()
 
         self._http = ChzzkManageSession(self.client.loop)
@@ -52,12 +52,19 @@ class ManageClient:
             authorization_key=self.client._api_session._authorization_key,
             session_key=self.client._api_session._session_key,
         )
+        self._is_closed = False
 
     async def close(self):
         """Closes the connection to chzzk."""
+        self._is_closed = True
         await self._http.close()
         await super().close()
         return
+    
+    @property
+    def is_closed(self) -> bool:
+        """Indicates if the session is closed."""
+        return self._is_closed
 
     async def get_prohibit_words(self) -> List[ProhibitWord]:
         """Get prohibit words in chat.
@@ -68,7 +75,11 @@ class ManageClient:
             Returns the prohibit words.
         """
         data = await self._http.get_prohibit_words(self.channel_id)
-        return data.content.prohibit_words
+        prohibit_words = [
+            x.set_manage_client(self)
+            for x in data.content.prohibit_words
+        ]
+        return prohibit_words
 
     async def get_prohbit_word(self, word: str) -> Optional[ProhibitWord]:
         """Get prohibit word with word.

@@ -59,7 +59,7 @@ class Client:
         self._session_initial_set()
 
         # For management feature
-        self._manage_client = dict()
+        self._manage_client: dict[str, ManageClient] = dict()
         self._latest_manage_client_id = None
 
     def _session_initial_set(self):
@@ -88,6 +88,12 @@ class Client:
         self._closed = True
         await self._api_session.close()
         await self._game_session.close()
+
+        for manage_client in self._manage_client.values():
+            if manage_client.is_closed:
+                continue
+            
+            await manage_client.close()
         return
 
     def login(self, authorization_key: str, session_key: str):
