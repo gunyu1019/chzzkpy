@@ -58,7 +58,6 @@ class ManageClient:
         """Closes the connection to chzzk."""
         self._is_closed = True
         await self._http.close()
-        await super().close()
         return
     
     @property
@@ -77,7 +76,7 @@ class ManageClient:
         data = await self._http.get_prohibit_words(self.channel_id)
         prohibit_words = [
             x.set_manage_client(self)
-            for x in data.content.prohibit_words
+            for x in data.content.prohibit_word_list
         ]
         return prohibit_words
 
