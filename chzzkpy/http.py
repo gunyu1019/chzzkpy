@@ -96,6 +96,7 @@ class ChzzkSession(Session):
             raise HTTPException(code=data["code"], message=data["message"])
         return response
 
+    @staticmethod
     async def query_to_json(session: Session, request: RequestCore, path: str):
         copied_request_obj = request.copy()
         body = dict()
