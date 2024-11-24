@@ -134,6 +134,11 @@ class ChatMessage(MessageDetail[Extra]):
         """Send message to broadcaster."""
         await self.client.send_chat(message)
 
+    @_based_client
+    async def temporary_restrict(self):
+        """Temporary restrict this user."""
+        await self.client.temporary_restrict(self.profile)
+
     @property
     def is_me(self) -> bool:
         """Verify that this message is from a user signed in to the client."""
