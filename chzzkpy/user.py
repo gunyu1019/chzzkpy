@@ -23,18 +23,54 @@ SOFTWARE.
 
 import datetime
 from enum import Enum
-from typing import Annotated, Any, Optional
+from typing import Annotated, Any, Optional, Self, TYPE_CHECKING
 
 from pydantic import BeforeValidator
 
 from .base_model import ChzzkModel
+from .manage.manage_model import ManagerClientAccessable
+
+if TYPE_CHECKING:
+    from .manage.chat_activity_count import ChatAcitivityCount
 
 
-class ParticleUser(ChzzkModel):
+class UserRole(Enum):
+    common_user = "common_user"
+    streamer = "streamer"
+    chat_manager = "streaming_chat_manager"
+    channel_manager = "streaming_channel_manager"
+    settlement_manager = "streaming_settlement_manager"
+    manager = "manager"
+
+
+class ParticleUser(ChzzkModel, ManagerClientAccessable):
     user_id_hash: Optional[str]
     nickname: Optional[str]
     profile_image_url: Optional[str]
     verified_mark: bool = False
+
+    @ManagerClientAccessable.based_manage_client
+    async def add_restrict(self) -> Self:
+        result = await self._manage_client.add_restrict(self)
+        return result
+    
+    @ManagerClientAccessable.based_manage_client
+    async def remove_restrict(self):
+        await self._manage_client.remove_restrict(self)
+        
+    @ManagerClientAccessable.based_manage_client
+    async def add_role(self, role: UserRole) -> Self:
+        result = await self._manage_client.add_role(self, role)
+        return result
+    
+    @ManagerClientAccessable.based_manage_client
+    async def remove_role(self):
+        await self._manage_client.remove_role(self)
+    
+    @ManagerClientAccessable.based_manage_client
+    async def chat_activity_count(self) -> ChatAcitivityCount:
+        data = await self._manage_client.chat_activity_count(self)
+        return data
 
 
 class User(ParticleUser):
@@ -46,12 +82,3 @@ class User(ParticleUser):
         BeforeValidator(ChzzkModel.special_date_parsing_validator),
     ]  # Example: YYYY-MM-DDTHH:MM:SS.SSS+09
     logged_in: Optional[bool]
-
-
-class UserRole(Enum):
-    common_user = "common_user"
-    streamer = "streamer"
-    chat_manager = "streaming_chat_manager"
-    channel_manager = "streaming_channel_manager"
-    settlement_manager = "streaming_settlement_manager"
-    manager = "manager"
