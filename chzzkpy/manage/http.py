@@ -42,7 +42,7 @@ class ChzzkManageSession(ChzzkSession):
         super().__init__(base_url="https://api.chzzk.naver.com", loop=loop)
 
         self.add_restrict.before_hook(self.query_to_json)
-        self.set_role.before_hook(self.query_to_json)
+        self.add_role.before_hook(self.query_to_json)
         self.add_prohibit_word.before_hook(self.query_to_json)
         self.edit_prohibit_word.before_hook(self.query_to_json)
         self.set_chat_rule.before_hook(self.query_to_json)
