@@ -308,6 +308,28 @@ class ManageClient:
         tier: Optional[SubscriberTier] = None,
         nickname: Optional[str] = None,
     ) -> ManageResult[ManageSubcriber]:
+        """Get subcribers of channel.
+
+        Parameters
+        ----------
+        page : Optional[int]
+            The number of page, by default 0
+        size : Optional[int]
+            The number of subscribers to import at once, by default 50
+        sort_type : Optional[SortType]
+            A sort order, by default SortType.recent
+        publish_period : Optional[Literal[1, 3, 6]]
+            Lookup by the subscriber's publish period, by default None
+        tier : Optional[SubscriberTier]
+            Lookup by the subscriber's tier, by default None.
+        nickname : Optional[str]
+            Lookup by the subscriber's nickname, by default None
+
+        Returns
+        -------
+        ManageResult[ManageSubcriber]
+            Returns a :class:`ManageResult` containing the subscriber info.
+        """
         data = await self._http.subcribers(
             channel_id=self.channel_id,
             page=page,
@@ -322,6 +344,22 @@ class ManageClient:
     async def followers(
         self, page: int = 0, size: int = 50, sort_type: SortType = SortType.recent
     ) -> ManageResult[ManageFollower]:
+        """Get followers of channel.
+
+        Parameters
+        ----------
+        page : Optional[int]
+            The number of page, by default 0
+        size : Optional[int]
+            The number of followers to import at once, by default 50
+        sort_type : Optional[SortType]
+            A sort order, by default SortType.recent
+
+        Returns
+        -------
+        ManageResult[ManageFollower]
+            Returns a :class:`ManageResult` containing the follower info.
+        """
         data = await self._http.followers(
             channel_id=self.channel_id, page=page, size=size, sort_type=sort_type.value
         )
@@ -330,12 +368,42 @@ class ManageClient:
     async def restrict(
         self, page: int = 0, size: int = 50, nickname: Optional[str] = None
     ) -> ManageResult[RestrictUser]:
+        """Get activitiy restricted user of channel.
+
+        Parameters
+        ----------
+        page : Optional[int]
+            The number of page, by default 0
+        size : Optional[int]
+            The number of activity restricted user to import at once, by default 50
+        nickname : Optional[str]
+            Lookup by the activity restricted user's nickname, by default None
+
+        Returns
+        -------
+        ManageResult[RestrictUser]
+            Returns a :class:`ManageResult` containing the restricted user info.
+        """
         data = await self._http.restricts(
             channel_id=self.channel_id, page=page, size=size, user_nickname=nickname
         )
         return data.content
     
     async def live_replay(self, page: int = 0, size: int = 50) -> ManageResult[ManageVideo]:
+        """Get streamming replay video of channel.
+
+        Parameters
+        ----------
+        page : Optional[int]
+            The number of page, by default 0
+        size : Optional[int]
+            The number of streamming replay video to import at once, by default 50
+
+        Returns
+        -------
+        ManageResult[RestrictUser]
+            Returns a :class:`ManageResult` containing the streamming replay video.
+        """
         data = await self._http.videos(
             channel_id=self.channel_id,
             video_type="REPLAY",
@@ -344,6 +412,20 @@ class ManageClient:
         return data.content
     
     async def videos(self, page: int = 0, size: int = 50) -> ManageResult[ManageVideo]:
+        """Get uploaded video of channel.
+
+        Parameters
+        ----------
+        page : Optional[int]
+            The number of page, by default 0
+        size : Optional[int]
+            The number of video to import at once, by default 50
+
+        Returns
+        -------
+        ManageResult[RestrictUser]
+            Returns a :class:`ManageResult` containing the video.
+        """
         data = await self._http.videos(
             channel_id=self.channel_id,
             video_type="UPLOAD",
