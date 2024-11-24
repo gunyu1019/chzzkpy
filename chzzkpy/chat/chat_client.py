@@ -453,6 +453,20 @@ class ChatClient(Client):
         return
 
     async def temporary_restrict(self, user: ParticleUser | str) -> ParticleUser:
+        """Give temporary restrict to user.
+        A temporary restriction cannot be lifted arbitrarily.
+
+        Parameters
+        ----------
+        user : ParticleUser | str
+            A user object to give temporary restrict activity.
+            Instead, it can be user id.
+
+        Returns
+        -------
+        ParticleUser
+            Returns an user temporary restricted in chat.
+        """
         user_id = user
         if isinstance(user, ParticleUser):
             user_id = user.user_id_hash
@@ -499,10 +513,26 @@ class ChatClient(Client):
         return await super().live_detail(channel_id)
 
     def manage(self, channel_id: Optional[str] = None) -> ManageClient:
+        """Get a client provided broadcast management functionality.
+
+        Parameters
+        ----------
+        channel_id : Optional[str]
+            A channel id to manage broadcasts.
+            The default value is the last channel id used.
+            If initally use the manage method and don't have a channel_id argument, 
+            the default value is channel id of ChatClient.
+            
+        Returns
+        -------
+        ManageClient
+            Return a client provided broadcast management functionality.
+        """
         if channel_id is None and self._latest_manage_client_id is None:
             channel_id = self.channel_id
         return super().manage(channel_id=channel_id)
 
     @property
     def manage_self(self) -> ManageClient:
+        """Get a client provided self-channel management functionally."""
         return self.manage(channel_id=self.channel_id)
