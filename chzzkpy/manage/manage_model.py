@@ -57,3 +57,4 @@ class ManagerClientAccessable(BaseModel):
         if self._manage_client is not None:
             raise ValueError("Manage Client already set.")
         self._manage_client = client
+        return self

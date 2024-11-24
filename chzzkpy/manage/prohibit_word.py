@@ -24,13 +24,19 @@ SOFTWARE.
 import datetime
 
 from ..base_model import ChzzkModel
+from .manage_model import ManagerClientAccessable
 
 
-class ProhibitWord(ChzzkModel):
+class ProhibitWord(ChzzkModel, ManagerClientAccessable):
     created_date: datetime.datetime
     nickname: str
     prohibit_word: str
     prohibit_word_no: int
+
+    @ManagerClientAccessable.based_manage_client
+    async def remove(self):
+        await self._manage_client.remove_prohibit_word(self)
+
 
 
 class ProhibitWordResponse(ChzzkModel):
