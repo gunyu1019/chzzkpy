@@ -100,6 +100,9 @@ class ChatMessage(MessageDetail[Extra]):
     ) -> ChatMessage:
         model = super().model_validate(obj)
         model.client = client
+
+        if model.profile is not None:
+            model.profile._set_manage_client(client.manage_self)
         return model
 
     @staticmethod
@@ -122,7 +125,7 @@ class ChatMessage(MessageDetail[Extra]):
     @_based_client
     async def unpin(self):
         """Unpin this message."""
-        await self.client.delete_notice_message(self)
+        await self.client.delete_notice_message()
 
     @_based_client
     async def blind(self):
@@ -133,6 +136,11 @@ class ChatMessage(MessageDetail[Extra]):
     async def send(self, message: str):
         """Send message to broadcaster."""
         await self.client.send_chat(message)
+
+    @_based_client
+    async def temporary_restrict(self):
+        """Temporary restrict this user."""
+        await self.client.temporary_restrict(self.profile)
 
     @property
     def is_me(self) -> bool:

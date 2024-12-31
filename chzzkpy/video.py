@@ -30,24 +30,27 @@ from .base_model import ChzzkModel
 from .channel import PartialChannel
 
 
-class Video(ChzzkModel):
+class ParticleVideo(ChzzkModel):
+    id: Optional[str] = Field(alias="videoId")
+    number: int = Field(alias="videoNo")
+    title: str = Field(alias="videoTitle")
+    type: str = Field(alias="videoType")
+    duration: int
+    publish_date: Annotated[
+        Optional[datetime.datetime],
+        BeforeValidator(ChzzkModel.special_date_parsing_validator),
+    ] = None
+    thumbnail_image_url: Optional[str]
+
+
+class Video(ParticleVideo):
     model_config = ConfigDict(frozen=False)
 
     adult: bool
     category_type: Optional[str]
     channel: Optional[PartialChannel] = None
     channel_id: str
-    duration: int
-    publish_date: Annotated[
-        datetime.datetime, BeforeValidator(ChzzkModel.special_date_parsing_validator)
-    ]
     # publish_date_at: int # div/1000
     read_count: int
-    thumbnail_image_url: Optional[str]
     video_category: Optional[str]
     video_category_value: str
-
-    id: Optional[str] = Field(alias="videoId")
-    number: int = Field(alias="videoNo")
-    title: str = Field(alias="videoTitle")
-    type: str = Field(alias="videoType")

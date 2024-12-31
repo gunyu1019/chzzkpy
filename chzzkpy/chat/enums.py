@@ -57,14 +57,6 @@ class ChatType(IntEnum):
     OPEN = 121
 
 
-class UserRole(Enum):
-    common_user = "common_user"
-    streamer = "streamer"
-    chat_manager = "streaming_chat_manager"
-    channel_manager = "streaming_channel_manager"
-    manager = "manager"
-
-
 def get_enum(cls: type[E], val: Any) -> E:
     enum_val = [i for i in cls if i.value == val]
     if len(enum_val) == 0:

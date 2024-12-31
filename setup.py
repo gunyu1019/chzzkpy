@@ -17,7 +17,7 @@ extras_require = {"test": ["pytest", "pytest-cov"], "lint": ["pycodestyle", "bla
 setup(
     name="chzzkpy",
     version=version,
-    packages=["chzzkpy", "chzzkpy.chat"],
+    packages=["chzzkpy", "chzzkpy.chat", "chzzkpy.manage"],
     url="https://github.com/gunyu1019/chzzk_py",
     license="MIT",
     author="gunyu1019",

@@ -32,10 +32,12 @@ from typing import Any, Optional, Callable, Coroutine, Literal, TYPE_CHECKING
 from .enums import ChatCmd
 from .error import ChatConnectFailed
 from .gateway import ChzzkWebSocket, ReconnectWebsocket
-from .http import ChzzkChatSession
+from .http import ChzzkAPIChatSession, NaverGameChatSession
 from .state import ConnectionState
 from ..client import Client
 from ..error import LoginRequired
+from ..manage.manage_client import ManageClient
+from ..user import ParticleUser
 from ..live import LiveDetail, LiveStatus
 from ..http import ChzzkAPISession
 
@@ -87,9 +89,11 @@ class ChatClient(Client):
         self._gateway: Optional[ChzzkWebSocket] = None
         self._status: Literal["OPEN", "CLOSE"] = None
 
+        self._manage_client[channel_id] = ManageClient(channel_id, self)
+
     def _session_initial_set(self):
-        self._api_session = ChzzkAPISession(loop=self.loop)
-        self._game_session = ChzzkChatSession(loop=self.loop)
+        self._api_session = ChzzkAPIChatSession(loop=self.loop)
+        self._game_session = NaverGameChatSession(loop=self.loop)
 
     @property
     def is_connected(self) -> bool:
@@ -372,7 +376,7 @@ class ChatClient(Client):
 
         Parameters
         ----------
-        count : int, optional
+        count : Optional[int]
             Number of messages to fetch from the most recent, by default 50
 
         Raises
@@ -448,16 +452,87 @@ class ChatClient(Client):
         )
         return
 
-    async def live_status(
-        self, channel_id: Optional[str] = None
-    ) -> Optional[LiveStatus]:
+    async def temporary_restrict(self, user: ParticleUser | str) -> ParticleUser:
+        """Give temporary restrict to user.
+        A temporary restriction cannot be lifted arbitrarily.
+
+        Parameters
+        ----------
+        user : ParticleUser | str
+            A user object to give temporary restrict activity.
+            Instead, it can be user id.
+
+        Returns
+        -------
+        ParticleUser
+            Returns an user temporary restricted in chat.
+        """
+        user_id = user
+        if isinstance(user, ParticleUser):
+            user_id = user.user_id_hash
+
+        response = await self._api_session.temporary_restrict(
+            channel_id=self.channel_id,
+            chat_channel_id=self.chat_channel_id,
+            target_id=user_id,
+        )
+        return response
+
+    async def live_status(self, channel_id: Optional[str] = None):
+        """Get a live status info of broadcaster.
+
+        Parameters
+        ----------
+        channel_id : Optional[str]
+            The channel ID of broadcaster, default by channel id of ChatClient.
+
+        Returns
+        -------
+        Optional[LiveStatus]
+            Return LiveStatus info. Sometimes the broadcaster is not broadcasting, returns None.
+        """
         if channel_id is None:
             channel_id = self.channel_id
         return await super().live_status(channel_id)
 
-    async def live_detail(
-        self, channel_id: Optional[str] = None
-    ) -> Optional[LiveDetail]:
+    async def live_detail(self, channel_id: Optional[str] = None):
+        """Get a live detail info of broadcaster.
+
+        Parameters
+        ----------
+        channel_id : Optional[str]
+            The channel ID of broadcaster, default by channel id of ChatClient.
+
+        Returns
+        -------
+        Optional[LiveDetail]
+            Return LiveDetail info. Sometimes the broadcaster is not broadcasting, returns None.
+        """
         if channel_id is None:
             channel_id = self.channel_id
         return await super().live_detail(channel_id)
+
+    def manage(self, channel_id: Optional[str] = None) -> ManageClient:
+        """Get a client provided broadcast management functionality.
+
+        Parameters
+        ----------
+        channel_id : Optional[str]
+            A channel id to manage broadcasts.
+            The default value is the last channel id used.
+            If initally use the manage method and don't have a channel_id argument,
+            the default value is channel id of ChatClient.
+
+        Returns
+        -------
+        ManageClient
+            Return a client provided broadcast management functionality.
+        """
+        if channel_id is None and self._latest_manage_client_id is None:
+            channel_id = self.channel_id
+        return super().manage(channel_id=channel_id)
+
+    @property
+    def manage_self(self) -> ManageClient:
+        """Get a client provided self-channel management functionally."""
+        return self.manage(channel_id=self.channel_id)

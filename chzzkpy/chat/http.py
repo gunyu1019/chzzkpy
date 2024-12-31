@@ -1,22 +1,43 @@
 import asyncio
 
-from ahttp_client import Session, get, post, delete, Query
-from ahttp_client.request import RequestCore
+from ahttp_client import get, post, delete, Query, Path
 from ahttp_client.extension import get_pydantic_response_model
 from typing import Annotated, Optional
 
 from .access_token import AccessToken
 from ..base_model import Content
-from ..http import ChzzkSession, NaverGameAPISession
+from ..http import ChzzkSession, ChzzkAPISession, NaverGameAPISession
+from ..user import ParticleUser
 
 
-class ChzzkChatSession(NaverGameAPISession):
+class ChzzkAPIChatSession(ChzzkAPISession):
     def __init__(self, loop: Optional[asyncio.AbstractEventLoop] = None):
         super().__init__(loop=loop)
 
-        self.delete_notice_message.before_hook(ChzzkChatSession.query_to_json)
-        self.set_notice_message.before_hook(ChzzkChatSession.query_to_json)
-        self.blind_message.before_hook(ChzzkChatSession.query_to_json)
+        self.temporary_restrict.before_hook(self.query_to_json)
+
+    @get_pydantic_response_model()
+    @post(
+        "/manage/v1/channels/{channel_id}/temporary-restrict-users",
+        directly_response=True,
+    )
+    @ChzzkSession.configuration(login_able=True, login_required=True)
+    async def temporary_restrict(
+        self,
+        channel_id: Annotated[str, Path],
+        chat_channel_id: Annotated[str, Query.to_camel()],
+        target_id: Annotated[str, Query.to_camel()],
+    ) -> Content[ParticleUser]:
+        pass
+
+
+class NaverGameChatSession(NaverGameAPISession):
+    def __init__(self, loop: Optional[asyncio.AbstractEventLoop] = None):
+        super().__init__(loop=loop)
+
+        self.delete_notice_message.before_hook(ChzzkSession.query_to_json)
+        self.set_notice_message.before_hook(ChzzkSession.query_to_json)
+        self.blind_message.before_hook(ChzzkSession.query_to_json)
 
     @get_pydantic_response_model()
     @get("/nng_main/v1/chats/access-token", directly_response=True)
@@ -26,15 +47,6 @@ class ChzzkChatSession(NaverGameAPISession):
         self, channel_id: Annotated[str, Query.to_camel()]
     ) -> Content[AccessToken]:
         pass
-
-    async def query_to_json(session: Session, request: RequestCore, path: str):
-        copied_request_obj = request.copy()
-        body = dict()
-        for key, value in request.params.copy().items():
-            body[key] = value
-        copied_request_obj.params = dict()
-        copied_request_obj.body = body
-        return copied_request_obj, path
 
     @get_pydantic_response_model()
     @delete("/nng_main/v1/chats/notices", directly_response=True)

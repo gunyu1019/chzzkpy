@@ -22,23 +22,84 @@ SOFTWARE.
 """
 
 import datetime
-from typing import Annotated, Any, Optional
+from enum import Enum
+from typing import Annotated, Any, Optional, Self, TYPE_CHECKING
 
 from pydantic import BeforeValidator
 
 from .base_model import ChzzkModel
+from .manage.manage_model import ManagerClientAccessable
+
+if TYPE_CHECKING:
+    from .manage.chat_activity_count import ChatAcitivityCount
 
 
-class User(ChzzkModel):
-    has_profile: bool
+class UserRole(Enum):
+    common_user = "common_user"
+    streamer = "streamer"
+    chat_manager = "streaming_chat_manager"
+    channel_manager = "streaming_channel_manager"
+    settlement_manager = "streaming_settlement_manager"
+    manager = "manager"
+
+
+class ParticleUser(ChzzkModel, ManagerClientAccessable):
     user_id_hash: Optional[str]
     nickname: Optional[str]
     profile_image_url: Optional[str]
+    verified_mark: bool = False
+
+    @ManagerClientAccessable.based_manage_client
+    async def add_restrict(self) -> Self:
+        """Add this user to restrict activity."""
+        result = await self._manage_client.add_restrict(self)
+        return result
+
+    @ManagerClientAccessable.based_manage_client
+    async def remove_restrict(self):
+        """Remove this user to restrict activity."""
+        await self._manage_client.remove_restrict(self)
+
+    @ManagerClientAccessable.based_manage_client
+    async def add_role(self, role: UserRole) -> Self:
+        """Add a broadcast permission to this user.
+
+        Parameters
+        ----------
+        role : UserRole
+            A enumeration class containing broadcast role.
+            It can only set the role to :attribute:`UserRole.chat_manager`,
+            :attribute:`UserRole.settlement_manager`, or :attribute:`UserRole.broadcast_manager`.
+            Giving any other role will cause a :exception:`TypeError` exception.
+        """
+        result = await self._manage_client.add_role(self, role)
+        return result
+
+    @ManagerClientAccessable.based_manage_client
+    async def remove_role(self):
+        """Remove a broadcast permission to this user."""
+        await self._manage_client.remove_role(self)
+
+    @ManagerClientAccessable.based_manage_client
+    async def chat_activity_count(self) -> ChatAcitivityCount:
+        """Get chat activity count of this user.
+
+        Returns
+        -------
+        ChatAcitivityCount
+            Returns a chat activity count object contains the count of temporary activity restrictions,
+            the count of activity restrictions, and the count of chats.
+        """
+        data = await self._manage_client.chat_activity_count(self)
+        return data
+
+
+class User(ParticleUser):
+    has_profile: bool
     penalties: Optional[list[Any]]  # typing: ???
     official_noti_agree: bool
     official_noti_agree_updated_date: Annotated[
         Optional[datetime.datetime],
         BeforeValidator(ChzzkModel.special_date_parsing_validator),
     ]  # Example: YYYY-MM-DDTHH:MM:SS.SSS+09
-    verified_mark: bool
     logged_in: Optional[bool]

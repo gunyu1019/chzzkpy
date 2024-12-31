@@ -30,6 +30,8 @@ from .http import ChzzkAPISession, NaverGameAPISession
 from .live import Live, LiveStatus, LiveDetail
 from .user import User
 from .video import Video
+from .manage.manage_client import ManageClient
+
 
 if TYPE_CHECKING:
     from .channel import Channel
@@ -55,6 +57,10 @@ class Client:
             self.login(authorization_key, session_key)
 
         self._session_initial_set()
+
+        # For management feature
+        self._manage_client: dict[str, ManageClient] = dict()
+        self._latest_manage_client_id = None
 
     def _session_initial_set(self):
         self._api_session = ChzzkAPISession(loop=self.loop)
@@ -82,6 +88,12 @@ class Client:
         self._closed = True
         await self._api_session.close()
         await self._game_session.close()
+
+        for manage_client in self._manage_client.values():
+            if manage_client.is_closed:
+                continue
+
+            await manage_client.close()
         return
 
     def login(self, authorization_key: str, session_key: str):
@@ -219,3 +231,30 @@ class Client:
         res = await self._api_session.autocomplete(keyword=keyword)
         data = res.content.data
         return data
+
+    def manage(self, channel_id: Optional[str] = None) -> ManageClient:
+        """Get a client provided broadcast management functionality.
+
+        Parameters
+        ----------
+        channel_id : Optional[str]
+            A channel id to manage broadcasts.
+            The default value is the last channel id used.
+            If initally use the manage method and don't have a channel_id argument,
+            it will raise a :exception:`TypeError` exception.
+
+        Returns
+        -------
+        ManageClient
+            Return a client provided broadcast management functionality.
+        """
+        if channel_id is None:
+            if self._latest_manage_client_id is None:
+                raise TypeError("manage() missing 1 required argument: 'channel_id'")
+
+            channel_id = self._latest_manage_client_id
+
+        if channel_id not in self._manage_client.keys():
+            self._manage_client[channel_id] = ManageClient(channel_id, self)
+        self._latest_manage_client_id = channel_id
+        return self._manage_client[channel_id]
