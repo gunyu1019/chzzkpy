@@ -423,7 +423,7 @@ class ManageClient:
 
         Returns
         -------
-        ManageResult[RestrictUser]
+        ManageResult[ManageVideo]
             Returns a :class:`ManageResult` containing the streamming replay video.
         """
         data = await self._http.videos(
@@ -443,7 +443,7 @@ class ManageClient:
 
         Returns
         -------
-        ManageResult[RestrictUser]
+        ManageResult[ManageVideo]
             Returns a :class:`ManageResult` containing the video.
         """
         data = await self._http.videos(
