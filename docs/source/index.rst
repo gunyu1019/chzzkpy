@@ -94,3 +94,4 @@ Chat Bot
    Introduction <self>
    Basic Feature <basic>
    Chat Feature <chat>
+   Manage Feature <manage>
