@@ -145,7 +145,7 @@ msgstr "Websocket에서 호출되는 이벤트 함수를 대기합니다."
 
 
 #: chzzkpy.chat.chat_client.ChatClient.wait_for:3 of
-msgid "The event name. For a list of events, read :method:`event`"
+msgid "The event name. For a list of events, read :meth:`event`"
 msgstr "대기할 이벤트 함수입니다. 이벤트 함수는 `Event Reference`를 참고해주세요."
 
 

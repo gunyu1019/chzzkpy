@@ -177,7 +177,7 @@ Message
 -------
 .. autoclass:: chzzkpy.chat.Message()
    :members:
-   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
+   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init, model_validate_with_client
    :undoc-members:
 
 .. autoclass:: chzzkpy.chat.MessageDetail()
