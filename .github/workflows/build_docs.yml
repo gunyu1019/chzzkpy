@@ -5,7 +5,7 @@ on:
     branches:
       - docs
 
-name: Document (Build & Deployment)
+name: Documentation (Build & Deployment)
 
 jobs:
   build:
