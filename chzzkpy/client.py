@@ -241,7 +241,7 @@ class Client:
             A channel id to manage broadcasts.
             The default value is the last channel id used.
             If initally use the manage method and don't have a channel_id argument,
-            it will raise a :exception:`TypeError` exception.
+            it will raise a :exc:`TypeError` exception.
 
         Returns
         -------
