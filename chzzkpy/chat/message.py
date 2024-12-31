@@ -26,7 +26,7 @@ from __future__ import annotations
 import datetime
 import functools
 from typing import Optional, Literal, TypeVar, Generic, TYPE_CHECKING, Any
-from pydantic import AliasChoices, Field, Json, ConfigDict
+from pydantic import AliasChoices, Field, Json, ConfigDict, PrivateAttr
 
 from .donation import BaseDonation, ChatDonation, VideoDonation, MissionDonation
 from .enums import ChatType
@@ -72,6 +72,31 @@ class Message(ChzzkModel, Generic[E]):
         validation_alias=AliasChoices("msgTime", "messageTime")
     )
 
+    _client: Optional[ChatClient] = PrivateAttr(default=None)
+
+    @staticmethod
+    def _based_client(func):
+        @functools.wraps(func)
+        async def wrapper(self: MessageDetail, *args, **kwargs):
+            if self._client is None:
+                raise RuntimeError(
+                    f"This {self.__class__.__name__} is intended to store message information only."
+                )
+            return await func(self, *args, **kwargs)
+
+        return wrapper
+
+    @classmethod
+    def model_validate_with_client(
+        cls: type[ChatMessage], obj: Any, client: ChatClient
+    ) -> ChatMessage:
+        model = super().model_validate(obj)
+        model._client = client
+
+        if model.profile is not None:
+            model.profile._set_manage_client(client.manage_self)
+        return model
+
 
 class MessageDetail(Message[E], Generic[E]):
     member_count: int = Field(validation_alias=AliasChoices("mbrCnt", "memberCount"))
@@ -88,56 +113,27 @@ class MessageDetail(Message[E], Generic[E]):
 
 
 class ChatMessage(MessageDetail[Extra]):
-    model_config = ConfigDict(frozen=False)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.client: Optional[ChatClient] = None
-
-    @classmethod
-    def model_validate_with_client(
-        cls: type[ChatMessage], obj: Any, client: ChatClient
-    ) -> ChatMessage:
-        model = super().model_validate(obj)
-        model.client = client
-
-        if model.profile is not None:
-            model.profile._set_manage_client(client.manage_self)
-        return model
-
-    @staticmethod
-    def _based_client(func):
-        @functools.wraps(func)
-        async def wrapper(self: ChatMessage, *args, **kwargs):
-            if self.client is None:
-                raise RuntimeError(
-                    "This ChatMessage is intended to store message information only."
-                )
-            return await func(self, *args, **kwargs)
-
-        return wrapper
-
-    @_based_client
+    @MessageDetail._based_client
     async def pin(self):
         """Pin this message."""
         await self.client.set_notice_message(self)
 
-    @_based_client
+    @MessageDetail._based_client
     async def unpin(self):
         """Unpin this message."""
         await self.client.delete_notice_message()
 
-    @_based_client
+    @MessageDetail._based_client
     async def blind(self):
         """Blind this message."""
         await self.client.blind_message(self)
 
-    @_based_client
+    @MessageDetail._based_client
     async def send(self, message: str):
         """Send message to broadcaster."""
         await self.client.send_chat(message)
 
-    @_based_client
+    @MessageDetail._based_client
     async def temporary_restrict(self):
         """Temporary restrict this user."""
         await self.client.temporary_restrict(self.profile)
