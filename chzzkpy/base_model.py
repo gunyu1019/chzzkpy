@@ -20,11 +20,16 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+from __future__ import annotations
 
-from typing import Generic, TypeVar, Optional
+from functools import wraps
+from typing import Generic, TypeVar, Optional, TYPE_CHECKING
 
-from pydantic import BaseModel, ConfigDict, Extra
+from pydantic import BaseModel, ConfigDict, Extra, PrivateAttr
 from pydantic.alias_generators import to_camel
+
+if TYPE_CHECKING:
+    from .manage.manage_client import ManageClient
 
 T = TypeVar("T")
 
@@ -45,3 +50,34 @@ class Content(ChzzkModel, Generic[T]):
     code: int
     message: Optional[str]
     content: Optional[T]
+
+
+class ManagerClientAccessable(BaseModel):
+    _manage_client: Optional[ManageClient] = PrivateAttr(default=None)
+
+    @staticmethod
+    def based_manage_client(func):
+        @wraps(func)
+        async def wrapper(self, *args, **kwargs):
+            if not self.is_interactable:
+                raise RuntimeError(
+                    f"This {self.__class__.__name__} is intended to store data only."
+                )
+            return await func(self, *args, **kwargs)
+
+        return wrapper
+
+    @based_manage_client
+    def channel_id(self) -> str:
+        self._manage_client.channel_id
+
+    @property
+    def is_interactable(self):
+        """Ensure this model has access to interact with manage client."""
+        return self._manage_client is not None
+
+    def _set_manage_client(self, client: ManageClient):
+        if not self.is_interactable:
+            raise ValueError("Manage Client already set.")
+        self._manage_client = client
+        return self

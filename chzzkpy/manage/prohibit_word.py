@@ -23,8 +23,7 @@ SOFTWARE.
 
 import datetime
 
-from ..base_model import ChzzkModel
-from .manage_model import ManagerClientAccessable
+from ..base_model import ChzzkModel, ManagerClientAccessable
 
 
 class ProhibitWord(ChzzkModel, ManagerClientAccessable):

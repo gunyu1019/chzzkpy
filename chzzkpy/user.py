@@ -20,15 +20,15 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+from __future__ import annotations
 
 import datetime
 from enum import Enum
-from typing import Annotated, Any, Optional, Self, TYPE_CHECKING
+from typing import Annotated, Any, Optional, TYPE_CHECKING
 
 from pydantic import BeforeValidator
 
-from .base_model import ChzzkModel
-from .manage.manage_model import ManagerClientAccessable
+from .base_model import ChzzkModel, ManagerClientAccessable
 
 if TYPE_CHECKING:
     from .manage.chat_activity_count import ChatAcitivityCount
@@ -50,7 +50,7 @@ class ParticleUser(ChzzkModel, ManagerClientAccessable):
     verified_mark: bool = False
 
     @ManagerClientAccessable.based_manage_client
-    async def add_restrict(self) -> Self:
+    async def add_restrict(self):
         """Add this user to restrict activity."""
         result = await self._manage_client.add_restrict(self)
         return result
@@ -61,7 +61,7 @@ class ParticleUser(ChzzkModel, ManagerClientAccessable):
         await self._manage_client.remove_restrict(self)
 
     @ManagerClientAccessable.based_manage_client
-    async def add_role(self, role: UserRole) -> Self:
+    async def add_role(self, role: UserRole):
         """Add a broadcast permission to this user.
 
         Parameters
