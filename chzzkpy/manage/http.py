@@ -29,7 +29,7 @@ from typing import Annotated, Optional, Literal
 
 from ..base_model import Content
 from ..http import ChzzkSession
-from ..user import ParticleUser
+from ..user import PartialUser
 from .chat_activity_count import ChatAcitivityCount
 from .chat_rule import ChatRule
 from .manage_search import (
@@ -60,7 +60,7 @@ class ChzzkManageSession(ChzzkSession):
         self,
         channel_id: Annotated[str, Path],
         target_id: Annotated[str, Query.to_camel()],
-    ) -> Content[ParticleUser]:
+    ) -> Content[PartialUser]:
         pass
 
     @get_pydantic_response_model()
@@ -85,7 +85,7 @@ class ChzzkManageSession(ChzzkSession):
             Literal["streaming_chat_manager", "streaming_channel_manager"],
             Query.to_camel(),
         ],
-    ) -> Content[ParticleUser]:
+    ) -> Content[PartialUser]:
         pass
 
     @get_pydantic_response_model()

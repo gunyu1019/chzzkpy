@@ -27,8 +27,8 @@ from typing import Annotated, List, Optional, Generic, TypeVar
 from pydantic import BeforeValidator
 
 from ..base_model import ChzzkModel
-from ..user import ParticleUser
-from ..video import ParticleVideo
+from ..user import PartialUser
+from ..video import PartialVideo
 
 T = TypeVar("T")
 
@@ -61,7 +61,7 @@ class ManageSubcriber(ChzzkModel):  # incomplete data
 
 
 class ManageFollower(ChzzkModel):
-    user: ParticleUser
+    user: PartialUser
     following: FollowingInfo
     channel_following: FollowingInfo
 
@@ -74,7 +74,7 @@ class RestrictUser(ChzzkModel):
     created_date: datetime.datetime
 
 
-class ManageVideo(ParticleVideo):
+class ManageVideo(PartialVideo):
     live_id: Optional[int] = None
     created_date: Annotated[
         datetime.datetime, BeforeValidator(ChzzkModel.special_date_parsing_validator)

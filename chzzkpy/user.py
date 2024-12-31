@@ -43,7 +43,7 @@ class UserRole(Enum):
     manager = "manager"
 
 
-class ParticleUser(ChzzkModel, ManagerClientAccessable):
+class PartialUser(ChzzkModel, ManagerClientAccessable):
     user_id_hash: Optional[str]
     nickname: Optional[str]
     profile_image_url: Optional[str]
@@ -94,7 +94,7 @@ class ParticleUser(ChzzkModel, ManagerClientAccessable):
         return data
 
 
-class User(ParticleUser):
+class User(PartialUser):
     has_profile: bool
     penalties: Optional[list[Any]]  # typing: ???
     official_noti_agree: bool

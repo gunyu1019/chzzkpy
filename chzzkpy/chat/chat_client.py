@@ -37,7 +37,7 @@ from .state import ConnectionState
 from ..client import Client
 from ..error import LoginRequired
 from ..manage.manage_client import ManageClient
-from ..user import ParticleUser
+from ..user import PartialUser
 from ..live import LiveDetail, LiveStatus
 from ..http import ChzzkAPISession
 
@@ -452,7 +452,7 @@ class ChatClient(Client):
         )
         return
 
-    async def temporary_restrict(self, user: ParticleUser | str) -> ParticleUser:
+    async def temporary_restrict(self, user: PartialUser | str) -> PartialUser:
         """Give temporary restrict to user.
         A temporary restriction cannot be lifted arbitrarily.
 
@@ -468,7 +468,7 @@ class ChatClient(Client):
             Returns an user temporary restricted in chat.
         """
         user_id = user
-        if isinstance(user, ParticleUser):
+        if isinstance(user, PartialUser):
             user_id = user.user_id_hash
 
         response = await self._api_session.temporary_restrict(

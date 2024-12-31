@@ -7,7 +7,7 @@ from typing import Annotated, Optional
 from .access_token import AccessToken
 from ..base_model import Content
 from ..http import ChzzkSession, ChzzkAPISession, NaverGameAPISession
-from ..user import ParticleUser
+from ..user import PartialUser
 
 
 class ChzzkAPIChatSession(ChzzkAPISession):
@@ -27,7 +27,7 @@ class ChzzkAPIChatSession(ChzzkAPISession):
         channel_id: Annotated[str, Path],
         chat_channel_id: Annotated[str, Query.to_camel()],
         target_id: Annotated[str, Query.to_camel()],
-    ) -> Content[ParticleUser]:
+    ) -> Content[PartialUser]:
         pass
 
 

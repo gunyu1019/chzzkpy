@@ -30,7 +30,7 @@ from .base_model import ChzzkModel
 from .channel import PartialChannel
 
 
-class ParticleVideo(ChzzkModel):
+class PartialVideo(ChzzkModel):
     id: Optional[str] = Field(alias="videoId")
     number: int = Field(alias="videoNo")
     title: str = Field(alias="videoTitle")
@@ -43,7 +43,7 @@ class ParticleVideo(ChzzkModel):
     thumbnail_image_url: Optional[str]
 
 
-class Video(ParticleVideo):
+class Video(PartialVideo):
     model_config = ConfigDict(frozen=False)
 
     adult: bool

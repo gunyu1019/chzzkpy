@@ -25,7 +25,7 @@ from __future__ import annotations
 
 from typing import List, Literal, Optional, TYPE_CHECKING
 from ..error import LoginRequired
-from ..user import ParticleUser, UserRole
+from ..user import PartialUser, UserRole
 from .enums import SortType, SubscriberTier
 from .http import ChzzkManageSession
 from .chat_activity_count import ChatAcitivityCount
@@ -200,7 +200,7 @@ class ManageClient:
         data = await self._http.stream()
         return data.content
 
-    async def add_restrict(self, user: str | ParticleUser) -> ParticleUser:
+    async def add_restrict(self, user: str | PartialUser) -> PartialUser:
         """Add an user to restrict activity.
 
         Parameters
@@ -215,7 +215,7 @@ class ManageClient:
             Returns an object containning activity-restricted users.
         """
         target_id = user
-        if isinstance(user, ParticleUser):
+        if isinstance(user, PartialUser):
             target_id = user.user_id_hash
 
         data = await self._http.add_restrict(
@@ -225,7 +225,7 @@ class ManageClient:
         user._set_manage_client(self)
         return user
 
-    async def remove_restrict(self, user: str | ParticleUser) -> None:
+    async def remove_restrict(self, user: str | PartialUser) -> None:
         """Remove an user to restrict activity.
 
         Parameters
@@ -240,14 +240,14 @@ class ManageClient:
             Returns an user whose activity is unrestricted.
         """
         target_id = user
-        if isinstance(user, ParticleUser):
+        if isinstance(user, PartialUser):
             target_id = user.user_id_hash
 
         await self._http.remove_restrict(
             channel_id=self.channel_id, target_id=target_id
         )
 
-    async def add_role(self, user: str | ParticleUser, role: UserRole) -> ParticleUser:
+    async def add_role(self, user: str | PartialUser, role: UserRole) -> PartialUser:
         """Add a broadcast permission to user.
 
         Parameters
@@ -267,7 +267,7 @@ class ManageClient:
             Returns an user with added role.
         """
         user_id = user
-        if isinstance(user, ParticleUser):
+        if isinstance(user, PartialUser):
             user_id = user.user_id_hash
 
         if role in [UserRole.common_user, UserRole.streamer, UserRole.manager]:
@@ -280,7 +280,7 @@ class ManageClient:
         user._set_manage_client(self)
         return user
 
-    async def remove_role(self, user: str | ParticleUser) -> None:
+    async def remove_role(self, user: str | PartialUser) -> None:
         """Remove a broadcast permission to user.
 
         Parameters
@@ -290,12 +290,12 @@ class ManageClient:
             Instead, it can be user id or nickname.
         """
         user_id = user
-        if isinstance(user, ParticleUser):
+        if isinstance(user, PartialUser):
             user_id = user.user_id_hash
 
         await self._http.remove_role(channel_id=self.channel_id, target_id=user_id)
 
-    async def chat_activity_count(self, user: str | ParticleUser) -> ChatAcitivityCount:
+    async def chat_activity_count(self, user: str | PartialUser) -> ChatAcitivityCount:
         """Get chat activity count of user.
 
         Parameters
@@ -311,7 +311,7 @@ class ManageClient:
         the count of activity restrictions, and the count of chats.
         """
         user_id = user
-        if isinstance(user, ParticleUser):
+        if isinstance(user, PartialUser):
             user_id = user.user_id_hash
 
         data = await self._http.chat_activity_count(

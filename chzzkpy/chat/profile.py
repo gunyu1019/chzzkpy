@@ -25,7 +25,7 @@ from typing import Any, Optional
 from pydantic import computed_field, Field, PrivateAttr
 
 from ..base_model import ChzzkModel
-from ..user import UserRole, ParticleUser
+from ..user import UserRole, PartialUser
 
 
 class Badge(ChzzkModel):
@@ -69,7 +69,7 @@ class ActivityBadge(Badge):
     activated: bool
 
 
-class Profile(ParticleUser):
+class Profile(PartialUser):
     activity_badges: list[Any]
     user_role: Optional[UserRole] = Field(alias="userRoleCode", default=None)
     _badge: Optional[dict[str, str]] = PrivateAttr(default=None)
