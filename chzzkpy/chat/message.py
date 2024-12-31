@@ -100,7 +100,7 @@ class ChatMessage(MessageDetail[Extra]):
     ) -> ChatMessage:
         model = super().model_validate(obj)
         model.client = client
-        
+
         if model.profile is not None:
             model.profile._set_manage_client(client.manage_self)
         return model
