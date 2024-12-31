@@ -41,7 +41,7 @@ class ManagerClientAccessable(BaseModel):
     def based_manage_client(func):
         @functools.wraps(func)
         async def wrapper(self, *args, **kwargs):
-            if self._manage_client is None:
+            if not self.is_interactable:
                 raise RuntimeError(
                     f"This {self.__class__.__name__} is intended to store data only."
                 )
@@ -53,8 +53,13 @@ class ManagerClientAccessable(BaseModel):
     def channel_id(self) -> str:
         self._manage_client.channel_id
 
+    @property
+    def is_interactable(self):
+        """Ensure this model has access to interact with manage client."""
+        return self._manage_client is None
+
     def set_manage_client(self, client: ManageClient):
-        if self._manage_client is not None:
+        if not self.is_interactable:
             raise ValueError("Manage Client already set.")
         self._manage_client = client
         return self
