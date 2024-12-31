@@ -58,7 +58,7 @@ class ManagerClientAccessable(BaseModel):
         """Ensure this model has access to interact with manage client."""
         return self._manage_client is None
 
-    def set_manage_client(self, client: ManageClient):
+    def _set_manage_client(self, client: ManageClient):
         if not self.is_interactable:
             raise ValueError("Manage Client already set.")
         self._manage_client = client

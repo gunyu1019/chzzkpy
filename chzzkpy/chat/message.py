@@ -102,7 +102,7 @@ class ChatMessage(MessageDetail[Extra]):
         model.client = client
         
         if model.profile is not None:
-            model.profile.set_manage_client(client.manage_self)
+            model.profile._set_manage_client(client.manage_self)
         return model
 
     @staticmethod

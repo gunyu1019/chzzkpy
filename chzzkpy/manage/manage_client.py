@@ -222,7 +222,7 @@ class ManageClient:
             channel_id=self.channel_id, target_id=target_id
         )
         user = data.content
-        user.set_manage_client(self)
+        user._set_manage_client(self)
         return user
 
     async def remove_restrict(self, user: str | ParticleUser) -> None:
@@ -277,7 +277,7 @@ class ManageClient:
             channel_id=self.channel_id, target_id=user_id, role=role.value
         )
         user = data.content
-        user.set_manage_client(self)
+        user._set_manage_client(self)
         return user
 
     async def remove_role(self, user: str | ParticleUser) -> None:
