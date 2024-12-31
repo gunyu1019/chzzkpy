@@ -88,14 +88,27 @@ class Message(ChzzkModel, Generic[E]):
 
     @classmethod
     def model_validate_with_client(
-        cls: type[ChatMessage], obj: Any, client: ChatClient
-    ) -> ChatMessage:
+        cls: type[Message], obj: Any, client: ChatClient
+    ) -> Message:
         model = super().model_validate(obj)
         model._client = client
 
         if model.profile is not None:
             model.profile._set_manage_client(client.manage_self)
         return model
+    @property
+    def is_me(self) -> bool:
+        """Verify that this message is from a user signed in to the client."""
+        if self._client is None:
+            raise RuntimeError(
+                f"This {self.__class__.__name__} is intended to store message information only."
+            )
+        return self.client.user_id == self.user_id
+
+    @_based_client
+    async def send(self, message: str):
+        """Send message to broadcaster."""
+        await self.client.send_chat(message)
 
 
 class MessageDetail(Message[E], Generic[E]):
@@ -113,39 +126,25 @@ class MessageDetail(Message[E], Generic[E]):
 
 
 class ChatMessage(MessageDetail[Extra]):
-    @MessageDetail._based_client
+    @Message._based_client
     async def pin(self):
         """Pin this message."""
         await self.client.set_notice_message(self)
 
-    @MessageDetail._based_client
+    @Message._based_client
     async def unpin(self):
         """Unpin this message."""
         await self.client.delete_notice_message()
 
-    @MessageDetail._based_client
+    @Message._based_client
     async def blind(self):
         """Blind this message."""
         await self.client.blind_message(self)
 
-    @MessageDetail._based_client
-    async def send(self, message: str):
-        """Send message to broadcaster."""
-        await self.client.send_chat(message)
-
-    @MessageDetail._based_client
+    @Message._based_client
     async def temporary_restrict(self):
         """Temporary restrict this user."""
         await self.client.temporary_restrict(self.profile)
-
-    @property
-    def is_me(self) -> bool:
-        """Verify that this message is from a user signed in to the client."""
-        if self.client is None:
-            raise RuntimeError(
-                "This ChatMessage is intended to store message information only."
-            )
-        return self.client.user_id == self.user_id
 
 
 class NoticeExtra(Extra):
@@ -153,7 +152,10 @@ class NoticeExtra(Extra):
 
 
 class NoticeMessage(Message[NoticeExtra]):
-    pass
+    @Message._based_client
+    async def unpin(self):
+        """Unpin this message."""
+        await self.client.delete_notice_message()
 
 
 class ChatDonationExtra(ChatDonation):
