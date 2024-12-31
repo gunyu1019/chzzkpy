@@ -51,24 +51,45 @@ class ParticleUser(ChzzkModel, ManagerClientAccessable):
 
     @ManagerClientAccessable.based_manage_client
     async def add_restrict(self) -> Self:
+        """Add this user to restrict activity."""
         result = await self._manage_client.add_restrict(self)
         return result
 
     @ManagerClientAccessable.based_manage_client
     async def remove_restrict(self):
+        """Remove this user to restrict activity."""
         await self._manage_client.remove_restrict(self)
 
     @ManagerClientAccessable.based_manage_client
     async def add_role(self, role: UserRole) -> Self:
+        """Add a broadcast permission to this user.
+
+        Parameters
+        ----------
+        role : UserRole
+            A enumeration class containing broadcast role.
+            It can only set the role to :attribute:`UserRole.chat_manager`,
+            :attribute:`UserRole.settlement_manager`, or :attribute:`UserRole.broadcast_manager`.
+            Giving any other role will cause a :exception:`TypeError` exception.
+        """
         result = await self._manage_client.add_role(self, role)
         return result
 
     @ManagerClientAccessable.based_manage_client
     async def remove_role(self):
+        """Remove a broadcast permission to this user."""
         await self._manage_client.remove_role(self)
 
     @ManagerClientAccessable.based_manage_client
     async def chat_activity_count(self) -> ChatAcitivityCount:
+        """Get chat activity count of this user.
+
+        Returns
+        -------
+        ChatAcitivityCount
+            Returns a chat activity count object contains the count of temporary activity restrictions,
+            the count of activity restrictions, and the count of chats.
+        """
         data = await self._manage_client.chat_activity_count(self)
         return data
 
