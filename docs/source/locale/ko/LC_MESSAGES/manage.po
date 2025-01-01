@@ -25,57 +25,61 @@ msgstr ""
 
 #: ../../source/manage.rst:5
 msgid "Manage Client"
-msgstr ""
+msgstr "Manage Client(클라이언트)"
 
 #: chzzkpy.manage.manage_client.ManageClient:1 of
 msgid "Represent a client that provides broadcast management functionality."
-msgstr ""
+msgstr "치지직(네이버 스트리밍 서비스)의 채널 관리 기능을 제공하는 객체입니다."
 
 #: chzzkpy.manage.manage_client.ManageClient.add_prohibit_word:1 of
 msgid "Add a prohibit word at chat."
-msgstr ""
+msgstr "채팅 금칙어를 추가합니다."
 
 #: ../../source/manage.rst
 msgid "Parameters"
-msgstr ""
+msgstr "Parameters"
 
 #: chzzkpy.manage.manage_client.ManageClient.add_prohibit_word:3 of
 msgid "A word to prohibit."
-msgstr ""
+msgstr "금지할 단어입니다."
 
 #: ../../source/manage.rst
 msgid "Returns"
-msgstr ""
+msgstr "Retruns"
 
 #: chzzkpy.manage.manage_client.ManageClient.add_prohibit_word:6 of
 msgid "Returns the generated prohibit word."
-msgstr ""
+msgstr "생성된 금칙어 단어를 반환합니다."
 
 #: ../../source/manage.rst
 msgid "Return type"
-msgstr ""
+msgstr "Return type"
 
 #: chzzkpy.manage.manage_client.ManageClient.add_restrict:1 of
 msgid "Add an user to restrict activity."
-msgstr ""
+msgstr "사용자를 채널에서 활동을 하지못하도록 제한합니다."
 
 #: chzzkpy.manage.manage_client.ManageClient.add_restrict:3 of
 msgid ""
 "A user object to add restrict activity. Instead, it can be user id or "
 "nickname."
 msgstr ""
+"활동 제한할 사용자를 입력합니다. "
+"`class`:PartialUser: 대신에 사용자의 ID 또는 닉네임을 사용할 수 있습니다."
 
 #: chzzkpy.manage.manage_client.ManageClient.add_restrict:7 of
 msgid "Returns an object containning activity-restricted users."
-msgstr ""
+msgstr "활동이 제한된 사용자의 정보가 담긴 객체입니다."
 
 #: chzzkpy.manage.manage_client.ManageClient.add_role:1 of
 msgid "Add a broadcast permission to user."
-msgstr ""
+msgstr "사용자에게 채널에서 특정 권한을 부여합니다."
 
 #: chzzkpy.manage.manage_client.ManageClient.add_role:3 of
 msgid "A user object to add role. Instead, it can be user id or nickname."
 msgstr ""
+"권한을 부여할 사용자를 입력합니다. "
+"`class`:PartialUser: 대신에 사용자 ID 또는 닉네임을 사용할 수 있습니다."
 
 #: chzzkpy.manage.manage_client.ManageClient.add_role:6 of
 msgid ""
@@ -84,10 +88,14 @@ msgid ""
 " :attr:`UserRole.channel_manager`. Giving any other role will cause a "
 ":exc:`TypeError` exception."
 msgstr ""
+"사용자에게 부여할 채널 권한입니다."
+"권한은 :attr:`UserRole.chat_manager`, :attr:`UserRole.settlement_manager`, "
+" :attr:`UserRole.channel_manager`만 부여할 수 습니다. 다른 권한을 인수로 넣으면,"
+":exc:`TypeError` 예외가 발생합니다."
 
 #: chzzkpy.manage.manage_client.ManageClient.add_role:12 of
 msgid "Returns an user with added role."
-msgstr ""
+msgstr "권한이 추가된 사용자의 정보가 담긴 객체를 반환받습니다."
 
 #: chzzkpy.manage.manage_client.ManageClient.chat_activity_count:1 of
 msgid "Get chat activity count of user."

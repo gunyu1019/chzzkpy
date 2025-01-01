@@ -470,7 +470,7 @@ msgstr "이 데이터 모델은 `on_recent_chat` 이벤트 함수에서 사용�
 
 #: ../../source/chat.rst:303
 msgid "Exceptions"
-msgstr "예외 (Exceptions)"
+msgstr "Exceptions"
 
 #: ../../source/chat.rst:304
 msgid ""
@@ -480,25 +480,3 @@ msgid ""
 msgstr ""
 "`Chat Features` 페이지에서 발생하는 예외는 `ChatClient`에서 발생할 수 있는 추가적인 예외상황입니다. "
 "`Basic Features` 페이지에서 발생하는 예외도 발생할 수 있습니다. "
-
-#~ msgid "Enumerations"
-#~ msgstr "Enumerations"
-
-#~ msgid ""
-#~ "This function is meant to behave "
-#~ "like a BaseModel method to initialise"
-#~ " private attributes."
-#~ msgstr ""
-
-#~ msgid ""
-#~ "It takes context as an argument "
-#~ "since that's what pydantic-core passes"
-#~ " when calling it."
-#~ msgstr ""
-
-#~ msgid "The BaseModel instance."
-#~ msgstr ""
-
-#~ msgid "The context."
-#~ msgstr ""
-
