@@ -31,7 +31,7 @@ from pydantic import BeforeValidator
 from .base_model import ChzzkModel, ManagerClientAccessable
 
 if TYPE_CHECKING:
-    from .manage.chat_activity_count import ChatAcitivityCount
+    from .manage.chat_activity_count import ChatActivityCount
 
 
 class UserRole(Enum):
@@ -81,12 +81,12 @@ class PartialUser(ChzzkModel, ManagerClientAccessable):
         await self._manage_client.remove_role(self)
 
     @ManagerClientAccessable.based_manage_client
-    async def chat_activity_count(self) -> ChatAcitivityCount:
+    async def chat_activity_count(self) -> ChatActivityCount:
         """Get chat activity count of this user.
 
         Returns
         -------
-        ChatAcitivityCount
+        ChatActivityCount
             Returns a chat activity count object contains the count of temporary activity restrictions,
             the count of activity restrictions, and the count of chats.
         """

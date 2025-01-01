@@ -28,7 +28,7 @@ from ..error import LoginRequired
 from ..user import PartialUser, UserRole
 from .enums import SortType, SubscriberTier
 from .http import ChzzkManageSession
-from .chat_activity_count import ChatAcitivityCount
+from .chat_activity_count import ChatActivityCount
 from .prohibit_word import ProhibitWord
 from .stream import Stream
 from .manage_search import (
@@ -295,7 +295,7 @@ class ManageClient:
 
         await self._http.remove_role(channel_id=self.channel_id, target_id=user_id)
 
-    async def chat_activity_count(self, user: str | PartialUser) -> ChatAcitivityCount:
+    async def chat_activity_count(self, user: str | PartialUser) -> ChatActivityCount:
         """Get chat activity count of user.
 
         Parameters

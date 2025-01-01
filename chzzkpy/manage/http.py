@@ -30,7 +30,7 @@ from typing import Annotated, Optional, Literal
 from ..base_model import Content
 from ..http import ChzzkSession
 from ..user import PartialUser
-from .chat_activity_count import ChatAcitivityCount
+from .chat_activity_count import ChatActivityCount
 from .chat_rule import ChatRule
 from .manage_search import (
     ManageResult,
@@ -198,7 +198,7 @@ class ChzzkManageSession(ChzzkSession):
         self,
         channel_id: Annotated[str, Path],
         target_id: Annotated[str, Path],
-    ) -> Content[ChatAcitivityCount]:
+    ) -> Content[ChatActivityCount]:
         pass
 
     @get_pydantic_response_model()
