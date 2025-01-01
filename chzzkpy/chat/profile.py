@@ -70,12 +70,11 @@ class ActivityBadge(Badge):
 
 
 class Profile(PartialUser):
-    activity_badges: list[Any]
+    activity_badges: list[ActivityBadge] = Field(default_factory=list)
     user_role: Optional[UserRole] = Field(alias="userRoleCode", default=None)
     _badge: Optional[dict[str, str]] = PrivateAttr(default=None)
     _title: Optional[dict[str, str]] = PrivateAttr(default=None)
     streaming_property: Optional[StreamingProperty] = None
-    activity_badges: list[ActivityBadge] = Field(default_factory=list)
 
     def __init__(self, **kwargs):
         super(ChzzkModel, self).__init__(**kwargs)
