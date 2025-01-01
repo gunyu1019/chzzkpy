@@ -28,9 +28,8 @@ msgid "Chat Feature"
 msgstr "채팅 기능"
 
 #: ../../source/index.rst:88
-#, fuzzy
 msgid "Manage Feature"
-msgstr "채팅 기능"
+msgstr "채널 관리 기능"
 
 #: ../../source/index.rst:88
 msgid "Table of Contents"
