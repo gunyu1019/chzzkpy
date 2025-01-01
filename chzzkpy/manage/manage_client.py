@@ -407,7 +407,10 @@ class ManageClient:
             Returns a :class:`ManageResult` containing the restricted user info.
         """
         data = await self._http.restricts(
-            channel_id=self.channel_id, page=page, size=size, user_nickname="" if nickname is None else nickname
+            channel_id=self.channel_id,
+            page=page,
+            size=size,
+            user_nickname="" if nickname is None else nickname,
         )
         for restricted_user in data.content.data:
             restricted_user._set_manage_client(self)
