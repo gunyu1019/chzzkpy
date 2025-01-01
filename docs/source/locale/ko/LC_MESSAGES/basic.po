@@ -98,7 +98,7 @@ msgstr "HTTP 전송되는 쿠키 중의 `NID_SES` 값을 의미합니다."
 
 #: chzzkpy.client.Client.manage:1 of
 msgid "Get a client provided broadcast management functionality."
-msgstr ""
+msgstr "방송 관리 기능을 제공하는 클라이언트를 불러옵니다."
 
 #: chzzkpy.client.Client.manage:3 of
 msgid ""
@@ -106,10 +106,12 @@ msgid ""
 "id used. If initally use the manage method and don't have a channel_id "
 "argument, it will raise a :exc:`TypeError` exception."
 msgstr ""
+"방송 관리 기능을 사용할 채널의 ID 입니다. 기본 값은 마지막으로 사용한 채널의 ID입니다."
+"만약에 마지막으로 사용한 채널이 없다면, :exc:`TypeError` 예외를 발생시킵니다."
 
 #: chzzkpy.client.Client.manage:9 of
 msgid "Return a client provided broadcast management functionality."
-msgstr ""
+msgstr "방송 관리 기능을 제공하는 클라이언트를 반환받습니다."
 
 #: chzzkpy.client.Client.search_channel:1 of
 msgid "Search the channel with keyword."
@@ -181,11 +183,11 @@ msgstr "User"
 
 #: chzzkpy.user.PartialUser.add_restrict:1 of
 msgid "Add this user to restrict activity."
-msgstr ""
+msgstr "사용자가 채널에서 활동을 하지못하도록, 활동제한 명단에 등록합니다."
 
 #: chzzkpy.user.PartialUser.add_role:1 of
 msgid "Add a broadcast permission to this user."
-msgstr ""
+msgstr "사용자에게 방송 관리 권한을 부여합니다."
 
 #: chzzkpy.user.PartialUser.add_role:3 of
 msgid ""
@@ -194,10 +196,12 @@ msgid ""
 " :attr:`UserRole.channel_manager`. Giving any other role will cause a "
 ":exc:`TypeError` exception."
 msgstr ""
+"사용자에게 부여할 권한입니다. 방송 권한은 :attr:`UserRole.chat_manager`, :attr:`UserRole.settlement_manager`"
+", 또는 :attr:`UserRole.channel_manager`만 줄 수 있습니다. 다른 권한을 인수로 넣었을 경우에는, :exc:`TypeError` 예외를 초래할 수 있습니다."
 
 #: chzzkpy.user.PartialUser.chat_activity_count:1 of
 msgid "Get chat activity count of this user."
-msgstr ""
+msgstr "사용자의 활동기록이 담긴 정보를 불러옵니다."
 
 #: chzzkpy.user.PartialUser.chat_activity_count:3 of
 msgid ""
@@ -205,14 +209,17 @@ msgid ""
 "activity restrictions, the count of activity restrictions, and the count "
 "of chats."
 msgstr ""
+"사용자의 활동기록이 담긴 Chat Activity Count 객체를 반환받습니다. "
+"객체에는 사용자가 임시차단을 당한 횟수, 활동제한을 당한 횟수와 지금까지 입력한 채팅의 개수를"
+"포함하고 있습니다."
 
 #: chzzkpy.user.PartialUser.remove_restrict:1 of
 msgid "Remove this user to restrict activity."
-msgstr ""
+msgstr "사용자가 다시 활동할 수 있도록, 활동제한 명단에서 제거합니다."
 
 #: chzzkpy.user.PartialUser.remove_role:1 of
 msgid "Remove a broadcast permission to this user."
-msgstr ""
+msgstr "사용자에게 부여된 관리 권한을 제거합니다."
 
 #: ../../source/basic.rst:62
 msgid "Video"
@@ -220,7 +227,7 @@ msgstr "Video"
 
 #: ../../source/basic.rst:74
 msgid "Exceptions"
-msgstr ""
+msgstr "Exceptions"
 
 #: chzzkpy.error.LoginRequired:1 of
 msgid "Exception that’s raised when a method need login."
