@@ -535,7 +535,7 @@ class ChatClient(Client):
     def manage_self(self) -> ManageClient:
         """Get a client provided self-channel management functionally."""
         return self.manage(channel_id=self.channel_id)
-    
+
     async def profile_card(self, user: PartialUser | str) -> Profile:
         """Get a profile card.
 
@@ -555,8 +555,7 @@ class ChatClient(Client):
             user_id = user.user_id_hash
 
         data = await self._game_session.profile_card(
-            chat_channel_id = self.chat_channel_id,
-            user_id = user_id
+            chat_channel_id=self.chat_channel_id, user_id=user_id
         )
         data.content._set_manage_client(self.manage_self)
         return data.content

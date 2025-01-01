@@ -84,7 +84,11 @@ class ChzzkManageSession(ChzzkSession):
         channel_id: Annotated[str, Path],
         target_id: Annotated[str, Query.to_camel()],
         user_role_type: Annotated[
-            Literal["STREAMING_CHAT_MANAGER", "STREAMING_CHANNEL_MANAGER", "STREAMING_STATTLE_MANAGER"],
+            Literal[
+                "STREAMING_CHAT_MANAGER",
+                "STREAMING_CHANNEL_MANAGER",
+                "STREAMING_STATTLE_MANAGER",
+            ],
             Query.to_camel(),
         ],
     ) -> Content[PartialUser]:
@@ -247,7 +251,10 @@ class ChzzkManageSession(ChzzkSession):
         pass
 
     @get_pydantic_response_model()
-    @get("/manage/v1/channels/{channel_id}/restrict-release-requests", directly_response=True)
+    @get(
+        "/manage/v1/channels/{channel_id}/restrict-release-requests",
+        directly_response=True,
+    )
     @ChzzkSession.configuration(login_able=True, login_required=True)
     async def unrestrict_requests(
         self,
@@ -271,12 +278,15 @@ class ChzzkManageSession(ChzzkSession):
         pass
 
     @get_pydantic_response_model()
-    @put("/manage/v1/channels/{channel_id}/restrict-release-requests/{request_number}/reject", directly_response=True)
+    @put(
+        "/manage/v1/channels/{channel_id}/restrict-release-requests/{request_number}/reject",
+        directly_response=True,
+    )
     @ChzzkSession.configuration(login_able=True, login_required=True)
     async def reject_unrestrict_request(
         self,
         channel_id: Annotated[str, Path],
         request_number: Annotated[int, Path],
-        judgment: Annotated[str, Query.to_camel()]
+        judgment: Annotated[str, Query.to_camel()],
     ) -> Content[UnrestrictRequest]:
         pass

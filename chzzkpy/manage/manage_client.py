@@ -275,7 +275,9 @@ class ManageClient:
             raise TypeError(f"You cannot give role({role.name}) to user.")
 
         data = await self._http.add_role(
-            channel_id=self.channel_id, target_id=user_id, user_role_type=role.value.upper()
+            channel_id=self.channel_id,
+            target_id=user_id,
+            user_role_type=role.value.upper(),
         )
         user = data.content
         user._set_manage_client(self)

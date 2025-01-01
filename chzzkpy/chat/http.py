@@ -88,7 +88,10 @@ class NaverGameChatSession(NaverGameAPISession):
         pass
 
     @get_pydantic_response_model()
-    @get("/nng_main/v1/chats/{chat_channel_id}/users/{user_id}/profile-card", directly_response=True)
+    @get(
+        "/nng_main/v1/chats/{chat_channel_id}/users/{user_id}/profile-card",
+        directly_response=True,
+    )
     @ChzzkSession.configuration(login_able=True, login_required=True)
     @Query.default_query("chatType", "STREAMING")
     async def profile_card(

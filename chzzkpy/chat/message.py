@@ -191,8 +191,12 @@ class SubscriptionMessage(MessageDetail[SubscriptionExtra]):
 class SystemExtraParameter(ChzzkModel):
     register_nickname: str
     target_nickname: str
-    register_chat_profile: Optional[Json[Profile]] = Field(alias="registerChatProfileJson", default=None)
-    target_profile: Optional[Json[Profile]] = Field(alias="targetChatProfileJson", default=None)
+    register_chat_profile: Optional[Json[Profile]] = Field(
+        alias="registerChatProfileJson", default=None
+    )
+    target_profile: Optional[Json[Profile]] = Field(
+        alias="targetChatProfileJson", default=None
+    )
 
 
 class SystemExtra(ExtraBase):

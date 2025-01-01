@@ -95,9 +95,7 @@ class UnrestrictRequest(ChzzkModel, ManagerClientAccessable):
     async def reject(self, reason: str):
         """Deny this unrestrict activity request."""
         await self._manage_client._http.reject_unrestrict_request(
-            channel_id = self.channel_id,
-            request_number = self.request_no,
-            judgment = reason
+            channel_id=self.channel_id, request_number=self.request_no, judgment=reason
         )
 
 
