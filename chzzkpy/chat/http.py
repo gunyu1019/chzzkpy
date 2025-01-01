@@ -5,6 +5,7 @@ from ahttp_client.extension import get_pydantic_response_model
 from typing import Annotated, Optional
 
 from .access_token import AccessToken
+from .profile import Profile
 from ..base_model import Content
 from ..http import ChzzkSession, ChzzkAPISession, NaverGameAPISession
 from ..user import PartialUser
@@ -84,4 +85,15 @@ class NaverGameChatSession(NaverGameAPISession):
         message_user_id_hash: Annotated[int, Query.to_camel()],
         streaming_channel_id: Annotated[int, Query.to_camel()],
     ) -> Content[None]:
+        pass
+
+    @get_pydantic_response_model()
+    @get("/nng_main/v1/chats/{chat_channel_id}/users/{user_id}/profile-card", directly_response=True)
+    @ChzzkSession.configuration(login_able=True, login_required=True)
+    @Query.default_query("chatType", "STREAMING")
+    async def profile_card(
+        self,
+        chat_channel_id: Annotated[str, Path],
+        user_id: Annotated[str, Path],
+    ) -> Content[Profile]:
         pass

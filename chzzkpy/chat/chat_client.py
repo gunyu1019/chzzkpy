@@ -44,6 +44,7 @@ from ..http import ChzzkAPISession
 if TYPE_CHECKING:
     from .access_token import AccessToken
     from .message import ChatMessage
+    from .profile import Profile
     from .recent_chat import RecentChat
 
 _log = logging.getLogger(__name__)
@@ -534,3 +535,28 @@ class ChatClient(Client):
     def manage_self(self) -> ManageClient:
         """Get a client provided self-channel management functionally."""
         return self.manage(channel_id=self.channel_id)
+    
+    async def profile_card(self, user: PartialUser | str) -> Profile:
+        """Get a profile card.
+
+        Parameters
+        ----------
+        user : ParticleUser | str
+            A user object to get profile card.
+            Instead, it can be user id.
+
+        Returns
+        -------
+        Profile
+            Returns a profile card with this channel information (include following info).
+        """
+        user_id = user
+        if isinstance(user, PartialUser):
+            user_id = user.user_id_hash
+
+        data = await self._game_session.profile_card(
+            chat_channel_id = self.chat_channel_id,
+            user_id = user_id
+        )
+        data.content._set_manage_client(self.manage_self)
+        return data.content
