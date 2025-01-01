@@ -109,11 +109,15 @@ class ConnectionState:
                 message["profile"] = None
 
             if message_type == ChatType.DONATION:
-                validated_data = DonationMessage.model_validate(message)
+                validated_data = DonationMessage.model_validate_with_client(
+                    message, client=self.client
+                )
                 self.dispatch("donation", validated_data)
             elif message_type == ChatType.SYSTEM_MESSAGE:
 
-                validated_data = SystemMessage.model_validate(message)
+                validated_data = SystemMessage.model_validate_with_client(
+                    message, client=self.client
+                )
                 self.dispatch("system_message", validated_data)
             elif message_type == ChatType.TEXT:
                 validated_data = ChatMessage.model_validate_with_client(
@@ -121,7 +125,9 @@ class ConnectionState:
                 )
                 self.dispatch("chat", validated_data)
             elif message_type == ChatType.SUBSCRIPTION:
-                validated_data = SubscriptionMessage.model_validate(message)
+                validated_data = SubscriptionMessage.model_validate_with_client(
+                    message, client=self.client
+                )
                 self.dispatch("subscription", validated_data)
 
     @parsable(ChatCmd.CHAT)
@@ -146,7 +152,9 @@ class ConnectionState:
         if len(data) == 0:
             self.dispatch("unpin")
             return
-        validated_data = NoticeMessage.model_validate(data)
+        validated_data = NoticeMessage.model_validate_with_client(
+            data, client=self.client
+        )
         self.dispatch("notice", validated_data)
         self.dispatch("pin", validated_data)
 
