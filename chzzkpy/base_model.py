@@ -77,7 +77,7 @@ class ManagerClientAccessable(BaseModel):
         return self._manage_client is not None
 
     def _set_manage_client(self, client: ManageClient):
-        if not self.is_interactable:
+        if self.is_interactable:
             raise ValueError("Manage Client already set.")
         self._manage_client = client
         return self
