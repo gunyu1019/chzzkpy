@@ -1,9 +1,11 @@
 on:
-  push:
-    branches: 
-      - 'docs'
+  pull_request:
+    types:
+      - closed
+    branches:
+      - docs
 
-name: Document (Build & Deployment)
+name: Documentation (Build & Deployment)
 
 jobs:
   build:

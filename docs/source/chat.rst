@@ -125,20 +125,13 @@ All event method must be a coroutine. Otherwise, unexpected errors may occur.
    Called when an event hanlder raised exception.
    The `*args` and `**kwargs` argument includes event handler arguments.
 
-Enumerations
-------------
-
-.. autoclass:: chzzkpy.chat.UserRole()
-   :members:
-   :undoc-members:
-
 Blind
 -----
 This model is used in the `on_blind` event handler, which contains the blinded message.
 
 .. autoclass:: chzzkpy.chat.Blind()
    :members:
-   :exclude-members: model_computed_fields, model_config, model_fields
+   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
 
 Connection
@@ -146,7 +139,7 @@ Connection
 
 .. autoclass:: chzzkpy.chat.ConnectedInfo()
    :members:
-   :exclude-members: model_computed_fields, model_config, model_fields
+   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
 
 Donation
@@ -154,29 +147,29 @@ Donation
 
 .. autoclass:: chzzkpy.chat.DonationRank()
    :members:
-   :exclude-members: model_computed_fields, model_config, model_fields
+   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
 
 .. autoclass:: chzzkpy.chat.BaseDonation()
    :members:
-   :exclude-members: model_computed_fields, model_config, model_fields
+   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
 
 .. autoclass:: chzzkpy.chat.ChatDonation()
    :members:
-   :exclude-members: model_computed_fields, model_config, model_fields
+   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
    :show-inheritance:
 
 .. autoclass:: chzzkpy.chat.VideoDonation()
    :members:
-   :exclude-members: model_computed_fields, model_config, model_fields
+   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
    :show-inheritance:
 
 .. autoclass:: chzzkpy.chat.MissionDonation()
    :members:
-   :exclude-members: model_computed_fields, model_config, model_fields
+   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
    :show-inheritance:
 
@@ -184,42 +177,42 @@ Message
 -------
 .. autoclass:: chzzkpy.chat.Message()
    :members:
-   :exclude-members: model_computed_fields, model_config, model_fields
+   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init, model_validate_with_client
    :undoc-members:
 
 .. autoclass:: chzzkpy.chat.MessageDetail()
    :members:
-   :exclude-members: model_computed_fields, model_config, model_fields
+   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
    :show-inheritance:
 
 .. autoclass:: chzzkpy.chat.ChatMessage()
    :members:
-   :exclude-members: model_computed_fields, model_config, model_fields
+   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
    :show-inheritance:
 
 .. autoclass:: chzzkpy.chat.NoticeMessage()
    :members:
-   :exclude-members: model_computed_fields, model_config, model_fields
+   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
    :show-inheritance:
 
 .. autoclass:: chzzkpy.chat.DonationMessage()
    :members:
-   :exclude-members: model_computed_fields, model_config, model_fields
+   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
    :show-inheritance:
 
 .. autoclass:: chzzkpy.chat.SubscriptionMessage()
    :members:
-   :exclude-members: model_computed_fields, model_config, model_fields
+   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
    :show-inheritance:
 
 .. autoclass:: chzzkpy.chat.SystemMessage()
    :members:
-   :exclude-members: model_computed_fields, model_config, model_fields
+   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
    :show-inheritance:
 
@@ -227,49 +220,49 @@ Message Extra
 -------------
 .. autoclass:: chzzkpy.chat.Extra()
    :members:
-   :exclude-members: model_computed_fields, model_config, model_fields
+   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
 
 .. autoclass:: chzzkpy.chat.NoticeExtra()
    :members:
-   :exclude-members: model_computed_fields, model_config, model_fields
+   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
    :show-inheritance:
 
 .. autoclass:: chzzkpy.chat.ChatDonationExtra()
    :members:
-   :exclude-members: model_computed_fields, model_config, model_fields
+   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
    :show-inheritance:
 
 .. autoclass:: chzzkpy.chat.VideoDonationExtra()
    :members:
-   :exclude-members: model_computed_fields, model_config, model_fields
+   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
    :show-inheritance:
 
 .. autoclass:: chzzkpy.chat.MissionDonationExtra()
    :members:
-   :exclude-members: model_computed_fields, model_config, model_fields
+   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
    :show-inheritance:
    :no-index:
 
 .. autoclass:: chzzkpy.chat.SubscriptionExtra()
    :members:
-   :exclude-members: model_computed_fields, model_config, model_fields
+   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
    :show-inheritance:
 
 .. autoclass:: chzzkpy.chat.SystemExtra()
    :members:
-   :exclude-members: model_computed_fields, model_config, model_fields
+   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
    :show-inheritance:
 
 .. autoclass:: chzzkpy.chat.SystemExtraParameter()
    :members:
-   :exclude-members: model_computed_fields, model_config, model_fields
+   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
    :show-inheritance:
 
@@ -277,23 +270,23 @@ Profile
 -------
 .. autoclass:: chzzkpy.chat.Profile()
    :members:
-   :exclude-members: model_computed_fields, model_config, model_fields
+   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
 
 .. autoclass:: chzzkpy.chat.Badge()
    :members:
-   :exclude-members: model_computed_fields, model_config, model_fields
+   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
 
 .. autoclass:: chzzkpy.chat.ActivityBadge()
    :members:
-   :exclude-members: model_computed_fields, model_config, model_fields
+   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
    :show-inheritance:
 
 .. autoclass:: chzzkpy.chat.StreamingProperty()
    :members:
-   :exclude-members: model_computed_fields, model_config, model_fields
+   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
 
 Recent Chat
@@ -302,7 +295,7 @@ This model is used in the `on_recent_chat` event handler, which contains the his
 
 .. autoclass:: chzzkpy.chat.RecentChat()
    :members:
-   :exclude-members: model_computed_fields, model_config, model_fields
+   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
 
 

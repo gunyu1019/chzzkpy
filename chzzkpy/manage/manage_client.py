@@ -258,9 +258,9 @@ class ManageClient:
             Instead, it can be user id or nickname.
         role : UserRole
             A enumeration class containing broadcast role.
-            It can only set the role to :attribute:`UserRole.chat_manager`,
-            :attribute:`UserRole.settlement_manager`, or :attribute:`UserRole.broadcast_manager`.
-            Giving any other role will cause a :exception:`TypeError` exception.
+            It can only set the role to :attr:`UserRole.chat_manager`,
+            :attr:`UserRole.settlement_manager`, or :attr:`UserRole.channel_manager`.
+            Giving any other role will cause a :exc:`TypeError` exception.
 
         Returns
         -------

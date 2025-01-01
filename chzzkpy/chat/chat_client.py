@@ -228,7 +228,7 @@ class ChatClient(Client):
         ----------
         event : str
             The event name.
-            For a list of events, read :method:`event`
+            For a list of events, read :meth:`event`
         check : Optional[Callable[..., bool]],
             A predicate to check what to wait for. The arguments must meet the
             parameters of the event being waited for.
