@@ -36,6 +36,7 @@ from .manage_search import (
     ManageSubcriber,
     ManageFollower,
     RestrictUser,
+    UnrestrictRequest,
     ManageVideo,
 )
 
@@ -389,7 +390,7 @@ class ManageClient:
 
     async def restrict(
         self, page: int = 0, size: int = 50, nickname: Optional[str] = None
-    ) -> ManageResult[RestrictUser]:
+    ) -> ManageResult[UnrestrictRequest]:
         """Get activitiy restricted user of channel.
 
         Parameters
@@ -414,6 +415,35 @@ class ManageClient:
         )
         for restricted_user in data.content.data:
             restricted_user._set_manage_client(self)
+        return data.content
+
+    async def unrestrict_requests(
+        self, page: int = 0, size: int = 50, nickname: Optional[str] = None
+    ) -> ManageResult[UnrestrictRequest]:
+        """Get unrestrict activity requests of channel.
+
+        Parameters
+        ----------
+        page : Optional[int]
+            The number of page, by default 0
+        size : Optional[int]
+            The number of unrestrict activity requests to import at once, by default 50
+        nickname : Optional[str]
+            Lookup by the unrestrict activity requests with user's nickname, by default None
+
+        Returns
+        -------
+        ManageResult[UnrestrictRequest]
+            Returns a :class:`ManageResult` containing the unrestrict requests.
+        """
+        data = await self._http.unrestrict_requests(
+            channel_id=self.channel_id,
+            page=page,
+            size=size,
+            user_nickname="" if nickname is None else nickname,
+        )
+        for unrestrict_request in data.content.data:
+            unrestrict_request._set_manage_client(self)
         return data.content
 
     async def live_replay(

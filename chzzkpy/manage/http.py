@@ -37,6 +37,7 @@ from .manage_search import (
     ManageFollower,
     ManageSubcriber,
     RestrictUser,
+    UnrestrictRequest,
     ManageVideo,
 )
 from .prohibit_word import ProhibitWordResponse
@@ -242,6 +243,18 @@ class ChzzkManageSession(ChzzkSession):
         size: Annotated[int, Query.to_camel()] = 50,
         user_nickname: Annotated[Optional[str], Query.to_camel()] = "",
     ) -> Content[ManageResult[RestrictUser]]:
+        pass
+
+    @get_pydantic_response_model()
+    @get("/manage/v1/channels/{channel_id}/restrict-release-requests", directly_response=True)
+    @ChzzkSession.configuration(login_able=True, login_required=True)
+    async def unrestrict_requests(
+        self,
+        channel_id: Annotated[str, Path],
+        page: Annotated[int, Query.to_camel()] = 0,
+        size: Annotated[int, Query.to_camel()] = 50,
+        user_nickname: Annotated[Optional[str], Query.to_camel()] = "",
+    ) -> Content[ManageResult[UnrestrictRequest]]:
         pass
 
     @get_pydantic_response_model()

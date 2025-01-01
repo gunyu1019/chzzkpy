@@ -24,7 +24,7 @@ SOFTWARE.
 import datetime
 
 from typing import Annotated, List, Optional, Generic, TypeVar
-from pydantic import BeforeValidator
+from pydantic import BeforeValidator, Field
 
 from ..base_model import ChzzkModel, ManagerClientAccessable
 from ..user import PartialUser
@@ -75,6 +75,24 @@ class RestrictUser(ChzzkModel, ManagerClientAccessable):
 
     @ManagerClientAccessable.based_manage_client
     async def remove_restrict(self):
+        """Remove this user to restrict activity."""
+        await self._manage_client.remove_restrict(self.user_id_hash)
+
+
+class UnrestrictRequest(ChzzkModel, ManagerClientAccessable):
+    request_no: int
+    restrict_seq: int
+    user: PartialUser = Field(alias="userResponse")
+    vindication: str
+    created_date: datetime.datetime
+
+    @ManagerClientAccessable.based_manage_client
+    async def approve(self):
+        """Remove this user to restrict activity."""
+        await self._manage_client.remove_restrict(self.user_id_hash)
+
+    @ManagerClientAccessable.based_manage_client
+    async def deny(self, message: str):
         """Remove this user to restrict activity."""
         await self._manage_client.remove_restrict(self.user_id_hash)
 
