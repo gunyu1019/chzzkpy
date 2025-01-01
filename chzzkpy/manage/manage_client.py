@@ -355,9 +355,9 @@ class ManageClient:
             page=page,
             size=size,
             sort_type=sort_type.value,
-            publish_period=publish_period,
-            tier=None if tier is not None else tier.value,
-            user_nickname=nickname,
+            publish_period="" if publish_period is None else publish_period,
+            tier="" if tier is not None else tier.value,
+            user_nickname="" if nickname is None else nickname,
         )
         return data.content
 
@@ -405,8 +405,10 @@ class ManageClient:
             Returns a :class:`ManageResult` containing the restricted user info.
         """
         data = await self._http.restricts(
-            channel_id=self.channel_id, page=page, size=size, user_nickname=nickname
+            channel_id=self.channel_id, page=page, size=size, user_nickname="" if nickname is None else nickname
         )
+        for restricted_user in data.content.data:
+            restricted_user._set_manage_client(self)
         return data.content
 
     async def live_replay(

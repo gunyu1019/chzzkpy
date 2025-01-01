@@ -212,9 +212,9 @@ class ChzzkManageSession(ChzzkSession):
         sort_type: Annotated[
             Optional[Literal["RECENT", "LONGER"]], Query.to_camel()
         ] = "RECENT",
-        publish_period: Annotated[Optional[Literal[1, 3, 6]], Query.to_camel()] = None,
-        tier: Annotated[Optional[Literal["TIER_1", "TIER_2"]], Query.to_camel()] = None,
-        user_nickname: Annotated[Optional[str], Query.to_camel()] = None,
+        publish_period: Annotated[Optional[Literal[1, 3, 6]], Query.to_camel()] = "",
+        tier: Annotated[Optional[Literal["TIER_1", "TIER_2"]], Query.to_camel()] = "",
+        user_nickname: Annotated[Optional[str], Query.to_camel()] = "",
     ) -> Content[ManageResult[ManageSubcriber]]:
         pass
 
@@ -240,7 +240,7 @@ class ChzzkManageSession(ChzzkSession):
         channel_id: Annotated[str, Path],
         page: Annotated[int, Query.to_camel()] = 0,
         size: Annotated[int, Query.to_camel()] = 50,
-        user_nickname: Annotated[Optional[str], Query.to_camel()] = None,
+        user_nickname: Annotated[Optional[str], Query.to_camel()] = "",
     ) -> Content[ManageResult[RestrictUser]]:
         pass
 
