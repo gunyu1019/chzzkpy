@@ -37,7 +37,7 @@ class ManageResult(ChzzkModel, Generic[T]):
     page: int
     size: int
     total_count: int
-    total_page: int
+    total_pages: int
     data: List[T]
 
 
