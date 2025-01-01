@@ -44,7 +44,7 @@ class ManageResult(ChzzkModel, Generic[T]):
 class FollowingInfo(ChzzkModel):
     following: bool
     notification: bool
-    follow_date: datetime.datetime
+    follow_date: Optional[datetime.datetime]
 
 
 class ManageSubcriber(ChzzkModel):  # incomplete data
