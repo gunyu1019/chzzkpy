@@ -1,5 +1,5 @@
 # SOME DESCRIPTIVE TITLE.
-# Copyright (C) 2024, gunyu1019
+# Copyright (C) 2024-2025, gunyu1019
 # This file is distributed under the same license as the chzzkpy package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2024.
 #: ../../source/chat.rst:2
@@ -51,7 +51,7 @@ msgstr "치지직 채팅 서버 연결을 종료합니다."
 
 #: chzzkpy.chat.chat_client.ChatClient.delete_notice_message:1 of
 msgid "Delete a pinned message."
-msgstr "고정된 메시지를 해제합니다.."
+msgstr "고정된 메시지를 해제합니다."
 
 #: chzzkpy.chat.chat_client.ChatClient.history:1 of
 msgid "Get messages the user has previously sent."
@@ -80,47 +80,77 @@ msgstr "치지직 채팅 서버와 올바르게 연결되었는지 확인합니�
 
 #: chzzkpy.chat.chat_client.ChatClient.live_detail:1 of
 msgid "Get a live detail info of broadcaster."
-msgstr ""
+msgstr "채널의 실시간 방송 정보(live detail)를 불러오는 함수입니다."
 
 #: chzzkpy.chat.chat_client.ChatClient.live_detail:3
 #: chzzkpy.chat.chat_client.ChatClient.live_status:3 of
 msgid "The channel ID of broadcaster, default by channel id of ChatClient."
-msgstr ""
+msgstr "채널의 ID 값입니다. 기본 값은 채팅 봇에서 사용되는 채널 ID 입니다."
 
 #: chzzkpy.chat.chat_client.ChatClient.live_detail:6 of
 msgid ""
 "Return LiveDetail info. Sometimes the broadcaster is not broadcasting, "
 "returns None."
 msgstr ""
+"자세한 정보가 담긴 실시간 방송(LiveDetail)를 불러옵니다.스트리머가 오랫동안 방송하지 않으면 `None`을 응답받을 수 "
+"있습니다."
 
 #: chzzkpy.chat.chat_client.ChatClient.live_status:1 of
 msgid "Get a live status info of broadcaster."
-msgstr ""
+msgstr "채널의 실시간 방송 상태(live status)를 불러옵니다."
 
 #: chzzkpy.chat.chat_client.ChatClient.live_status:6 of
 msgid ""
 "Return LiveStatus info. Sometimes the broadcaster is not broadcasting, "
 "returns None."
-msgstr ""
+msgstr "실시간 방송 상태(LiveStatus)를 불러옵니다.스트리머가 오랫동안 방송하지 않으면 `None`을 응답받을 수 있습니다."
+
+#: chzzkpy.chat.chat_client.ChatClient.login:1 of
+msgid "Login at Chzzk. Used for features that require a login. (ex. user method)"
+msgstr "네이버 로그인을 합니다. 채팅 봇을 이용하기 위해서는 반드시 로그인이 필요합니다."
+
+#: chzzkpy.chat.chat_client.ChatClient.login:4 of
+msgid "A `NID_AUT` value in the cookie."
+msgstr "HTTP 전송되는 쿠키 중의 `NID_AUT` 값을 의미합니다."
+
+#: chzzkpy.chat.chat_client.ChatClient.login:6 of
+msgid "A `NID_SES` value in the cookie."
+msgstr "HTTP 전송되는 쿠키 중의 `NID_SES` 값을 의미합니다."
 
 #: chzzkpy.chat.chat_client.ChatClient.manage:1 of
 msgid "Get a client provided broadcast management functionality."
-msgstr ""
+msgstr "방송 관리 기능을 제공하는 클라이언트를 불러옵니다."
 
 #: chzzkpy.chat.chat_client.ChatClient.manage:3 of
 msgid ""
 "A channel id to manage broadcasts. The default value is the last channel "
 "id used. If initally use the manage method and don't have a channel_id "
 "argument, the default value is channel id of ChatClient."
-msgstr ""
+"방송 관리 기능을 사용할 채널의 ID 입니다. 기본 값은 마지막으로 사용한 채널의 ID입니다."
+"만약에 마지막으로 사용한 채널이 없다면, ChatClient에서 사용하는 채널 ID가 입력됩니다."
 
 #: chzzkpy.chat.chat_client.ChatClient.manage:9 of
 msgid "Return a client provided broadcast management functionality."
-msgstr ""
+msgstr "방송 관리 기능을 제공하는 클라이언트를 반환받습니다."
 
 #: chzzkpy.chat.ChatClient.manage_self:1 of
 msgid "Get a client provided self-channel management functionally."
+msgstr "채팅 클라이언트의 채널에 대한 방송 관리 기능을 제공하는 클라이언트를 불러옵니다."
+
+#: chzzkpy.chat.chat_client.ChatClient.profile_card:1 of
+msgid "Get a profile card."
+msgstr "프로필 카드를 불러옵니다."
+
+#: chzzkpy.chat.chat_client.ChatClient.profile_card:3 of
+msgid "A user object to get profile card. Instead, it can be user id."
+msgstr "프로필 카드를 불러올 사용자 객체를 입력합니다. 대신에 User ID를 입력받을 수도 있습니다."
+
+#: chzzkpy.chat.chat_client.ChatClient.profile_card:7 of
+msgid ""
+"Returns a profile card with this channel information (include following "
+"info)."
 msgstr ""
+"팔로우 정보를 포함한 채널에서 사용자에 대한 프로필 카드를 반환받습니다."
 
 #: chzzkpy.chat.chat_client.ChatClient.request_recent_chat:1 of
 msgid ""
@@ -161,16 +191,17 @@ msgid ""
 "Give temporary restrict to user. A temporary restriction cannot be lifted"
 " arbitrarily."
 msgstr ""
+"시청자에게 임시제한 조치를 합니다. 임시제한은 임의로 해제할 수 없습니다."
 
 #: chzzkpy.chat.chat_client.ChatClient.temporary_restrict:4 of
 msgid ""
 "A user object to give temporary restrict activity. Instead, it can be "
 "user id."
-msgstr ""
+msgstr "임시차단 할 사용자 객체를 입력합니다. 대신에 User ID를 입력받을 수도 있습니다."
 
 #: chzzkpy.chat.chat_client.ChatClient.temporary_restrict:8 of
 msgid "Returns an user temporary restricted in chat."
-msgstr ""
+msgstr "임시제한 조치된 사용자의 정보가 담긴 객체를 반환받습니다."
 
 #: chzzkpy.chat.chat_client.ChatClient.wait_for:1 of
 msgid "Waits for a WebSocket event to be dispatched."
@@ -392,7 +423,7 @@ msgstr "메시지를 고정합니다."
 
 #: chzzkpy.chat.message.ChatMessage.temporary_restrict:1 of
 msgid "Temporary restrict this user."
-msgstr ""
+msgstr "사용자를 임시제한합니다. 임시제한은 임의로 해제할 수 없습니다."
 
 #: chzzkpy.chat.message.ChatMessage.unpin:1
 #: chzzkpy.chat.message.NoticeMessage.unpin:1 of
@@ -460,7 +491,7 @@ msgstr "상위 클래스: :py:class:`~chzzkpy.chat.profile.Badge`"
 
 #: ../../source/chat.rst:293
 msgid "Recent Chat"
-msgstr ""
+msgstr "Recent Chat"
 
 #: ../../source/chat.rst:294
 msgid ""
@@ -480,3 +511,4 @@ msgid ""
 msgstr ""
 "`Chat Features` 페이지에서 발생하는 예외는 `ChatClient`에서 발생할 수 있는 추가적인 예외상황입니다. "
 "`Basic Features` 페이지에서 발생하는 예외도 발생할 수 있습니다. "
+
