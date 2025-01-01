@@ -24,9 +24,9 @@ SOFTWARE.
 import datetime
 
 from typing import Annotated, List, Optional, Generic, TypeVar
-from pydantic import BeforeValidator
+from pydantic import BeforeValidator, Field
 
-from ..base_model import ChzzkModel
+from ..base_model import ChzzkModel, ManagerClientAccessable
 from ..user import PartialUser
 from ..video import PartialVideo
 
@@ -37,14 +37,23 @@ class ManageResult(ChzzkModel, Generic[T]):
     page: int
     size: int
     total_count: int
-    total_page: int
+    total_pages: int
     data: List[T]
+
+    def __iter__(self):
+        return self.data.__iter__()
+
+    def __len__(self):
+        return self.total_count
+
+    def __getitem__(self, index: int):
+        return self.data[index]
 
 
 class FollowingInfo(ChzzkModel):
     following: bool
     notification: bool
-    follow_date: datetime.datetime
+    follow_date: Optional[datetime.datetime]
 
 
 class ManageSubcriber(ChzzkModel):  # incomplete data
@@ -66,12 +75,37 @@ class ManageFollower(ChzzkModel):
     channel_following: FollowingInfo
 
 
-class RestrictUser(ChzzkModel):
+class RestrictUser(ChzzkModel, ManagerClientAccessable):
     seq: int
     user_id_hash: str
     nickname: str
     execute_nickname: str
     created_date: datetime.datetime
+
+    @ManagerClientAccessable.based_manage_client
+    async def remove_restrict(self):
+        """Remove this user to restrict activity."""
+        await self._manage_client.remove_restrict(self.user_id_hash)
+
+
+class UnrestrictRequest(ChzzkModel, ManagerClientAccessable):
+    request_no: int
+    restrict_seq: int
+    user: PartialUser = Field(alias="userResponse")
+    vindication: str
+    created_date: datetime.datetime
+
+    @ManagerClientAccessable.based_manage_client
+    async def approve(self):
+        """Approve this unrestrict activity request."""
+        await self._manage_client.remove_restrict(self.user_id_hash)
+
+    @ManagerClientAccessable.based_manage_client
+    async def reject(self, reason: str):
+        """Deny this unrestrict activity request."""
+        await self._manage_client._http.reject_unrestrict_request(
+            channel_id=self.channel_id, request_number=self.request_no, judgment=reason
+        )
 
 
 class ManageVideo(PartialVideo):

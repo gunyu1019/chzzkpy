@@ -24,7 +24,7 @@ SOFTWARE.
 from ..base_model import ChzzkModel
 
 
-class ChatAcitivityCount(ChzzkModel):
+class ChatActivityCount(ChzzkModel):
     chat_message_count: int
     restrict: bool
     restrict_count: int

@@ -44,6 +44,7 @@ from ..http import ChzzkAPISession
 if TYPE_CHECKING:
     from .access_token import AccessToken
     from .message import ChatMessage
+    from .profile import Profile
     from .recent_chat import RecentChat
 
 _log = logging.getLogger(__name__)
@@ -89,8 +90,6 @@ class ChatClient(Client):
         self._gateway: Optional[ChzzkWebSocket] = None
         self._status: Literal["OPEN", "CLOSE"] = None
 
-        self._manage_client[channel_id] = ManageClient(channel_id, self)
-
     def _session_initial_set(self):
         self._api_session = ChzzkAPIChatSession(loop=self.loop)
         self._game_session = NaverGameChatSession(loop=self.loop)
@@ -114,6 +113,20 @@ class ChatClient(Client):
             await self.connect()
         finally:
             await self.close()
+
+    def login(self, authorization_key: str, session_key: str):
+        """Login at Chzzk.
+        Used for features that require a login. (ex. user method)
+
+        Parameters
+        ----------
+        authorization_key : str
+            A `NID_AUT` value in the cookie.
+        session_key : str
+            A `NID_SES` value in the cookie.
+        """
+        super().login(authorization_key=authorization_key, session_key=session_key)
+        self._manage_client[self.channel_id] = ManageClient(self.channel_id, self)
 
     async def connect(self) -> None:
         if self.chat_channel_id is None:
@@ -536,3 +549,27 @@ class ChatClient(Client):
     def manage_self(self) -> ManageClient:
         """Get a client provided self-channel management functionally."""
         return self.manage(channel_id=self.channel_id)
+
+    async def profile_card(self, user: PartialUser | str) -> Profile:
+        """Get a profile card.
+
+        Parameters
+        ----------
+        user : ParticleUser | str
+            A user object to get profile card.
+            Instead, it can be user id.
+
+        Returns
+        -------
+        Profile
+            Returns a profile card with this channel information (include following info).
+        """
+        user_id = user
+        if isinstance(user, PartialUser):
+            user_id = user.user_id_hash
+
+        data = await self._game_session.profile_card(
+            chat_channel_id=self.chat_channel_id, user_id=user_id
+        )
+        data.content._set_manage_client(self.manage_self)
+        return data.content

@@ -28,7 +28,7 @@ from ..error import LoginRequired
 from ..user import PartialUser, UserRole
 from .enums import SortType, SubscriberTier
 from .http import ChzzkManageSession
-from .chat_activity_count import ChatAcitivityCount
+from .chat_activity_count import ChatActivityCount
 from .prohibit_word import ProhibitWord
 from .stream import Stream
 from .manage_search import (
@@ -36,6 +36,7 @@ from .manage_search import (
     ManageSubcriber,
     ManageFollower,
     RestrictUser,
+    UnrestrictRequest,
     ManageVideo,
 )
 
@@ -197,7 +198,7 @@ class ManageClient:
         Stream
             Return a stream key for streamming.
         """
-        data = await self._http.stream()
+        data = await self._http.stream(channel_id=self.channel_id)
         return data.content
 
     async def add_restrict(self, user: str | PartialUser) -> PartialUser:
@@ -274,7 +275,9 @@ class ManageClient:
             raise TypeError(f"You cannot give role({role.name}) to user.")
 
         data = await self._http.add_role(
-            channel_id=self.channel_id, target_id=user_id, role=role.value
+            channel_id=self.channel_id,
+            target_id=user_id,
+            user_role_type=role.value.upper(),
         )
         user = data.content
         user._set_manage_client(self)
@@ -295,7 +298,7 @@ class ManageClient:
 
         await self._http.remove_role(channel_id=self.channel_id, target_id=user_id)
 
-    async def chat_activity_count(self, user: str | PartialUser) -> ChatAcitivityCount:
+    async def chat_activity_count(self, user: str | PartialUser) -> ChatActivityCount:
         """Get chat activity count of user.
 
         Parameters
@@ -355,9 +358,9 @@ class ManageClient:
             page=page,
             size=size,
             sort_type=sort_type.value,
-            publish_period=publish_period,
-            tier=None if tier is not None else tier.value,
-            user_nickname=nickname,
+            publish_period="" if publish_period is None else publish_period,
+            tier="" if tier is not None else tier.value,
+            user_nickname="" if nickname is None else nickname,
         )
         return data.content
 
@@ -383,11 +386,13 @@ class ManageClient:
         data = await self._http.followers(
             channel_id=self.channel_id, page=page, size=size, sort_type=sort_type.value
         )
+        for followed_user in data.content.data:
+            followed_user.user._set_manage_client(self)
         return data.content
 
     async def restrict(
         self, page: int = 0, size: int = 50, nickname: Optional[str] = None
-    ) -> ManageResult[RestrictUser]:
+    ) -> ManageResult[UnrestrictRequest]:
         """Get activitiy restricted user of channel.
 
         Parameters
@@ -405,8 +410,42 @@ class ManageClient:
             Returns a :class:`ManageResult` containing the restricted user info.
         """
         data = await self._http.restricts(
-            channel_id=self.channel_id, page=page, size=size, user_nickname=nickname
+            channel_id=self.channel_id,
+            page=page,
+            size=size,
+            user_nickname="" if nickname is None else nickname,
         )
+        for restricted_user in data.content.data:
+            restricted_user._set_manage_client(self)
+        return data.content
+
+    async def unrestrict_requests(
+        self, page: int = 0, size: int = 50, nickname: Optional[str] = None
+    ) -> ManageResult[UnrestrictRequest]:
+        """Get unrestrict activity requests of channel.
+
+        Parameters
+        ----------
+        page : Optional[int]
+            The number of page, by default 0
+        size : Optional[int]
+            The number of unrestrict activity requests to import at once, by default 50
+        nickname : Optional[str]
+            Lookup by the unrestrict activity requests with user's nickname, by default None
+
+        Returns
+        -------
+        ManageResult[UnrestrictRequest]
+            Returns a :class:`ManageResult` containing the unrestrict requests.
+        """
+        data = await self._http.unrestrict_requests(
+            channel_id=self.channel_id,
+            page=page,
+            size=size,
+            user_nickname="" if nickname is None else nickname,
+        )
+        for unrestrict_request in data.content.data:
+            unrestrict_request._set_manage_client(self)
         return data.content
 
     async def live_replay(

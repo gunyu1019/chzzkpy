@@ -30,13 +30,14 @@ from typing import Annotated, Optional, Literal
 from ..base_model import Content
 from ..http import ChzzkSession
 from ..user import PartialUser
-from .chat_activity_count import ChatAcitivityCount
+from .chat_activity_count import ChatActivityCount
 from .chat_rule import ChatRule
 from .manage_search import (
     ManageResult,
     ManageFollower,
     ManageSubcriber,
     RestrictUser,
+    UnrestrictRequest,
     ManageVideo,
 )
 from .prohibit_word import ProhibitWordResponse
@@ -52,6 +53,7 @@ class ChzzkManageSession(ChzzkSession):
         self.add_prohibit_word.before_hook(self.query_to_json)
         self.edit_prohibit_word.before_hook(self.query_to_json)
         self.set_chat_rule.before_hook(self.query_to_json)
+        self.reject_unrestrict_request.before_hook(self.query_to_json)
 
     @get_pydantic_response_model()
     @post("/manage/v1/channels/{channel_id}/restrict-users", directly_response=True)
@@ -82,7 +84,11 @@ class ChzzkManageSession(ChzzkSession):
         channel_id: Annotated[str, Path],
         target_id: Annotated[str, Query.to_camel()],
         user_role_type: Annotated[
-            Literal["streaming_chat_manager", "streaming_channel_manager"],
+            Literal[
+                "STREAMING_CHAT_MANAGER",
+                "STREAMING_CHANNEL_MANAGER",
+                "STREAMING_STATTLE_MANAGER",
+            ],
             Query.to_camel(),
         ],
     ) -> Content[PartialUser]:
@@ -198,7 +204,7 @@ class ChzzkManageSession(ChzzkSession):
         self,
         channel_id: Annotated[str, Path],
         target_id: Annotated[str, Path],
-    ) -> Content[ChatAcitivityCount]:
+    ) -> Content[ChatActivityCount]:
         pass
 
     @get_pydantic_response_model()
@@ -212,9 +218,9 @@ class ChzzkManageSession(ChzzkSession):
         sort_type: Annotated[
             Optional[Literal["RECENT", "LONGER"]], Query.to_camel()
         ] = "RECENT",
-        publish_period: Annotated[Optional[Literal[1, 3, 6]], Query.to_camel()] = None,
-        tier: Annotated[Optional[Literal["TIER_1", "TIER_2"]], Query.to_camel()] = None,
-        user_nickname: Annotated[Optional[str], Query.to_camel()] = None,
+        publish_period: Annotated[Optional[Literal[1, 3, 6]], Query.to_camel()] = "",
+        tier: Annotated[Optional[Literal["TIER_1", "TIER_2"]], Query.to_camel()] = "",
+        user_nickname: Annotated[Optional[str], Query.to_camel()] = "",
     ) -> Content[ManageResult[ManageSubcriber]]:
         pass
 
@@ -240,8 +246,23 @@ class ChzzkManageSession(ChzzkSession):
         channel_id: Annotated[str, Path],
         page: Annotated[int, Query.to_camel()] = 0,
         size: Annotated[int, Query.to_camel()] = 50,
-        user_nickname: Annotated[Optional[str], Query.to_camel()] = None,
+        user_nickname: Annotated[Optional[str], Query.to_camel()] = "",
     ) -> Content[ManageResult[RestrictUser]]:
+        pass
+
+    @get_pydantic_response_model()
+    @get(
+        "/manage/v1/channels/{channel_id}/restrict-release-requests",
+        directly_response=True,
+    )
+    @ChzzkSession.configuration(login_able=True, login_required=True)
+    async def unrestrict_requests(
+        self,
+        channel_id: Annotated[str, Path],
+        page: Annotated[int, Query.to_camel()] = 0,
+        size: Annotated[int, Query.to_camel()] = 50,
+        user_nickname: Annotated[Optional[str], Query.to_camel()] = "",
+    ) -> Content[ManageResult[UnrestrictRequest]]:
         pass
 
     @get_pydantic_response_model()
@@ -254,4 +275,18 @@ class ChzzkManageSession(ChzzkSession):
         page: Annotated[int, Query.to_camel()] = 0,
         size: Annotated[int, Query.to_camel()] = 50,
     ) -> Content[ManageResult[ManageVideo]]:
+        pass
+
+    @get_pydantic_response_model()
+    @put(
+        "/manage/v1/channels/{channel_id}/restrict-release-requests/{request_number}/reject",
+        directly_response=True,
+    )
+    @ChzzkSession.configuration(login_able=True, login_required=True)
+    async def reject_unrestrict_request(
+        self,
+        channel_id: Annotated[str, Path],
+        request_number: Annotated[int, Path],
+        judgment: Annotated[str, Query.to_camel()],
+    ) -> Content[UnrestrictRequest]:
         pass

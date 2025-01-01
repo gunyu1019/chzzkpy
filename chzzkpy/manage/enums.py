@@ -24,11 +24,11 @@ SOFTWARE.
 from enum import Enum
 
 
-class SortType:
+class SortType(Enum):
     recent = "RECENT"
     longer = "LONGER"
 
 
-class SubscriberTier:
+class SubscriberTier(Enum):
     tier1 = "TIER_1"
     tier2 = "TIER_2"

@@ -21,8 +21,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from .chat_activity_count import ChatAcitivityCount
+from .chat_activity_count import ChatActivityCount
 from .chat_rule import ChatRule
+from .enums import SubscriberTier, SortType
 from .manage_search import (
     ManageResult,
     ManageFollower,
