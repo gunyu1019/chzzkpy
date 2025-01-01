@@ -110,6 +110,8 @@ class Client:
         self._api_session.login(authorization_key, session_key)
         self._game_session.login(authorization_key, session_key)
 
+        self._manage_client[self.channel_id] = ManageClient(self.channel_id, self)
+
     async def live_status(self, channel_id: str) -> Optional[LiveStatus]:
         """Get a live status info of broadcaster.
 
