@@ -383,6 +383,8 @@ class ManageClient:
         data = await self._http.followers(
             channel_id=self.channel_id, page=page, size=size, sort_type=sort_type.value
         )
+        for followed_user in data.content.data:
+            followed_user.user._set_manage_client(self)
         return data.content
 
     async def restrict(
