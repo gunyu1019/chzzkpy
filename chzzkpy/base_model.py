@@ -67,9 +67,13 @@ class ManagerClientAccessable(BaseModel):
 
         return wrapper
 
-    @based_manage_client
+    @property
     def channel_id(self) -> str:
-        self._manage_client.channel_id
+        if not self.is_interactable:
+            raise RuntimeError(
+                f"This {self.__class__.__name__} is intended to store data only."
+            )
+        return self._manage_client.channel_id
 
     @property
     def is_interactable(self):
