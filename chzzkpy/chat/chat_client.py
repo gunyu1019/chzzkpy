@@ -113,6 +113,20 @@ class ChatClient(Client):
             await self.connect()
         finally:
             await self.close()
+        
+    def login(self, authorization_key: str, session_key: str):
+        """Login at Chzzk.
+        Used for features that require a login. (ex. user method)
+
+        Parameters
+        ----------
+        authorization_key : str
+            A `NID_AUT` value in the cookie.
+        session_key : str
+            A `NID_SES` value in the cookie.
+        """
+        super().login(authorization_key=authorization_key, session_key=session_key)
+        self._manage_client[self.channel_id] = ManageClient(self.channel_id, self)
 
     async def connect(self) -> None:
         if self.chat_channel_id is None:
