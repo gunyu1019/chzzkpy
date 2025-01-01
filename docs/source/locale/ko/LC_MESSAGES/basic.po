@@ -1,9 +1,9 @@
 # SOME DESCRIPTIVE TITLE.
-# Copyright (C) 2024, gunyu1019
+# Copyright (C) 2024-2025, gunyu1019
 # This file is distributed under the same license as the chzzkpy package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2024.
-#
+#: ../../source/basic.rst:2
 #, fuzzy
+msgid "Basic Feature"
 msgstr ""
 "Project-Id-Version: chzzkpy \n"
 "Report-msgstr-Bugs-To: \n"
@@ -18,10 +18,6 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.16.0\n"
 
-#: ../../source/basic.rst:2
-msgid "Basic Feature"
-msgstr "기본 기능"
-
 #: ../../source/basic.rst:5
 msgid "Client"
 msgstr "클라이언트 (Client)"
@@ -31,7 +27,8 @@ msgid "Represents a client to connect Chzzk (Naver Live Streaming)."
 msgstr "치지직(네이버 스트리밍 서비스) 기능을 제공하기 위한 객체를 제공합니다."
 
 #: chzzkpy.client.Client.autocomplete:1 of
-msgstr "치지직의 검색 기능의 자동 완성 단어를 불러옵니다."
+msgid "Get a auto-completed keyword."
+msgstr "자동 완성된 단어입니다."
 
 #: ../../source/basic.rst
 msgid "Parameters"
@@ -74,8 +71,8 @@ msgid ""
 "Return LiveDetail info. Sometimes the broadcaster is not broadcasting, "
 "returns None."
 msgstr ""
-"자세한 정보가 담긴 실시간 방송(LiveDetail)를 불러옵니다."
-"스트리머가 오랫동안 방송하지 않으면 `None`을 응답받을 수 있습니다."
+"자세한 정보가 담긴 실시간 방송(LiveDetail)를 불러옵니다.스트리머가 오랫동안 방송하지 않으면 `None`을 응답받을 수 "
+"있습니다."
 
 #: chzzkpy.client.Client.live_status:1 of
 msgid "Get a live status info of broadcaster."
@@ -85,9 +82,7 @@ msgstr "채널의 실시간 방송 상태(live status)를 불러옵니다."
 msgid ""
 "Return LiveStatus info. Sometimes the broadcaster is not broadcasting, "
 "returns None."
-msgstr ""
-"실시간 방송 상태(LiveStatus)를 불러옵니다."
-"스트리머가 오랫동안 방송하지 않으면 `None`을 응답받을 수 있습니다."
+msgstr "실시간 방송 상태(LiveStatus)를 불러옵니다.스트리머가 오랫동안 방송하지 않으면 `None`을 응답받을 수 있습니다."
 
 #: chzzkpy.client.Client.login:1 of
 msgid "Login at Chzzk. Used for features that require a login. (ex. user method)"
@@ -100,6 +95,21 @@ msgstr "HTTP 전송되는 쿠키 중의 `NID_AUT` 값을 의미합니다."
 #: chzzkpy.client.Client.login:6 of
 msgid "A `NID_SES` value in the cookie."
 msgstr "HTTP 전송되는 쿠키 중의 `NID_SES` 값을 의미합니다."
+
+#: chzzkpy.client.Client.manage:1 of
+msgid "Get a client provided broadcast management functionality."
+msgstr ""
+
+#: chzzkpy.client.Client.manage:3 of
+msgid ""
+"A channel id to manage broadcasts. The default value is the last channel "
+"id used. If initally use the manage method and don't have a channel_id "
+"argument, it will raise a :exc:`TypeError` exception."
+msgstr ""
+
+#: chzzkpy.client.Client.manage:9 of
+msgid "Return a client provided broadcast management functionality."
+msgstr ""
 
 #: chzzkpy.client.Client.search_channel:1 of
 msgid "Search the channel with keyword."
@@ -146,6 +156,10 @@ msgid "Information for logged-in user."
 msgstr "로그인된 나의 정보입니다."
 
 #: ../../source/basic.rst:11
+msgid "Enumerations"
+msgstr "Enumerations"
+
+#: ../../source/basic.rst:18
 msgid "Channel"
 msgstr "Channel"
 
@@ -153,7 +167,7 @@ msgstr "Channel"
 msgid "Bases: :py:class:`~chzzkpy.channel.PartialChannel`"
 msgstr "상위 클래스: :py:class:`~chzzkpy.channel.PartialChannel`"
 
-#: ../../source/basic.rst:30
+#: ../../source/basic.rst:37
 msgid "Search"
 msgstr "Search"
 
@@ -161,40 +175,51 @@ msgstr "Search"
 msgid "Bases: :py:class:`~chzzkpy.base_model.ChzzkModel`"
 msgstr "상위 클래스: :py:class:`~chzzkpy.base_model.ChzzkModel`"
 
-#: ../../source/basic.rst:43
+#: ../../source/basic.rst:50
 msgid "User"
 msgstr "User"
 
-#: ../../source/basic.rst:50
+#: chzzkpy.user.PartialUser.add_restrict:1 of
+msgid "Add this user to restrict activity."
+msgstr ""
+
+#: chzzkpy.user.PartialUser.add_role:1 of
+msgid "Add a broadcast permission to this user."
+msgstr ""
+
+#: chzzkpy.user.PartialUser.add_role:3 of
+msgid ""
+"A enumeration class containing broadcast role. It can only set the role "
+"to :attr:`UserRole.chat_manager`, :attr:`UserRole.settlement_manager`, or"
+" :attr:`UserRole.channel_manager`. Giving any other role will cause a "
+":exc:`TypeError` exception."
+msgstr ""
+
+#: chzzkpy.user.PartialUser.chat_activity_count:1 of
+msgid "Get chat activity count of this user."
+msgstr ""
+
+#: chzzkpy.user.PartialUser.chat_activity_count:3 of
+msgid ""
+"Returns a chat activity count object contains the count of temporary "
+"activity restrictions, the count of activity restrictions, and the count "
+"of chats."
+msgstr ""
+
+#: chzzkpy.user.PartialUser.remove_restrict:1 of
+msgid "Remove this user to restrict activity."
+msgstr ""
+
+#: chzzkpy.user.PartialUser.remove_role:1 of
+msgid "Remove a broadcast permission to this user."
+msgstr ""
+
+#: ../../source/basic.rst:62
 msgid "Video"
 msgstr "Video"
 
-#: chzzkpy.video.Video:1 of
-msgid "_summary_"
-msgstr ""
-
-#: chzzkpy.video.Video:5 of
-msgid "Whether the video is adult-oriented."
-msgstr ""
-
-#: chzzkpy.video.Video of
-msgid "type"
-msgstr ""
-
-#: chzzkpy.video.Video:7 of
-msgid "bool"
-msgstr "bool"
-
-#: chzzkpy.video.Video:11 of
-msgid "The video's type"
-msgstr ""
-
-#: chzzkpy.video.Video:13 of
-msgid "Optional[str]"
-msgstr ""
-
-#: ../../source/basic.rst:57
-msgid "예외 (Exceptions)"
+#: ../../source/basic.rst:74
+msgid "Exceptions"
 msgstr ""
 
 #: chzzkpy.error.LoginRequired:1 of
@@ -208,4 +233,3 @@ msgstr "치지직 호출 중에 HTTP 예외가 발생하였습니다."
 #: chzzkpy.error.NotFound:1 of
 msgid "Exception that’s raised for when status code 404 occurs."
 msgstr "조회된 결과가 없습니다."
-
