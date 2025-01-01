@@ -21,9 +21,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
+from typing import Optional
+
 from ..base_model import ChzzkModel
 
 
 class ChatRule(ChzzkModel):
     channel_id: str
-    rule: str
+    rule: Optional[str]
