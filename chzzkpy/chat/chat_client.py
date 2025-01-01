@@ -113,7 +113,7 @@ class ChatClient(Client):
             await self.connect()
         finally:
             await self.close()
-        
+
     def login(self, authorization_key: str, session_key: str):
         """Login at Chzzk.
         Used for features that require a login. (ex. user method)
