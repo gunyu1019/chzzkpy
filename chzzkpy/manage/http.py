@@ -84,7 +84,7 @@ class ChzzkManageSession(ChzzkSession):
         channel_id: Annotated[str, Path],
         target_id: Annotated[str, Query.to_camel()],
         user_role_type: Annotated[
-            Literal["streaming_chat_manager", "streaming_channel_manager"],
+            Literal["STREAMING_CHAT_MANAGER", "STREAMING_CHANNEL_MANAGER", "STREAMING_STATTLE_MANAGER"],
             Query.to_camel(),
         ],
     ) -> Content[PartialUser]:
