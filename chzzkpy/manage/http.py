@@ -53,6 +53,7 @@ class ChzzkManageSession(ChzzkSession):
         self.add_prohibit_word.before_hook(self.query_to_json)
         self.edit_prohibit_word.before_hook(self.query_to_json)
         self.set_chat_rule.before_hook(self.query_to_json)
+        self.reject_unrestrict_request.before_hook(self.query_to_json)
 
     @get_pydantic_response_model()
     @post("/manage/v1/channels/{channel_id}/restrict-users", directly_response=True)
@@ -267,4 +268,15 @@ class ChzzkManageSession(ChzzkSession):
         page: Annotated[int, Query.to_camel()] = 0,
         size: Annotated[int, Query.to_camel()] = 50,
     ) -> Content[ManageResult[ManageVideo]]:
+        pass
+
+    @get_pydantic_response_model()
+    @put("/manage/v1/channels/{channel_id}/restrict-release-requests/{request_number}/reject", directly_response=True)
+    @ChzzkSession.configuration(login_able=True, login_required=True)
+    async def reject_unrestrict_request(
+        self,
+        channel_id: Annotated[str, Path],
+        request_number: Annotated[int, Path],
+        judgment: Annotated[str, Query.to_camel()]
+    ) -> Content[UnrestrictRequest]:
         pass

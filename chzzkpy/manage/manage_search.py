@@ -88,13 +88,17 @@ class UnrestrictRequest(ChzzkModel, ManagerClientAccessable):
 
     @ManagerClientAccessable.based_manage_client
     async def approve(self):
-        """Remove this user to restrict activity."""
+        """Approve this unrestrict activity request."""
         await self._manage_client.remove_restrict(self.user_id_hash)
 
     @ManagerClientAccessable.based_manage_client
-    async def deny(self, message: str):
-        """Remove this user to restrict activity."""
-        await self._manage_client.remove_restrict(self.user_id_hash)
+    async def reject(self, reason: str):
+        """Deny this unrestrict activity request."""
+        await self._manage_client._http.reject_unrestrict_request(
+            channel_id = self.channel_id,
+            request_number = self.request_no,
+            judgment = reason
+        )
 
 
 class ManageVideo(PartialVideo):
