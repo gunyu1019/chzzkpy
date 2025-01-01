@@ -26,7 +26,7 @@ import datetime
 from typing import Annotated, List, Optional, Generic, TypeVar
 from pydantic import BeforeValidator
 
-from ..base_model import ChzzkModel
+from ..base_model import ChzzkModel, ManagerClientAccessable
 from ..user import PartialUser
 from ..video import PartialVideo
 
@@ -66,12 +66,17 @@ class ManageFollower(ChzzkModel):
     channel_following: FollowingInfo
 
 
-class RestrictUser(ChzzkModel):
+class RestrictUser(ChzzkModel, ManagerClientAccessable):
     seq: int
     user_id_hash: str
     nickname: str
     execute_nickname: str
     created_date: datetime.datetime
+
+    @ManagerClientAccessable.based_manage_client
+    async def remove_restrict(self):
+        """Remove this user to restrict activity."""
+        await self._manage_client.remove_restrict(self.user_id_hash)
 
 
 class ManageVideo(PartialVideo):
