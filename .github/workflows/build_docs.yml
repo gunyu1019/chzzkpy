@@ -4,6 +4,9 @@ on:
       - closed
     branches:
       - docs
+  push:
+    branches: 
+      - docs
 
 name: Documentation (Build & Deployment)
 
