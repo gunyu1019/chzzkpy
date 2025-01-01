@@ -21,34 +21,34 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from .blind import Blind
-from .chat_client import ChatClient
-from .connected import ConnectedInfo
-from .donation import (
-    DonationRank,
-    BaseDonation,
-    ChatDonation,
-    VideoDonation,
-    MissionDonation,
-)
-from .enums import ChatType, ChatCmd
-from .error import *
-from .message import (
-    Message,
-    MessageDetail,
-    ChatMessage,
-    NoticeMessage,
-    DonationMessage,
-    SubscriptionMessage,
-    SystemMessage,
-    Extra,
-    ChatDonationExtra,
-    VideoDonationExtra,
-    MissionDonationExtra,
-    SubscriptionExtra,
-    NoticeExtra,
-    SystemExtra,
-    SystemExtraParameter,
-)
-from .profile import Profile, ActivityBadge, StreamingProperty, Badge
-from .recent_chat import RecentChat
+import datetime
+
+from ..base_model import ChzzkModel, ManagerClientAccessable
+
+
+class ProhibitWord(ChzzkModel, ManagerClientAccessable):
+    created_date: datetime.datetime
+    nickname: str
+    prohibit_word: str
+    prohibit_word_no: int
+
+    @ManagerClientAccessable.based_manage_client
+    async def remove(self):
+        """Remove this prohibit word."""
+        await self._manage_client.remove_prohibit_word(self)
+
+    @ManagerClientAccessable.based_manage_client
+    async def edit(self, word: str):
+        """Modify this prohibit word.
+
+        Parameters
+        ----------
+        word : str
+            A new word to prohibit.
+        """
+        data = await self._manage_client.edit_prohibit_word(self, word)
+        return data
+
+
+class ProhibitWordResponse(ChzzkModel):
+    prohibit_word_list: list[ProhibitWord]

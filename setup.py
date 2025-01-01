@@ -17,11 +17,11 @@ extras_require = {"test": ["pytest", "pytest-cov"], "lint": ["pycodestyle", "bla
 setup(
     name="chzzkpy",
     version=version,
-    packages=["chzzkpy", "chzzkpy.chat"],
+    packages=["chzzkpy", "chzzkpy.chat", "chzzkpy.manage"],
     url="https://github.com/gunyu1019/chzzk_py",
     license="MIT",
     author="gunyu1019",
-    author_email="gunyu1019@yhs.kr",
+    author_email="gunyu1019@gmail.com",
     description="An unofficial Python library of Chzzk(Naver live-streaming service)",
     python_requires=">=3.10",
     extras_require=extras_require,

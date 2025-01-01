@@ -32,16 +32,19 @@ from typing import Any, Optional, Callable, Coroutine, Literal, TYPE_CHECKING
 from .enums import ChatCmd
 from .error import ChatConnectFailed
 from .gateway import ChzzkWebSocket, ReconnectWebsocket
-from .http import ChzzkChatSession
+from .http import ChzzkAPIChatSession, NaverGameChatSession
 from .state import ConnectionState
 from ..client import Client
 from ..error import LoginRequired
+from ..manage.manage_client import ManageClient
+from ..user import PartialUser
 from ..live import LiveDetail, LiveStatus
 from ..http import ChzzkAPISession
 
 if TYPE_CHECKING:
     from .access_token import AccessToken
     from .message import ChatMessage
+    from .profile import Profile
     from .recent_chat import RecentChat
 
 _log = logging.getLogger(__name__)
@@ -88,8 +91,8 @@ class ChatClient(Client):
         self._status: Literal["OPEN", "CLOSE"] = None
 
     def _session_initial_set(self):
-        self._api_session = ChzzkAPISession(loop=self.loop)
-        self._game_session = ChzzkChatSession(loop=self.loop)
+        self._api_session = ChzzkAPIChatSession(loop=self.loop)
+        self._game_session = NaverGameChatSession(loop=self.loop)
 
     @property
     def is_connected(self) -> bool:
@@ -110,6 +113,20 @@ class ChatClient(Client):
             await self.connect()
         finally:
             await self.close()
+
+    def login(self, authorization_key: str, session_key: str):
+        """Login at Chzzk.
+        Used for features that require a login. (ex. user method)
+
+        Parameters
+        ----------
+        authorization_key : str
+            A `NID_AUT` value in the cookie.
+        session_key : str
+            A `NID_SES` value in the cookie.
+        """
+        super().login(authorization_key=authorization_key, session_key=session_key)
+        self._manage_client[self.channel_id] = ManageClient(self.channel_id, self)
 
     async def connect(self) -> None:
         if self.chat_channel_id is None:
@@ -372,7 +389,7 @@ class ChatClient(Client):
 
         Parameters
         ----------
-        count : int, optional
+        count : Optional[int]
             Number of messages to fetch from the most recent, by default 50
 
         Raises
@@ -448,16 +465,111 @@ class ChatClient(Client):
         )
         return
 
-    async def live_status(
-        self, channel_id: Optional[str] = None
-    ) -> Optional[LiveStatus]:
+    async def temporary_restrict(self, user: PartialUser | str) -> PartialUser:
+        """Give temporary restrict to user.
+        A temporary restriction cannot be lifted arbitrarily.
+
+        Parameters
+        ----------
+        user : ParticleUser | str
+            A user object to give temporary restrict activity.
+            Instead, it can be user id.
+
+        Returns
+        -------
+        ParticleUser
+            Returns an user temporary restricted in chat.
+        """
+        user_id = user
+        if isinstance(user, PartialUser):
+            user_id = user.user_id_hash
+
+        response = await self._api_session.temporary_restrict(
+            channel_id=self.channel_id,
+            chat_channel_id=self.chat_channel_id,
+            target_id=user_id,
+        )
+        return response
+
+    async def live_status(self, channel_id: Optional[str] = None):
+        """Get a live status info of broadcaster.
+
+        Parameters
+        ----------
+        channel_id : Optional[str]
+            The channel ID of broadcaster, default by channel id of ChatClient.
+
+        Returns
+        -------
+        Optional[LiveStatus]
+            Return LiveStatus info. Sometimes the broadcaster is not broadcasting, returns None.
+        """
         if channel_id is None:
             channel_id = self.channel_id
         return await super().live_status(channel_id)
 
-    async def live_detail(
-        self, channel_id: Optional[str] = None
-    ) -> Optional[LiveDetail]:
+    async def live_detail(self, channel_id: Optional[str] = None):
+        """Get a live detail info of broadcaster.
+
+        Parameters
+        ----------
+        channel_id : Optional[str]
+            The channel ID of broadcaster, default by channel id of ChatClient.
+
+        Returns
+        -------
+        Optional[LiveDetail]
+            Return LiveDetail info. Sometimes the broadcaster is not broadcasting, returns None.
+        """
         if channel_id is None:
             channel_id = self.channel_id
         return await super().live_detail(channel_id)
+
+    def manage(self, channel_id: Optional[str] = None) -> ManageClient:
+        """Get a client provided broadcast management functionality.
+
+        Parameters
+        ----------
+        channel_id : Optional[str]
+            A channel id to manage broadcasts.
+            The default value is the last channel id used.
+            If initally use the manage method and don't have a channel_id argument,
+            the default value is channel id of ChatClient.
+
+        Returns
+        -------
+        ManageClient
+            Return a client provided broadcast management functionality.
+        """
+        if channel_id is None and self._latest_manage_client_id is None:
+            channel_id = self.channel_id
+        return super().manage(channel_id=channel_id)
+
+    @property
+    def manage_self(self) -> ManageClient:
+        """Get a client provided self-channel management functionally."""
+        return self.manage(channel_id=self.channel_id)
+
+    async def profile_card(self, user: PartialUser | str) -> Profile:
+        """Get a profile card.
+
+        Parameters
+        ----------
+        user : ParticleUser | str
+            A user object to get profile card.
+            Instead, it can be user id.
+
+        Returns
+        -------
+        Profile
+            Returns a profile card with this channel information (include following info).
+        """
+        user_id = user
+        if isinstance(user, PartialUser):
+            user_id = user.user_id_hash
+
+        data = await self._game_session.profile_card(
+            chat_channel_id=self.chat_channel_id, user_id=user_id
+        )
+        data.content._set_manage_client(self.manage_self)
+        return data.content

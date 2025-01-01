@@ -23,7 +23,6 @@ SOFTWARE.
 
 import asyncio
 import aiohttp
-import functools
 import logging
 from typing import Annotated, Final, Optional
 
@@ -31,8 +30,7 @@ from ahttp_client import Session, get, Path, Query
 from ahttp_client.extension import get_pydantic_response_model
 from ahttp_client.request import RequestCore
 
-from .base_model import ChzzkModel, Content
-from .channel import Channel
+from .base_model import Content
 from .error import LoginRequired, HTTPException, NotFound
 from .live import LiveStatus, LiveDetail
 from .search import TopSearchResult
@@ -97,6 +95,16 @@ class ChzzkSession(Session):
             data = await response.json()
             raise HTTPException(code=data["code"], message=data["message"])
         return response
+
+    @staticmethod
+    async def query_to_json(session: Session, request: RequestCore, path: str):
+        copied_request_obj = request.copy()
+        body = dict()
+        for key, value in request.params.copy().items():
+            body[key] = value
+        copied_request_obj.params = dict()
+        copied_request_obj.body = body
+        return copied_request_obj, path
 
     @property
     def _token(self) -> str:
