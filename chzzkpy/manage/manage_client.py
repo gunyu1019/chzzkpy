@@ -198,7 +198,7 @@ class ManageClient:
         Stream
             Return a stream key for streamming.
         """
-        data = await self._http.stream()
+        data = await self._http.stream(channel_id=self.channel_id)
         return data.content
 
     async def add_restrict(self, user: str | PartialUser) -> PartialUser:
