@@ -40,6 +40,15 @@ class ManageResult(ChzzkModel, Generic[T]):
     total_pages: int
     data: List[T]
 
+    def __iter__(self):
+        return self.data.__iter__()
+    
+    def __len__(self):
+        return self.total_count
+    
+    def __getitem__(self, index: int):
+        return self.data[index]
+
 
 class FollowingInfo(ChzzkModel):
     following: bool
