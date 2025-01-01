@@ -8,7 +8,7 @@ Introduction
 * Chatting in live.
 * Search broadcaster, live, video.
 * Lookup a live of broadcaster.
-* (WIP) Manage broadcast.
+* Manage broadcast.
 
 Installation
 ------------
@@ -44,20 +44,21 @@ Searching broadcaster
    import asyncio
    import chzzkpy
 
-   loop = asyncio.get_event_loop()
-   client = chzzkpy.Client(loop=loop)
 
    async def main():
+      client = chzzkpy.Client()
       result = await client.search_channel("건유1019")
       if len(result) == 0:
          print("검색 결과가 없습니다 :(")
+         await client.close()
          return
+      
       print(result[0].name)
       print(result[0].id)
       print(result[0].image)
       await client.close()
 
-   loop.run_until_complete(main())
+   asyncio.run(main())
 
 
 
@@ -83,6 +84,35 @@ Chat Bot
 
 
    client.run("NID_AUT", "NID_SES")
+
+Collect Followers
+`````````````````
+
+.. code-block:: python
+   
+   import asyncio
+   import chzzkpy
+
+
+   async def main():
+      client = chzzkpy.Client()
+
+      # 채널 관리 기능을 이용하기 위해서는 네이버 사용자 인증이 필요합니다.
+      # 웹브라우저의 쿠키 값에 있는 NID_AUT와 NID_SES 값으로 로그인을 대체할 수 있습니다.
+      client.login("NID_AUT", "NID_SES")
+      manage_client = client.manage("channel_id")
+
+      followers = await manage_client.followers()
+      if len(result) == 0:
+         print("팔로워가 없습니다. :(")
+         await client.close()
+         return
+
+      for user in result.data:
+         print(f"{user.user.nickname}: {user.following.follow_date}부터 팔로우 중.")
+      await client.close()
+
+   asyncio.run(main())
 
 
 .. toctree::

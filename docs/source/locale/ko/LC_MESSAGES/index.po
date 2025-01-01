@@ -5,7 +5,7 @@
 #: ../../source/index.rst:2 ../../source/index.rst:88
 #, fuzzy
 msgid "Introduction"
-msgstr ""
+msgstr "소개"
 "Project-Id-Version: chzzkpy \n"
 "Report-msgstr-Bugs-To: \n"
 "POT-Creation-Date: 2024-11-14 11:28+0000\n"
@@ -60,8 +60,8 @@ msgid "Lookup a live of broadcaster."
 msgstr "치지직 실시간 방송 정보"
 
 #: ../../source/index.rst:11
-msgid "(WIP) Manage broadcast."
-msgstr "(작업 중) 치지직 방송 관리"
+msgid "Manage broadcast."
+msgstr "치지직 채널 관리"
 
 #: ../../source/index.rst:14
 msgid "Installation"
@@ -95,4 +95,8 @@ msgstr "방송인 검색"
 #: ../../source/index.rst:65
 msgid "Chat Bot"
 msgstr "채팅 봇"
+
+#: ../../source/index.rst:65
+msgid "Collect Followers"
+msgstr "팔로워 조회"
 
