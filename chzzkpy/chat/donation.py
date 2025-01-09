@@ -60,12 +60,29 @@ class MissionDonation(BaseDonation):
     donation_type: Literal["MISSION"]
     duration_time: int = 0
     mission_donation_id: Optional[str] = None
-    mission_donation_type: Optional[str] = None  # ALONE ?
+    mission_donation_type: Optional[str] = None  # ALONE / PARTICIPATION
 
     mission_created_time: datetime.datetime
     mission_start_time: Optional[datetime.datetime] = None
     mission_end_time: Optional[datetime.datetime] = None
     mission_text: str
+
+    status: str | Literal["PENDING", "REJECTED", "APPROVED", "COMPLETED"] = None
+    success: bool = False
+
+
+class MissionDonationParticipation(BaseDonation):
+    donation_type: Literal['MISSION_PARTICIPATION']
+    mission_donation_type: str  # PARTICIPATION
+    related_mission_donation_id: str
+    mission_donation_id: str
+    donation_id: Optional[str] # ???
+    total_pay_amount: int
+    mission_text: str
+    participation_count: int
+    
+    user_id_hash: str
+    nickname: str
 
     status: str | Literal["PENDING", "REJECTED", "APPROVED", "COMPLETED"] = None
     success: bool = False
