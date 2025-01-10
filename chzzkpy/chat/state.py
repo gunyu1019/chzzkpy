@@ -29,7 +29,7 @@ import functools
 from typing import Callable, Any, TYPE_CHECKING, Optional
 
 from .blind import Blind
-from .donation import MissionDonation
+from .donation import MissionDonation, MissionParticipationDonation
 from .enums import ChatCmd, ChatType, get_enum
 from .message import (
     ChatMessage,
@@ -179,4 +179,7 @@ class ConnectionState:
                 self.dispatch("mission_approved", validated_data)
             elif validated_data.status == "REJECTED":
                 self.dispatch("mission_rejected", validated_data)
+        elif event_type == "DONATION_MISSION_PARTICIPATION":
+            validated_data = MissionParticipationDonation.model_validate(data)
+            self.dispatch("mission_update_cost", validated_data)
         return
