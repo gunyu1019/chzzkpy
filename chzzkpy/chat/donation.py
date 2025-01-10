@@ -63,6 +63,9 @@ class MissionDonation(BaseDonation):
     mission_text: str
     total_pay_amount: int
 
+    donation_id: Optional[str] # ???
+    participation_count: int
+
     user_id_hash: str
     nickname: str
 
