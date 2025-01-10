@@ -28,7 +28,13 @@ import functools
 from typing import Optional, Literal, TypeVar, Generic, TYPE_CHECKING, Any
 from pydantic import AliasChoices, Field, Json, ConfigDict, PrivateAttr
 
-from .donation import BaseDonation, ChatDonation, VideoDonation, MissionDonation, MissionParticipationDonation
+from .donation import (
+    BaseDonation,
+    ChatDonation,
+    VideoDonation,
+    MissionDonation,
+    MissionParticipationDonation,
+)
 from .enums import ChatType
 from .profile import Profile
 from ..base_model import ChzzkModel
@@ -172,7 +178,12 @@ class MissionDonationExtra(MissionDonation):
 
 
 class DonationMessage(
-    MessageDetail[ChatDonationExtra | VideoDonationExtra | MissionDonationExtra | MissionParticipationDonation]
+    MessageDetail[
+        ChatDonationExtra
+        | VideoDonationExtra
+        | MissionDonationExtra
+        | MissionParticipationDonation
+    ]
 ):
     pass
 

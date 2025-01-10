@@ -30,7 +30,7 @@ from .donation import (
     ChatDonation,
     VideoDonation,
     MissionDonation,
-    MissionParticipationDonation
+    MissionParticipationDonation,
 )
 from .enums import ChatType, ChatCmd
 from .error import *

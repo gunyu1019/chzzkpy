@@ -64,7 +64,7 @@ class MissionDonation(BaseDonation):
     mission_text: str
     total_pay_amount: int
 
-    donation_id: Optional[str] # ???
+    donation_id: Optional[str]  # ???
     participation_count: int
 
     user_id_hash: str
@@ -80,14 +80,14 @@ class MissionDonation(BaseDonation):
 
 
 class MissionParticipationDonation(BaseDonation):
-    donation_type: Literal['MISSION_PARTICIPATION']
+    donation_type: Literal["MISSION_PARTICIPATION"]
     mission_donation_id: str
     mission_donation_type: str  # PARTICIPATION
     mission_text: str
     total_pay_amount: int
 
     related_mission_donation_id: str
-    donation_id: Optional[str] # ???
+    donation_id: Optional[str]  # ???
     participation_count: int
 
     user_id_hash: str
