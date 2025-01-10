@@ -46,6 +46,7 @@ class BaseDonation(ChzzkModel):
     donation_type: str
     weekly_rank_list: Optional[list[DonationRank]] = Field(default_factory=list)
     donation_user_weekly_rank: Optional[DonationRank] = None
+    verified_mark: Optional[bool] = False
 
 
 class ChatDonation(BaseDonation):
@@ -78,7 +79,7 @@ class MissionDonation(BaseDonation):
     success: bool = False
 
 
-class MissionDonationParticipation(BaseDonation):
+class MissionParticipationDonation(BaseDonation):
     donation_type: Literal['MISSION_PARTICIPATION']
     mission_donation_id: str
     mission_donation_type: str  # PARTICIPATION
