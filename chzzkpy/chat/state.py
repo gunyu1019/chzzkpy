@@ -179,7 +179,7 @@ class ConnectionState:
                 self.dispatch("mission_approved", validated_data)
             elif validated_data.status == "REJECTED":
                 self.dispatch("mission_rejected", validated_data)
-        elif event_type == "DONATION_MISSION_PARTICIPATION":
+        elif event_type == "DONATION_MISSION_PARTICIPATION" and "relatedMissionDonationId" in data.keys():
             validated_data = MissionParticipationDonation.model_validate(data)
             self.dispatch("mission_update_cost", validated_data)
         return
