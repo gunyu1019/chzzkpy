@@ -203,7 +203,7 @@ class ChatClient(Client):
                     #
                     # https://github.com/gunyu1019/chzzkpy/issues/31
                     relative_time = datetime.datetime.now() - last_check_time
-                    if relative_time.total_seconds() >= 59:
+                    if relative_time.total_seconds() >= 58:
                         last_check_time = datetime.datetime.now()
                         await self._confirm_live_status()
             except ReconnectWebsocket:
