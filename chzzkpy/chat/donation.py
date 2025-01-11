@@ -46,6 +46,7 @@ class BaseDonation(ChzzkModel):
     donation_type: str
     weekly_rank_list: Optional[list[DonationRank]] = Field(default_factory=list)
     donation_user_weekly_rank: Optional[DonationRank] = None
+    verified_mark: Optional[bool] = False
 
 
 class ChatDonation(BaseDonation):
@@ -58,14 +59,39 @@ class VideoDonation(BaseDonation):
 
 class MissionDonation(BaseDonation):
     donation_type: Literal["MISSION"]
-    duration_time: int = 0
     mission_donation_id: Optional[str] = None
-    mission_donation_type: Optional[str] = None  # ALONE ?
+    mission_donation_type: Optional[str] = None  # ALONE
+    mission_text: str
+    total_pay_amount: int
+
+    donation_id: Optional[str]  # ???
+    participation_count: int
+
+    user_id_hash: str
+    nickname: str
 
     mission_created_time: datetime.datetime
     mission_start_time: Optional[datetime.datetime] = None
     mission_end_time: Optional[datetime.datetime] = None
+    duration_time: int = 0
+
+    status: str | Literal["PENDING", "REJECTED", "APPROVED", "COMPLETED"] = None
+    success: bool = False
+
+
+class MissionParticipationDonation(BaseDonation):
+    donation_type: Literal["MISSION_PARTICIPATION"]
+    mission_donation_id: str
+    mission_donation_type: str  # PARTICIPATION
     mission_text: str
+    total_pay_amount: int
+
+    related_mission_donation_id: str
+    donation_id: Optional[str]  # ???
+    participation_count: int
+
+    user_id_hash: str
+    nickname: str
 
     status: str | Literal["PENDING", "REJECTED", "APPROVED", "COMPLETED"] = None
     success: bool = False
