@@ -115,7 +115,7 @@ class ChzzkWebSocket:
 
     async def poll_event(self):
         try:
-            msg = await self.socket.receive(timeout=59.0)
+            msg = await self.socket.receive(timeout=58.0)
             if msg.type is aiohttp.WSMsgType.TEXT:
                 data = msg.json()
                 await self.received_message(data)

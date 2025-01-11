@@ -60,7 +60,7 @@ class VideoDonation(BaseDonation):
 class MissionDonation(BaseDonation):
     donation_type: Literal["MISSION"]
     mission_donation_id: Optional[str] = None
-    mission_donation_type: Optional[str] = None  # ALONE
+    mission_donation_type: Optional[str] = None  # ALONE / GROUP
     mission_text: str
     total_pay_amount: int
 
@@ -81,8 +81,8 @@ class MissionDonation(BaseDonation):
 
 class MissionParticipationDonation(BaseDonation):
     donation_type: Literal["MISSION_PARTICIPATION"]
-    mission_donation_id: str
-    mission_donation_type: str  # PARTICIPATION
+    mission_donation_id: Optional[str] = None
+    mission_donation_type: Optional[str] = None  # PARTICIPATION
     mission_text: str
     total_pay_amount: int
 
