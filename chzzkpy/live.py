@@ -43,7 +43,7 @@ class LiveStatus(ChzzkModel):
     accumulate_count: int
     paid_promotion: bool
     adult: bool
-    chat_channel_id: str
+    chat_channel_id: Optional[str]
     category_type: Optional[str]
     live_category: Optional[str]
     live_category_value: str
@@ -62,7 +62,7 @@ class BaseLive(ChzzkModel):
     live_image_url: str
     accumulate_count: int
     adult: bool
-    chat_channel_id: str
+    chat_channel_id: Optional[str]
     category_type: Optional[str]
     concurrent_user_count: int
     default_thumbnail_image_url: Optional[str]

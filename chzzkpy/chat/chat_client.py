@@ -132,7 +132,17 @@ class ChatClient(Client):
         if self.chat_channel_id is None:
             status = await self.live_status(channel_id=self.channel_id)
             if status is None:
-                raise ChatConnectFailed(self.channel_id)
+                raise ChatConnectFailed.channel_is_null(self.channel_id)
+
+            if (
+                status.adult
+                and status.user_adult_status != "ADULT"
+                and status.chat_channel_id is None
+            ):
+                raise ChatConnectFailed.adult_channel(self.channel_id)
+            elif status.chat_channel_id is None:
+                raise ChatConnectFailed.chat_channel_is_null()
+
             self.chat_channel_id = status.chat_channel_id
             self._status = status.status
 
