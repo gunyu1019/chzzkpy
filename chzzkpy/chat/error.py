@@ -27,9 +27,28 @@ from ..error import ChzzkpyException
 
 
 class ChatConnectFailed(ChzzkpyException):
-    def __init__(self, channel_id: str):
-        super(ChatConnectFailed, self).__init__(
-            f"ChatId cannot found. Check channel({channel_id}) is on air"
+    def __init__(self, message: str):
+        super(ChatConnectFailed, self).__init__(message)
+
+    @classmethod
+    def channel_is_null(cls, channel_id: str):
+        return cls(
+            f"Client can't retrieve the channel live-status. "
+            f"Is the channel({channel_id}) broadcasting live?"
+        )
+
+    @classmethod
+    def chat_channel_is_null(cls):
+        return cls(
+            "Missing Chat ID to connect to chat."
+            "Make sure this client can connect to chat."
+        )
+
+    @classmethod
+    def adult_channel(cls, channel_id: str):
+        return cls(
+            f"Adult verification is required to connect to chat on this channel({channel_id})."
+            f"Please use login(), or proceed to adult verification."
         )
 
 
