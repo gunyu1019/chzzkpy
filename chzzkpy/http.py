@@ -117,6 +117,7 @@ class ChzzkAPISession(ChzzkSession):
 
     @get_pydantic_response_model()
     @get("/polling/v2/channels/{channel_id}/live-status", directly_response=True)
+    @ChzzkSession.configuration(login_able=True, login_required=False)
     async def live_status(
         self, channel_id: Annotated[str, Path]
     ) -> Content[Optional[LiveStatus]]:
@@ -124,6 +125,7 @@ class ChzzkAPISession(ChzzkSession):
 
     @get_pydantic_response_model()
     @get("/service/v2/channels/{channel_id}/live-detail", directly_response=True)
+    @ChzzkSession.configuration(login_able=True, login_required=True)
     async def live_detail(
         self, channel_id: Annotated[str, Path]
     ) -> Content[LiveDetail]:
