@@ -67,8 +67,9 @@ class MissionDonation(BaseDonation):
     donation_id: Optional[str]  # ???
     participation_count: int
 
-    user_id_hash: str
-    nickname: str
+    user_id_hash: Optional[str] = None
+    nickname: Optional[str] = None    
+    anonymous_token: Optional[str] = None
 
     mission_created_time: datetime.datetime
     mission_start_time: Optional[datetime.datetime] = None
@@ -90,8 +91,9 @@ class MissionParticipationDonation(BaseDonation):
     donation_id: Optional[str]  # ???
     participation_count: int
 
-    user_id_hash: str
-    nickname: str
+    user_id_hash: Optional[str] = None
+    nickname: Optional[str] = None    
+    anonymous_token: Optional[str] = None
 
     status: str | Literal["PENDING", "REJECTED", "APPROVED", "COMPLETED"] = None
     success: bool = False
