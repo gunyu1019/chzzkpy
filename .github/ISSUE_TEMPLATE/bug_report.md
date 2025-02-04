@@ -7,15 +7,6 @@ assignees: ''
 
 ---
 
----
-name: Bug Report
-about: Create a report to help us improve
-title: ''
-labels: 'bug'
-assignees: 'gunyu1019'
-
----
-
 ## Describe the bug<br/>
 A clear and concise description of what the bug is.
 
