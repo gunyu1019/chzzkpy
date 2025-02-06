@@ -99,7 +99,7 @@ class Message(ChzzkModel, Generic[E]):
         model = super().model_validate(obj)
         model._client = client
 
-        if model.profile is not None:
+        if model.profile is not None and client.has_login:
             model.profile._set_manage_client(client.manage_self)
         return model
 

@@ -360,7 +360,7 @@ class ManageClient:
             sort_type=sort_type.value,
             publish_period="" if publish_period is None else publish_period,
             tier="" if tier is None else tier.value,
-            user_nickname="" if nickname is None else nickname,
+            nickname="" if nickname is None else nickname,
         )
         return data.content
 

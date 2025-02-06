@@ -220,7 +220,7 @@ class ChzzkManageSession(ChzzkSession):
         ] = "RECENT",
         publish_period: Annotated[Optional[Literal[1, 3, 6]], Query.to_camel()] = "",
         tier: Annotated[Optional[Literal["TIER_1", "TIER_2"]], Query.to_camel()] = "",
-        user_nickname: Annotated[Optional[str], Query.to_camel()] = "",
+        nickname: Annotated[Optional[str], Query.to_camel()] = "",
     ) -> Content[ManageResult[ManageSubcriber]]:
         pass
 

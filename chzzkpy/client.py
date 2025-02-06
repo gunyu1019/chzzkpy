@@ -110,6 +110,10 @@ class Client:
         self._api_session.login(authorization_key, session_key)
         self._game_session.login(authorization_key, session_key)
 
+    @property
+    def has_login(self) -> bool:
+        return all((self._api_session.has_login, self._game_session.has_login))
+
     async def live_status(self, channel_id: str) -> Optional[LiveStatus]:
         """Get a live status info of broadcaster.
 
