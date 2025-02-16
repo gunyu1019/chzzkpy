@@ -23,7 +23,7 @@ SOFTWARE.
 
 import asyncio
 
-from ahttp_client import get, post, put, delete, Path, Query
+from ahttp_client import request, get, post, put, delete, Path, Query, BodyJson
 from ahttp_client.extension import get_pydantic_response_model
 from typing import Annotated, Optional, Literal
 
@@ -51,9 +51,21 @@ class ChzzkManageSession(ChzzkSession):
         self.add_restrict.before_hook(self.query_to_json)
         self.add_role.before_hook(self.query_to_json)
         self.add_prohibit_word.before_hook(self.query_to_json)
+        self.edit_restrict.before_hook(self.query_to_json)
         self.edit_prohibit_word.before_hook(self.query_to_json)
         self.set_chat_rule.before_hook(self.query_to_json)
         self.reject_unrestrict_request.before_hook(self.query_to_json)
+
+    @get_pydantic_response_model()
+    @get(
+        "/manage/v1/channels/{channel_id}/restrict-users/{target_id}/validate",
+        directly_response=True,
+    )
+    @ChzzkSession.configuration(login_able=True, login_required=True)
+    async def validate_restrict(
+        self, channel_id: Annotated[str, Path], target_id: Annotated[str, Path]
+    ) -> Content[str]:
+        pass
 
     @get_pydantic_response_model()
     @post("/manage/v1/channels/{channel_id}/restrict-users", directly_response=True)
@@ -62,7 +74,29 @@ class ChzzkManageSession(ChzzkSession):
         self,
         channel_id: Annotated[str, Path],
         target_id: Annotated[str, Query.to_camel()],
-    ) -> Content[PartialUser]:
+        memo: Annotated[str, Query] = "",
+        restrict_days: Annotated[
+            Literal[1, 3, 7, 15, 30, 90] | None, Query.to_camel()
+        ] = 7,
+    ) -> Content[RestrictUser]:
+        pass
+
+    @get_pydantic_response_model()
+    @request(
+        "PATCH",
+        "/manage/v1/channels/{channel_id}/restrict-users/{target_id}",
+        directly_response=True,
+    )
+    @ChzzkSession.configuration(login_able=True, login_required=True)
+    async def edit_restrict(
+        self,
+        channel_id: Annotated[str, Path],
+        target_id: Annotated[str, Path],
+        memo: Annotated[str, Query] = "",
+        restrict_days: Annotated[
+            Literal[1, 3, 7, 15, 30, 90] | None, Query.to_camel()
+        ] = 7,
+    ) -> Content[RestrictUser]:
         pass
 
     @get_pydantic_response_model()
@@ -218,9 +252,9 @@ class ChzzkManageSession(ChzzkSession):
         sort_type: Annotated[
             Optional[Literal["RECENT", "LONGER"]], Query.to_camel()
         ] = "RECENT",
-        publish_period: Annotated[Optional[Literal[1, 3, 6]], Query.to_camel()] = "",
-        tier: Annotated[Optional[Literal["TIER_1", "TIER_2"]], Query.to_camel()] = "",
-        nickname: Annotated[Optional[str], Query.to_camel()] = "",
+        publish_period: Annotated[Optional[Literal[1, 3, 6]], Query.to_camel()] = None,
+        tier: Annotated[Optional[Literal["TIER_1", "TIER_2"]], Query.to_camel()] = None,
+        nickname: Annotated[Optional[str], Query.to_camel()] = None,
     ) -> Content[ManageResult[ManageSubcriber]]:
         pass
 
@@ -246,7 +280,7 @@ class ChzzkManageSession(ChzzkSession):
         channel_id: Annotated[str, Path],
         page: Annotated[int, Query.to_camel()] = 0,
         size: Annotated[int, Query.to_camel()] = 50,
-        user_nickname: Annotated[Optional[str], Query.to_camel()] = "",
+        user_nickname: Annotated[Optional[str], Query.to_camel()] = None,
     ) -> Content[ManageResult[RestrictUser]]:
         pass
 

@@ -12,13 +12,21 @@ if not version:
     raise RuntimeError("version is not set")
 
 
-extras_require = {"test": ["pytest", "pytest-cov"], "lint": ["pycodestyle", "black"], "docs": ["Sphinx", "sphinxawesome-theme", "sphinx-intl"]}
+extras_require = {
+    "test": ["pytest", "pytest-cov"],
+    "lint": ["pycodestyle", "black"],
+    "docs": ["Sphinx", "sphinxawesome-theme", "sphinx-intl"],
+}
 
 setup(
     name="chzzkpy",
     version=version,
     packages=["chzzkpy", "chzzkpy.chat", "chzzkpy.manage"],
-    url="https://github.com/gunyu1019/chzzk_py",
+    url="https://github.com/gunyu1019/chzzkpy",
+    project_urls={
+        "Documentation (한국어)": "https://gunyu1019.github.io/chzzkpy/ko/",
+        "Documentation (English)": "https://gunyu1019.github.io/chzzkpy/en/",
+    },
     license="MIT",
     author="gunyu1019",
     author_email="gunyu1019@gmail.com",
@@ -30,7 +38,7 @@ setup(
     include_package_data=True,
     install_requires=open("requirements.txt", encoding="UTF-8").read(),
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 5 - Production/Stable",
         "License :: OSI Approved :: MIT License",
         "Intended Audience :: Developers",
         "Natural Language :: Korean",
@@ -40,6 +48,8 @@ setup(
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3.14",
         "Topic :: Internet",
         "Topic :: Software Development :: Libraries",
         "Topic :: Software Development :: Libraries :: Python Modules",

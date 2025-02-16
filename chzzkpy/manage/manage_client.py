@@ -201,7 +201,12 @@ class ManageClient:
         data = await self._http.stream(channel_id=self.channel_id)
         return data.content
 
-    async def add_restrict(self, user: str | PartialUser) -> PartialUser:
+    async def add_restrict(
+        self,
+        user: str | PartialUser,
+        days: Literal[1, 3, 7, 15, 30, 90] | None = 7,
+        reason: Optional[str] = None,
+    ) -> RestrictUser:
         """Add an user to restrict activity.
 
         Parameters
@@ -209,18 +214,71 @@ class ManageClient:
         user : str | ParticleUser
             A user object to add restrict activity.
             Instead, it can be user id or nickname.
+        days: Literal[1, 3, 7, 15, 30, 90] | None
+            The duration of time to restrict in the channel
+            If days parameter is None, the user permanently restricted.
+        reason: Optional[str]
+            Reasons for restricting users
 
         Returns
         -------
-        ParticleUser
+        RestrictUser
             Returns an object containning activity-restricted users.
         """
         target_id = user
         if isinstance(user, PartialUser):
             target_id = user.user_id_hash
 
-        data = await self._http.add_restrict(
+        validation_result = await self._http.validate_restrict(
             channel_id=self.channel_id, target_id=target_id
+        )
+        if validation_result.message != "SUCCESS":
+            return
+
+        data = await self._http.add_restrict(
+            channel_id=self.channel_id,
+            target_id=target_id,
+            restrict_days=days,
+            memo=reason,
+        )
+        user = data.content
+        user._set_manage_client(self)
+        return user
+        return data.content
+
+    async def edit_restrict(
+        self,
+        user: str | PartialUser,
+        days: Literal[1, 3, 7, 15, 30, 90] | None = 7,
+        reason: Optional[str] = None,
+    ) -> RestrictUser:
+        """Modify an user to restrict activity.
+
+        Parameters
+        ----------
+        user : str | ParticleUser
+            A user object to modify restrict activity.
+            Instead, it can be user id.
+        days: Literal[1, 3, 7, 15, 30, 90] | None
+            The duration of time to restrict in the channel
+            If days parameter is None, the user permanently restricted.
+        reason: Optional[str]
+            Reasons for restricting users
+
+        Returns
+        -------
+        RestrictUser
+            Returns an object containning activity-restricted users.
+        """
+        target_id = user
+        if isinstance(user, PartialUser):
+            target_id = user.user_id_hash
+
+        data = await self._http.edit_restrict(
+            channel_id=self.channel_id,
+            target_id=target_id,
+            restrict_days=days,
+            memo=reason,
         )
         user = data.content
         user._set_manage_client(self)
@@ -358,9 +416,9 @@ class ManageClient:
             page=page,
             size=size,
             sort_type=sort_type.value,
-            publish_period="" if publish_period is None else publish_period,
-            tier="" if tier is None else tier.value,
-            nickname="" if nickname is None else nickname,
+            publish_period=publish_period,
+            tier=None if tier is None else tier.value,
+            nickname=nickname,
         )
         return data.content
 
