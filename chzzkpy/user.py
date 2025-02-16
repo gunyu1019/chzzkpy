@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import datetime
 from enum import Enum
-from typing import Annotated, Any, Optional, TYPE_CHECKING
+from typing import Annotated, Any, Optional, Literal, TYPE_CHECKING
 
 from pydantic import BeforeValidator
 
@@ -51,9 +51,13 @@ class PartialUser(ChzzkModel, ManagerClientAccessable):
     verified_mark: bool = False
 
     @ManagerClientAccessable.based_manage_client
-    async def add_restrict(self):
+    async def add_restrict(
+        self,
+        days: Literal[1, 3, 7, 15, 30, 90] | None = 7,
+        reason: Optional[str] = None,
+    ):
         """Add this user to restrict activity."""
-        result = await self._manage_client.add_restrict(self)
+        result = await self._manage_client.add_restrict(self, days=days, reason=reason)
         return result
 
     @ManagerClientAccessable.based_manage_client

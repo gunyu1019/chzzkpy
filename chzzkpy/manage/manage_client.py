@@ -201,7 +201,12 @@ class ManageClient:
         data = await self._http.stream(channel_id=self.channel_id)
         return data.content
 
-    async def add_restrict(self, user: str | PartialUser) -> PartialUser:
+    async def add_restrict(
+        self,
+        user: str | PartialUser,
+        days: Literal[1, 3, 7, 15, 30, 90] | None = 7,
+        reason: Optional[str] = None,
+    ) -> PartialUser:
         """Add an user to restrict activity.
 
         Parameters
@@ -220,7 +225,10 @@ class ManageClient:
             target_id = user.user_id_hash
 
         data = await self._http.add_restrict(
-            channel_id=self.channel_id, target_id=target_id
+            channel_id=self.channel_id,
+            target_id=target_id,
+            restrict_days=days,
+            memo=reason,
         )
         user = data.content
         user._set_manage_client(self)
