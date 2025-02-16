@@ -206,7 +206,7 @@ class ManageClient:
         user: str | PartialUser,
         days: Literal[1, 3, 7, 15, 30, 90] | None = 7,
         reason: Optional[str] = None,
-    ) -> PartialUser:
+    ) -> RestrictUser:
         """Add an user to restrict activity.
 
         Parameters
@@ -214,10 +214,15 @@ class ManageClient:
         user : str | ParticleUser
             A user object to add restrict activity.
             Instead, it can be user id or nickname.
+        days: Literal[1, 3, 7, 15, 30, 90] | None
+            The duration of time to restrict in the channel
+            If days parameter is None, the user permanently restricted.
+        reason: Optional[str]
+            Reasons for restricting users
 
         Returns
         -------
-        ParticleUser
+        RestrictUser
             Returns an object containning activity-restricted users.
         """
         target_id = user
@@ -225,6 +230,45 @@ class ManageClient:
             target_id = user.user_id_hash
 
         data = await self._http.add_restrict(
+            channel_id=self.channel_id,
+            target_id=target_id,
+            restrict_days=days,
+            memo=reason,
+        )
+        user = data.content
+        user._set_manage_client(self)
+        return user
+        return data.content
+
+    async def edit_restrict(
+        self,
+        user: str | PartialUser,
+        days: Literal[1, 3, 7, 15, 30, 90] | None = 7,
+        reason: Optional[str] = None,
+    ) -> RestrictUser:
+        """Modify an user to restrict activity.
+
+        Parameters
+        ----------
+        user : str | ParticleUser
+            A user object to modify restrict activity.
+            Instead, it can be user id.
+        days: Literal[1, 3, 7, 15, 30, 90] | None
+            The duration of time to restrict in the channel
+            If days parameter is None, the user permanently restricted.
+        reason: Optional[str]
+            Reasons for restricting users
+
+        Returns
+        -------
+        RestrictUser
+            Returns an object containning activity-restricted users.
+        """
+        target_id = user
+        if isinstance(user, PartialUser):
+            target_id = user.user_id_hash
+
+        data = await self._http.edit_restrict(
             channel_id=self.channel_id,
             target_id=target_id,
             restrict_days=days,
