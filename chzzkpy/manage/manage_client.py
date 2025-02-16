@@ -358,9 +358,9 @@ class ManageClient:
             page=page,
             size=size,
             sort_type=sort_type.value,
-            publish_period="" if publish_period is None else publish_period,
-            tier="" if tier is None else tier.value,
-            nickname="" if nickname is None else nickname,
+            publish_period=publish_period,
+            tier=None if tier is None else tier.value,
+            nickname=nickname,
         )
         return data.content
 
