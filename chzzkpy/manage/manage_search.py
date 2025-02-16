@@ -75,20 +75,13 @@ class ManageFollower(ChzzkModel):
     channel_following: FollowingInfo
 
 
-class RestrictUser(ChzzkModel, ManagerClientAccessable):
+class RestrictUser(PartialUser, ManagerClientAccessable):
     seq: int
-    user_id_hash: str
-    nickname: str
     execute_nickname: str
     created_date: datetime.datetime
     release_date: Optional[datetime.datetime] = None
     memo: str = ""
 
-    @ManagerClientAccessable.based_manage_client
-    async def remove_restrict(self):
-        """Remove this user to restrict activity."""
-        await self._manage_client.remove_restrict(self.user_id_hash)
-    
     @property
     def restrict_days(self) -> Optional[int]:
         """Get restrict days"""
