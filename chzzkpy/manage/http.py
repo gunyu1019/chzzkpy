@@ -23,7 +23,7 @@ SOFTWARE.
 
 import asyncio
 
-from ahttp_client import get, post, put, delete, Path, Query
+from ahttp_client import request, get, post, put, delete, Path, Query, BodyJson
 from ahttp_client.extension import get_pydantic_response_model
 from typing import Annotated, Optional, Literal
 
@@ -48,7 +48,6 @@ class ChzzkManageSession(ChzzkSession):
     def __init__(self, loop: Optional[asyncio.AbstractEventLoop] = None):
         super().__init__(base_url="https://api.chzzk.naver.com", loop=loop)
 
-        self.add_restrict.before_hook(self.query_to_json)
         self.add_role.before_hook(self.query_to_json)
         self.add_prohibit_word.before_hook(self.query_to_json)
         self.edit_prohibit_word.before_hook(self.query_to_json)
@@ -61,7 +60,9 @@ class ChzzkManageSession(ChzzkSession):
     async def add_restrict(
         self,
         channel_id: Annotated[str, Path],
-        target_id: Annotated[str, Query.to_camel()],
+        target_id: Annotated[str, BodyJson],
+        memo: Annotated[str, BodyJson] = "",
+        restrict_days: Annotated[Literal[1, 3, 7, 15, 30, 90] | None, BodyJson] = 7,
     ) -> Content[PartialUser]:
         pass
 
