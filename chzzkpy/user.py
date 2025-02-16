@@ -47,7 +47,7 @@ class UserRole(Enum):
 class PartialUser(ChzzkModel, ManagerClientAccessable):
     user_id_hash: Optional[str]
     nickname: Optional[str]
-    profile_image_url: Optional[str]
+    profile_image_url: Optional[str] = None
     verified_mark: bool = False
 
     @ManagerClientAccessable.based_manage_client
@@ -58,6 +58,16 @@ class PartialUser(ChzzkModel, ManagerClientAccessable):
     ):
         """Add this user to restrict activity."""
         result = await self._manage_client.add_restrict(self, days=days, reason=reason)
+        return result
+    
+    @ManagerClientAccessable.based_manage_client
+    async def edit_restrict(
+        self,
+        days: Literal[1, 3, 7, 15, 30, 90] | None = 7,
+        reason: Optional[str] = None,
+    ):
+        """Modify this user to restrict activity."""
+        result = await self._manage_client.edit_restrict(self, days=days, reason=reason)
         return result
 
     @ManagerClientAccessable.based_manage_client
