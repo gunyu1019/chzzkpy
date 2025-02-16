@@ -229,6 +229,12 @@ class ManageClient:
         if isinstance(user, PartialUser):
             target_id = user.user_id_hash
 
+        validation_result = await self._http.validate_restrict(
+            channel_id=self.channel_id, target_id=target_id
+        )
+        if validation_result.message != "SUCCESS":
+            return
+
         data = await self._http.add_restrict(
             channel_id=self.channel_id,
             target_id=target_id,

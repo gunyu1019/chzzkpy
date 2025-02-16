@@ -57,6 +57,16 @@ class ChzzkManageSession(ChzzkSession):
         self.reject_unrestrict_request.before_hook(self.query_to_json)
 
     @get_pydantic_response_model()
+    @get("/manage/v1/channels/{channel_id}/restrict-users/{target_id}/validate", directly_response=True)
+    @ChzzkSession.configuration(login_able=True, login_required=True)
+    async def validate_restrict(
+        self,
+        channel_id: Annotated[str, Path],
+        target_id: Annotated[str, Path]
+    ) -> Content[str]:
+        pass
+
+    @get_pydantic_response_model()
     @post("/manage/v1/channels/{channel_id}/restrict-users", directly_response=True)
     @ChzzkSession.configuration(login_able=True, login_required=True)
     async def add_restrict(
