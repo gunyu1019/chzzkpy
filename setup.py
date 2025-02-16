@@ -12,7 +12,11 @@ if not version:
     raise RuntimeError("version is not set")
 
 
-extras_require = {"test": ["pytest", "pytest-cov"], "lint": ["pycodestyle", "black"], "docs": ["Sphinx", "sphinxawesome-theme", "sphinx-intl"]}
+extras_require = {
+    "test": ["pytest", "pytest-cov"],
+    "lint": ["pycodestyle", "black"],
+    "docs": ["Sphinx", "sphinxawesome-theme", "sphinx-intl"],
+}
 
 setup(
     name="chzzkpy",
@@ -21,7 +25,7 @@ setup(
     url="https://github.com/gunyu1019/chzzkpy",
     project_urls={
         "Documentation (한국어)": "https://gunyu1019.github.io/chzzkpy/ko/",
-        "Documentation (English)": "https://gunyu1019.github.io/chzzkpy/en/"
+        "Documentation (English)": "https://gunyu1019.github.io/chzzkpy/en/",
     },
     license="MIT",
     author="gunyu1019",

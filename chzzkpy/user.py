@@ -59,7 +59,7 @@ class PartialUser(ChzzkModel, ManagerClientAccessable):
         """Add this user to restrict activity."""
         result = await self._manage_client.add_restrict(self, days=days, reason=reason)
         return result
-    
+
     @ManagerClientAccessable.based_manage_client
     async def edit_restrict(
         self,
