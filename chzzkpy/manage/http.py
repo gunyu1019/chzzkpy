@@ -48,8 +48,10 @@ class ChzzkManageSession(ChzzkSession):
     def __init__(self, loop: Optional[asyncio.AbstractEventLoop] = None):
         super().__init__(base_url="https://api.chzzk.naver.com", loop=loop)
 
+        self.add_restrict.before_hook(self.query_to_json)
         self.add_role.before_hook(self.query_to_json)
         self.add_prohibit_word.before_hook(self.query_to_json)
+        self.edit_restrict.before_hook(self.query_to_json)
         self.edit_prohibit_word.before_hook(self.query_to_json)
         self.set_chat_rule.before_hook(self.query_to_json)
         self.reject_unrestrict_request.before_hook(self.query_to_json)
@@ -60,10 +62,30 @@ class ChzzkManageSession(ChzzkSession):
     async def add_restrict(
         self,
         channel_id: Annotated[str, Path],
-        target_id: Annotated[str, BodyJson],
-        memo: Annotated[str, BodyJson] = "",
-        restrict_days: Annotated[Literal[1, 3, 7, 15, 30, 90] | None, BodyJson] = 7,
-    ) -> Content[PartialUser]:
+        target_id: Annotated[str, Query.to_camel()],
+        memo: Annotated[str, Query] = "",
+        restrict_days: Annotated[
+            Literal[1, 3, 7, 15, 30, 90] | None, Query.to_camel()
+        ] = 7,
+    ) -> Content[RestrictUser]:
+        pass
+
+    @get_pydantic_response_model()
+    @request(
+        "PATCH",
+        "/manage/v1/channels/{channel_id}/restrict-users/{target_id}",
+        directly_response=True,
+    )
+    @ChzzkSession.configuration(login_able=True, login_required=True)
+    async def edit_restrict(
+        self,
+        channel_id: Annotated[str, Path],
+        target_id: Annotated[str, Path],
+        memo: Annotated[str, Query] = "",
+        restrict_days: Annotated[
+            Literal[1, 3, 7, 15, 30, 90] | None, Query.to_camel()
+        ] = 7,
+    ) -> Content[RestrictUser]:
         pass
 
     @get_pydantic_response_model()
