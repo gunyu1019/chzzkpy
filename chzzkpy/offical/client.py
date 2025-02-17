@@ -116,6 +116,10 @@ class Client:
     async def get_channel(self, channel_ids: list[str]) -> list[Channel]:
         result = await self.http.get_channel(channel_ids=",".join(channel_ids))
         return result.content.data
+    
+    async def get_category(self, query: str, size: Optional[int] = 20) -> list[Channel]:
+        result = await self.http.get_category(query=query, size=size)
+        return result.content.data
 
 
 class UserClient:

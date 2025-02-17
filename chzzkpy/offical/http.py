@@ -32,6 +32,7 @@ from ahttp_client.request import RequestCore
 
 from .authorization import AccessToken
 from .base_model import Content, SearchResult
+from .category import Category
 from .channel import Channel
 from .error import LoginRequired, NotFound, HTTPException
 
@@ -156,4 +157,12 @@ class ChzzkOpenAPISession(Session):
         channel_ids: Annotated[str, Query.to_camel()]
     ) -> Content[SearchResult[Channel]]: 
         pass
-
+    
+    @post("/open/v1/categories/search", directly_response=True)
+    @authorization_configuration(is_client=True, is_user=False)
+    async def get_category(
+        self,
+        query: Annotated[str, Query],
+        size: Annotated[Optional[int], Query] = 20
+    ) -> Content[SearchResult[Category]]: 
+        pass
