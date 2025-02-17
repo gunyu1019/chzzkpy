@@ -24,12 +24,14 @@ SOFTWARE.
 import asyncio
 import aiohttp
 import logging
-from typing import Annotated, Final, Optional
+from typing import Annotated, Optional, Literal, overload
 
-from ahttp_client import Session, get, Path, Query
-from ahttp_client.extension import get_pydantic_response_model
+from ahttp_client import Session, get, post, BodyJson
+from ahttp_client.extension import pydantic_response_model
 from ahttp_client.request import RequestCore
 
+from .authorization import AccessToken
+from .base_model import Content
 from .error import NotFound, HTTPException
 
 _log = logging.getLogger(__name__)
@@ -64,3 +66,47 @@ class ChzzkSession(Session):
         copied_request_obj.params = dict()
         copied_request_obj.body = body
         return copied_request_obj, path
+
+    @overload
+    async def generate_access_token(
+        self,
+        grant_type: Annotated[Literal["authorization_code"], BodyJson.to_camel()],
+        client_id: Annotated[str, BodyJson.to_camel()],
+        client_secret: Annotated[str, BodyJson.to_camel()],
+        code: Annotated[Optional[str], BodyJson.to_camel()],
+        state: Annotated[Optional[str], BodyJson.to_camel()]
+    ) -> Content[AccessToken]:
+        pass
+
+    @overload
+    async def generate_access_token(
+        self,
+        grant_type: Annotated[Literal["refresh_token"], BodyJson.to_camel()],
+        client_id: Annotated[str, BodyJson.to_camel()],
+        client_secret: Annotated[str, BodyJson.to_camel()],
+        refresh_token: Annotated[Optional[str], BodyJson.to_camel()],
+    ) -> Content[AccessToken]:
+        pass
+    
+    @pydantic_response_model()
+    @post("/auth/v1/token", directly_response=True)
+    async def generate_access_token(
+        self,
+        grant_type: Annotated[Literal["authorization_code", "refresh_token"], BodyJson.to_camel()],
+        client_id: Annotated[str, BodyJson.to_camel()],
+        client_secret: Annotated[str, BodyJson.to_camel()],
+        code: Annotated[Optional[str], BodyJson.to_camel()] = None,
+        state: Annotated[Optional[str], BodyJson.to_camel()] = None,
+        refresh_token: Annotated[Optional[str], BodyJson.to_camel()] = None,
+    ) -> Content[AccessToken]:
+        pass
+
+    @post("/auth/v1/token/revoke", directly_response=True)
+    async def revoke_access_token(
+        self,
+        client_id: Annotated[str, BodyJson.to_camel()],
+        client_secret: Annotated[str, BodyJson.to_camel()],
+        token: Annotated[Optional[str], BodyJson.to_camel()],
+        token_type_hint: Annotated[Literal["access_token", "refresh_token"], BodyJson.to_camel()] = "access_token",
+    ) -> None:
+        pass
