@@ -24,11 +24,19 @@ SOFTWARE.
 from __future__ import annotations
 
 import asyncio
+import datetime
 
+from functools import wraps
 from typing import Optional, TYPE_CHECKING
 from yarl import URL
 
 from .enums import APIScope
+from .http import ChzzkOpenAPISession
+
+if TYPE_CHECKING:
+    from typing import Self
+
+    from .authorization import AccessToken
 
 
 class _LoopSentinel:
@@ -37,8 +45,7 @@ class _LoopSentinel:
     def __getattr__(self, attr: str) -> None:
         msg = (
             'loop attribute cannot be accessed in non-async contexts. '
-            'Consider using either an asynchronous main function and passing it to asyncio.run or '
-            'using asynchronous initialisation hooks such as Client.setup_hook'
+            'Consider using either an asynchronous main function and passing it to asyncio.run'
         )
         raise AttributeError(msg)
 
@@ -52,7 +59,31 @@ class Client:
     ):
         self.loop = loop or _LoopSentinel()
         self.client_id = client_id
-        self.client_secret = self.client_secret
+        self.client_secret = client_secret
+
+        self.http = ChzzkOpenAPISession(
+            loop=self.loop,
+            client_id=client_id,
+            client_secret=client_secret
+        )
+    
+    async def __aenter__(self) -> Self:
+        await self._async_setup_hook()
+        return self
+    
+    async def _async_setup_hook(self) -> None:
+        loop = asyncio.get_running_loop()
+        self.loop = loop
+        self.http.loop = loop
+
+    @staticmethod
+    def initial_async_setup(func):
+        @wraps(func)
+        async def wrppaer(self: Self, *args, **kwargs):
+            if self.loop is _LoopSentinel:
+                await self._async_setup_hook()
+            return await func(*args, **kwargs)
+        return wrppaer
 
     def generate_authorization_token_url(self, redirect_url: str, state: list[APIScope]) -> str:
         default_url = URL.build(scheme="https", authority="chzzk.naver.com", path="/account-interlock")
@@ -63,12 +94,56 @@ class Client:
         })
         return default_url.geturl()
 
-    async def generate_access_token(code: str, state: list[APIScope]):
-        pass
+    @initial_async_setup
+    async def generate_access_token(self, code: str, state: list[APIScope]) -> AccessToken:
+        result = await self.http.generate_access_token(
+            grant_type="authorization_code",
+            client_id=self.client_id,
+            client_secret=self.client_secret,
+            code=code,
+            state=",".join(state)
+        )
+        return result.content
 
-    async def refresh():
-        pass
+    async def generate_user_client(self, code: str, state: list[APIScope]) -> UserClient:
+        access_token = await self.generate_access_token(code, state)
+        user_cls = UserClient(self, access_token)
+        return user_cls
+
+
+class UserClient:
+    def __init__(
+        self,
+        parent: Client,
+        access_token: AccessToken
+    ):
+        self.parent_client = parent
+        self.loop = self.parent_client.loop
+        self.http = self.parent_client.http
+
+        self.access_token = access_token
+        self._token_generated_at = datetime.datetime.now()
     
-    async def revoke():
-        pass
+    @property
+    def is_expired(self) -> bool:
+        return (datetime.datetime.now() - self._token_generated_at).hours > self.access_token.expires_in
+    
+    async def refresh(self):
+        refresh_token = await self.http.generate_access_token(
+            grant_type="refresh_token",
+            client_id=self.client_id,
+            client_secret=self.client_secret,
+            refresh_token=self.access_token.refresh_token,
+        )
+        self.access_token = refresh_token.data
+        self._token_generated_at = datetime.datetime.now()
+        return
+    
+    async def revoke(self):
+        await self.http.revoke_access_token(
+            client_id=self.client_id,
+            client_secret=self.client_secret,
+            token=self.access_token.access_token,
+        )
+        return
         
