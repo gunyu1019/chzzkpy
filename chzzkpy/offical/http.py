@@ -32,13 +32,20 @@ from ahttp_client.request import RequestCore
 
 from .authorization import AccessToken
 from .base_model import Content
-from .error import NotFound, HTTPException
+from .error import LoginRequired, NotFound, HTTPException
 
 _log = logging.getLogger(__name__)
 
 
-class ChzzkSession(Session):
-    def __init__(self, loop: Optional[asyncio.AbstractEventLoop] = None):
+class ChzzkOpenAPISession(Session):
+    def __init__(
+            self,
+            client_id: str,
+            client_secret: str,
+            loop: Optional[asyncio.AbstractEventLoop] = None
+        ):
+        self.client_id = client_id
+        self.client_secret = client_secret
         super().__init__(base_url="https://openapi.chzzk.naver.com", loop=loop)
 
     async def before_request(
@@ -46,6 +53,24 @@ class ChzzkSession(Session):
     ) -> tuple[RequestCore, str]:
         _log.debug(f"Path({path}) was called.")
 
+        if hasattr(request.func, "__authorization_configuration__"):
+            authorization_configuration = request.func.__authorization_configuration__
+            
+            if authorization_configuration["client"]:
+                request.headers["Client-Id"] = self.client_id
+                request.headers["Client-Secret"] = self.client_secret
+            
+            if authorization_configuration["user"]:
+                for key, value in request.headers:
+                    if not isinstance(value, AccessToken):
+                        continue
+
+                    request.headers["Authorization"] = request.headers.pop(key)
+                    break
+                else:
+                    raise LoginRequired()
+        
+        request.headers["Content-Type"] = "application/json"
         return request, path
 
     async def after_request(self, response: aiohttp.ClientResponse):
@@ -66,6 +91,16 @@ class ChzzkSession(Session):
         copied_request_obj.params = dict()
         copied_request_obj.body = body
         return copied_request_obj, path
+    
+    @staticmethod
+    def authorization_configuration(is_client: bool = False, is_user: bool = False):
+        def decorator(func):
+            func.__authorization_configuration__ = {
+                "client": is_client,
+                "user": is_user
+            }
+            return func
+        return decorator
 
     @overload
     async def generate_access_token(
@@ -90,6 +125,7 @@ class ChzzkSession(Session):
     
     @pydantic_response_model()
     @post("/auth/v1/token", directly_response=True)
+    @authorization_configuration(is_client=True, is_user=False)
     async def generate_access_token(
         self,
         grant_type: Annotated[Literal["authorization_code", "refresh_token"], BodyJson.to_camel()],
@@ -100,8 +136,9 @@ class ChzzkSession(Session):
         refresh_token: Annotated[Optional[str], BodyJson.to_camel()] = None,
     ) -> Content[AccessToken]:
         pass
-
+    
     @post("/auth/v1/token/revoke", directly_response=True)
+    @authorization_configuration(is_client=True, is_user=False)
     async def revoke_access_token(
         self,
         client_id: Annotated[str, BodyJson.to_camel()],
