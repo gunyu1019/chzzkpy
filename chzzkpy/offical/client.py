@@ -54,7 +54,7 @@ class Client:
         self.client_id = client_id
         self.client_secret = self.client_secret
 
-    def request_authorization_token(self, redirect_url: str, state: list[APIScope]) -> str:
+    def generate_authorization_token_url(self, redirect_url: str, state: list[APIScope]) -> str:
         default_url = URL.build(scheme="https", authority="chzzk.naver.com", path="/account-interlock")
         default_url = default_url.with_query({
             "clientId": self.client_id,
@@ -63,7 +63,7 @@ class Client:
         })
         return default_url.geturl()
 
-    async def generate_token():
+    async def generate_access_token(code: str, state: list[APIScope]):
         pass
 
     async def refresh():
