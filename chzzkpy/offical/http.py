@@ -26,12 +26,13 @@ import aiohttp
 import logging
 from typing import Annotated, Optional, Literal, overload
 
-from ahttp_client import Session, get, post, BodyJson
+from ahttp_client import Session, get, post, BodyJson, Query
 from ahttp_client.extension import pydantic_response_model
 from ahttp_client.request import RequestCore
 
 from .authorization import AccessToken
-from .base_model import Content
+from .base_model import Content, SearchResult
+from .channel import Channel
 from .error import LoginRequired, NotFound, HTTPException
 
 _log = logging.getLogger(__name__)
@@ -147,3 +148,12 @@ class ChzzkOpenAPISession(Session):
         token_type_hint: Annotated[Literal["access_token", "refresh_token"], BodyJson.to_camel()] = "access_token",
     ) -> None:
         pass
+    
+    @post("/open/v1/channels", directly_response=True)
+    @authorization_configuration(is_client=True, is_user=False)
+    async def get_channel(
+        self,
+        channel_ids: Annotated[str, Query.to_camel()]
+    ) -> Content[SearchResult[Channel]]: 
+        pass
+

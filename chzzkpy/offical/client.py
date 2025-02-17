@@ -37,6 +37,7 @@ if TYPE_CHECKING:
     from typing import Self
 
     from .authorization import AccessToken
+    from .channel import Channel
 
 
 class _LoopSentinel:
@@ -66,6 +67,7 @@ class Client:
             client_id=client_id,
             client_secret=client_secret
         )
+        self.user_client = []
     
     async def __aenter__(self) -> Self:
         await self._async_setup_hook()
@@ -108,7 +110,12 @@ class Client:
     async def generate_user_client(self, code: str, state: list[APIScope]) -> UserClient:
         access_token = await self.generate_access_token(code, state)
         user_cls = UserClient(self, access_token)
+        self.user_client.append(user_cls)
         return user_cls
+    
+    async def get_channel(self, channel_ids: list[str]) -> list[Channel]:
+        result = await self.http.get_channel(channel_ids=",".join(channel_ids))
+        return result.content.data
 
 
 class UserClient:
