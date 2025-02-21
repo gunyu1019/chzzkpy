@@ -16,6 +16,7 @@ extras_require = {
     "test": ["pytest", "pytest-cov"],
     "lint": ["pycodestyle", "black"],
     "docs": ["Sphinx", "sphinxawesome-theme", "sphinx-intl"],
+    "offical": ["python-soketio<=4.6.1", "python-engineio<=3.14.2"]
 }
 
 setup(
