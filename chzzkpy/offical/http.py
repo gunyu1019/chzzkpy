@@ -26,7 +26,7 @@ import aiohttp
 import logging
 from typing import Annotated, Optional, Literal, overload
 
-from ahttp_client import Session, get, post, BodyJson, Query
+from ahttp_client import Session, get, post, BodyJson, Query, Path
 from ahttp_client.extension import pydantic_response_model
 from ahttp_client.request import RequestCore
 
@@ -58,10 +58,6 @@ class ChzzkOpenAPISession(Session):
         if hasattr(request.func, "__authorization_configuration__"):
             authorization_configuration = request.func.__authorization_configuration__
             
-            if authorization_configuration["client"]:
-                request.headers["Client-Id"] = self.client_id
-                request.headers["Client-Secret"] = self.client_secret
-            
             if authorization_configuration["user"]:
                 for key, value in request.headers:
                     if not isinstance(value, AccessToken):
@@ -70,7 +66,12 @@ class ChzzkOpenAPISession(Session):
                     request.headers["Authorization"] = request.headers.pop(key)
                     break
                 else:
-                    raise LoginRequired()
+                    if not authorization_configuration["client"]:
+                        raise LoginRequired()
+                
+            if authorization_configuration["client"]:
+                request.headers["Client-Id"] = self.client_id
+                request.headers["Client-Secret"] = self.client_secret
         
         request.headers["Content-Type"] = "application/json"
         return request, path
@@ -165,4 +166,24 @@ class ChzzkOpenAPISession(Session):
         query: Annotated[str, Query],
         size: Annotated[Optional[int], Query] = 20
     ) -> Content[SearchResult[Category]]: 
+        pass
+
+    @get("/open/v1/sessions/auth/client", directly_response=True)
+    @authorization_configuration(is_client=True, is_user=False)
+    async def generate_client_session(self):
+        pass
+
+    @get("/open/v1/sessions/auth", directly_response=True)
+    @authorization_configuration(is_client=True, is_user=False)
+    async def generate_user_session(self):
+        pass
+
+    @get("/open/v1/sessions/events/subscribe/{event}", directly_response=True)
+    @authorization_configuration(is_client=True, is_user=True)
+    async def subcribe_event(self, event: Annotated[str, Path]) -> Content[None]:
+        pass
+
+    @get("/open/v1/sessions/events/unsubscribe/{event}", directly_response=True)
+    @authorization_configuration(is_client=True, is_user=True)
+    async def unsubcribe_event(self, event: Annotated[str, Path]) -> Content[None]:
         pass
