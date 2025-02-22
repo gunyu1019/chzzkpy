@@ -35,6 +35,7 @@ from .base_model import Content, SearchResult
 from .category import Category
 from .channel import Channel
 from .error import LoginRequired, NotFound, HTTPException
+from .gateway import SessionKey
 
 _log = logging.getLogger(__name__)
 
@@ -170,20 +171,20 @@ class ChzzkOpenAPISession(Session):
 
     @get("/open/v1/sessions/auth/client", directly_response=True)
     @authorization_configuration(is_client=True, is_user=False)
-    async def generate_client_session(self):
+    async def generate_client_session(self) -> Content[SessionKey]:
         pass
 
     @get("/open/v1/sessions/auth", directly_response=True)
     @authorization_configuration(is_client=True, is_user=False)
-    async def generate_user_session(self):
+    async def generate_user_session(self) -> Content[SessionKey]:
         pass
 
     @get("/open/v1/sessions/events/subscribe/{event}", directly_response=True)
     @authorization_configuration(is_client=True, is_user=True)
-    async def subcribe_event(self, event: Annotated[str, Path]) -> Content[None]:
+    async def subcribe_event(self, event: Annotated[str, Path], session_key: Annotated[str, Query.to_camel()]) -> Content[None]:
         pass
 
     @get("/open/v1/sessions/events/unsubscribe/{event}", directly_response=True)
     @authorization_configuration(is_client=True, is_user=True)
-    async def unsubcribe_event(self, event: Annotated[str, Path]) -> Content[None]:
+    async def unsubcribe_event(self, event: Annotated[str, Path], session_key: Annotated[str, Query.to_camel()]) -> Content[None]:
         pass
