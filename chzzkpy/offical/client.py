@@ -25,9 +25,10 @@ from __future__ import annotations
 
 import asyncio
 import datetime
+import logging
 
 from functools import wraps
-from typing import Optional, TYPE_CHECKING
+from typing import Any, Callable, Coroutine, Optional, TYPE_CHECKING
 from yarl import URL
 
 from .enums import APIScope
@@ -49,9 +50,137 @@ class _LoopSentinel:
             'Consider using either an asynchronous main function and passing it to asyncio.run'
         )
         raise AttributeError(msg)
+    
+
+_log = logging.getLogger(__name__)
 
 
-class Client:
+class BaseEventManager:
+    def __init__(self, loop: asyncio.AbstractEventLoop):
+        self.loop = loop
+        self._listeners: dict[str, list[tuple[asyncio.Future, Callable[..., bool]]]] = dict()
+        self._extra_event: dict[str, list[Callable[..., Coroutine[Any, Any, Any]]]] = dict()
+    
+
+    def wait_for(
+        self,
+        event: str,
+        check: Optional[Callable[..., bool]] = None,
+        timeout: Optional[float] = None,
+    ):
+        """Waits for a WebSocket event to be dispatched.
+
+        Parameters
+        ----------
+        event : str
+            The event name.
+            For a list of events, read :method:`event`
+        check : Optional[Callable[..., bool]],
+            A predicate to check what to wait for. The arguments must meet the
+            parameters of the event being waited for.
+        timeout : Optional[float]
+            The number of seconds to wait before timing out and raising
+            :exc:`asyncio.TimeoutError`.
+
+        """
+        future = self.loop.create_future()
+
+        if check is None:
+
+            def _check(*_):
+                return True
+
+            check = _check
+        event_name = event.lower()
+
+        if event_name not in self._listeners.keys():
+            self._listeners[event_name] = list()
+        self._listeners[event_name].append((future, check))
+        return asyncio.wait_for(future, timeout=timeout)
+
+    def event(
+        self, coro: Callable[..., Coroutine[Any, Any, Any]]
+    ) -> Callable[..., Coroutine[Any, Any, Any]]:
+        """A decorator that registers an event to listen to.
+        The function must be corutine. Else client cause TypeError
+        """
+        if not asyncio.iscoroutinefunction(coro):
+            raise TypeError("function must be a coroutine.")
+
+        event_name = coro.__name__
+        if event_name not in self._listeners.keys():
+            self._extra_event[event_name] = list()
+        self._extra_event[event_name].append(coro)
+        return coro
+
+    def dispatch(self, event: str, *args: Any, **kwargs) -> None:
+        _log.debug("Dispatching event %s", event)
+        method = "on_" + event
+
+        # wait-for listeners
+        if event in self._listeners.keys():
+            listeners = self._listeners[event]
+            _new_listeners = []
+
+            for index, (future, condition) in enumerate(listeners):
+                if future.cancelled():
+                    continue
+
+                try:
+                    result = condition(*args, **kwargs)
+                except Exception as e:
+                    future.set_exception(e)
+                    continue
+                if result:
+                    match len(args):
+                        case 0:
+                            future.set_result(None)
+                        case 1:
+                            future.set_result(args[0])
+                        case _:
+                            future.set_result(args)
+
+                _new_listeners.append((future, condition))
+            self._listeners[event] = _new_listeners
+
+        # event-listener
+        if method not in self._extra_event.keys():
+            return
+
+        for coroutine_function in self._extra_event[method]:
+            self._schedule_event(coroutine_function, method, *args, **kwargs)
+
+    async def _run_event(
+        self,
+        coro: Callable[..., Coroutine[Any, Any, Any]],
+        event_name: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
+        try:
+            await coro(*args, **kwargs)
+        except asyncio.CancelledError:
+            pass
+        except Exception as exc:
+            try:
+                _log.exception("Ignoring exception in %s", event_name)
+                self.dispatch("error", exc, *args, **kwargs)
+            except asyncio.CancelledError:
+                pass
+
+    def _schedule_event(
+        self,
+        coro: Callable[..., Coroutine[Any, Any, Any]],
+        event_name: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> asyncio.Task:
+        wrapped = self._run_event(coro, event_name, *args, **kwargs)
+        # Schedules the task
+        return self.loop.create_task(wrapped, name=f"chzzk.py: {event_name}")
+
+
+class Client(BaseEventManager):
     def __init__(
         self,
         client_id: str,
@@ -68,6 +197,9 @@ class Client:
             client_secret=client_secret
         )
         self.user_client = []
+
+        self._listeners: dict[str, list[tuple[asyncio.Future, Callable[..., bool]]]] = dict()
+        self._extra_event: dict[str, list[Callable[..., Coroutine[Any, Any, Any]]]] = dict()
     
     async def __aenter__(self) -> Self:
         await self._async_setup_hook()
@@ -126,7 +258,7 @@ class UserClient:
     def __init__(
         self,
         parent: Client,
-        access_token: AccessToken
+        access_token: AccessToken,
     ):
         self.parent_client = parent
         self.loop = self.parent_client.loop
@@ -134,6 +266,8 @@ class UserClient:
 
         self.access_token = access_token
         self._token_generated_at = datetime.datetime.now()
+
+        self.dispatch = parent.dispatch
     
     @property
     def is_expired(self) -> bool:
