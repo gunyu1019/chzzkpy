@@ -27,17 +27,14 @@ from typing import TypeVar, Any
 E = TypeVar("E", bound="Enum")
 
 
-class APIScope(StrEnum):
-    GET_STREAMKEY = "방송 스트림키 조회"
-    GET_SETUP = "방송 설정 조회"
-    GET_USER = "유저 조회"
-    GET_CHAT_SETUP = "채팅 설정 조회"
-    GET_DONATION = "후원 조회"
-    GET_MESSAGE = "채팅 메시지 조회"
-    SET_SETUP = "방송 설정 변경"
-    SET_CHAT_SETUP = "채팅 설정 변경"
-    WRITE_MESSAGE = "채팅 메시지 쓰기"
-    WRITE_ANNOUNCEMENTS = "채팅 공지 쓰기"
+class PackageType(Enum):
+    OPEN = 0
+    CLOSE = 1
+    PING = 2
+    PONG = 3
+    MESSAGE = 4
+    UPGRADE = 5
+    NOOP = 6
 
 
 def get_enum(cls: type[E], val: Any) -> E:
