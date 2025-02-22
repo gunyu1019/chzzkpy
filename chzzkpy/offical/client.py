@@ -292,3 +292,5 @@ class UserClient:
         )
         return
         
+    async def connect(self):
+        await self.http.generate_user_session()
