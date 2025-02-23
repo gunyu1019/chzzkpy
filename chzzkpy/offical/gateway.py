@@ -25,17 +25,18 @@ from __future__ import annotations
 
 import aiohttp
 import base64
+import functools
 import time
 import json
 import socketio
-import inspect
+import six
 
 from typing import Optional, Literal, TYPE_CHECKING
 from urllib.parse import parse_qs
 from yarl import URL
 
 from .base_model import ChzzkModel
-from .enums import PackageType, get_enum
+from .enums import EnginePacketType, SocketPacketType, get_enum
 
 if TYPE_CHECKING:
     from .state import ConnectionState
@@ -54,13 +55,13 @@ class OpenPacketInfo(ChzzkModel):
     ping_timeout: int
 
 
-class Packet:
+class EnginePacket:
     """Engine.IO packet."""
-    def __init__(self, packet_type=PackageType.NOOP, data=None):
+    def __init__(self, packet_type=EnginePacketType.NOOP, data=None):
         self.packet_type = packet_type
         self.data = data
         self.encode_cache = None
-
+        
         if isinstance(data, str):
             self.binary = False
         elif isinstance(data, binary_types):
@@ -68,9 +69,9 @@ class Packet:
         else:
             self.binary = False
         
-        if self.binary and self.packet_type != PackageType.MESSAGE:
+        if self.binary and self.packet_type != EnginePacketType.MESSAGE:
             raise ValueError('Binary packets can only be of type MESSAGE')
-
+    
     def encode(self, b64=False):
         if self.encode_cache:
             return self.encode_cache
@@ -80,7 +81,7 @@ class Packet:
             else:
                 encoded_packet = self.data
         else:
-            encoded_packet = str(self.packet_type)
+            encoded_packet = str(self.packet_type.value)
             if isinstance(self.data, str):
                 encoded_packet += self.data
             elif isinstance(self.data, dict) or isinstance(self.data, list):
@@ -89,17 +90,17 @@ class Packet:
                 encoded_packet += str(self.data)
         self.encode_cache = encoded_packet
         return encoded_packet
-
+    
     @classmethod
     def decode(cls, encoded_packet):
         """Decode a transmitted package."""
         binary = isinstance(encoded_packet, binary_types)
         if not binary and len(encoded_packet) == 0:
             raise ValueError('Invalid empty packet received')
-
+        
         if not binary and encoded_packet[0] == 'b':
             binary = True
-            packet_type = PackageType.MESSAGE
+            packet_type = EnginePacketType.MESSAGE
             data = base64.b64decode(encoded_packet[1:])
             return cls(packet_type, data)
         
@@ -107,11 +108,11 @@ class Packet:
             encoded_packet = bytes(encoded_packet)
         
         if binary:
-            packet_type = PackageType.MESSAGE
+            packet_type = EnginePacketType.MESSAGE
             data = encoded_packet
             return cls(packet_type, data)
-
-        packet_type = get_enum(PackageType, int(encoded_packet[0]))
+        
+        packet_type = get_enum(EnginePacketType, int(encoded_packet[0]))
         try:
             data = json.loads(encoded_packet[1:])
             if isinstance(data, int):
@@ -125,7 +126,7 @@ class Payload:
     max_decode_packets = 16
 
     def __init__(self, packets=None):
-        self.packets: list[Packet] = packets or []
+        self.packets: list[EnginePacket] = packets or []
 
     def encode(self, jsonp_index=None):
         encoded_payload = ''
@@ -152,9 +153,163 @@ class Payload:
             raise ValueError('Too many packets in payload')
         
         return cls(packets=[
-            Packet(encoded_packet=encoded_packet)
+            EnginePacket(encoded_packet=encoded_packet)
             for encoded_packet in encoded_packets
         ])
+
+
+class SocketPacket(object):
+    """Socket.IO packet."""
+    def __init__(self, packet_type=SocketPacketType.EVENT, data=None, namespace=None, id=None, binary=None):
+        self.packet_type = packet_type
+        self.data = data
+        self.namespace = namespace
+        self.id = id
+        if binary or (binary is None and self._data_is_binary(self.data)):
+            if self.packet_type == SocketPacketType.EVENT:
+                self.packet_type = SocketPacketType.BINARY_EVENT
+            elif self.packet_type == SocketPacketType.ACK:
+                self.packet_type = SocketPacketType.BINARY_ACK
+            else:
+                raise ValueError('Packet does not support binary payload.')
+        self.attachment_count = 0
+        self.attachments = []
+
+    def encode(self):
+        """Encode the packet for transmission.
+
+        If the packet contains binary elements, this function returns a list
+        of packets where the first is the original packet with placeholders for
+        the binary components and the remaining ones the binary attachments.
+        """
+        encoded_packet = six.text_type(self.packet_type)
+        if self.packet_type == SocketPacketType.BINARY_EVENT or self.packet_type == SocketPacketType.BINARY_ACK:
+            data, attachments = self._deconstruct_binary(self.data)
+            encoded_packet += six.text_type(len(attachments)) + '-'
+        else:
+            data = self.data
+            attachments = None
+        needs_comma = False
+        if self.namespace is not None and self.namespace != '/':
+            encoded_packet += self.namespace
+            needs_comma = True
+        if self.id is not None:
+            if needs_comma:
+                encoded_packet += ','
+                needs_comma = False
+            encoded_packet += six.text_type(self.id)
+        if data is not None:
+            if needs_comma:
+                encoded_packet += ','
+            encoded_packet += json.dumps(data, separators=(',', ':'))
+        if attachments is not None:
+            encoded_packet = [encoded_packet] + attachments
+        return encoded_packet
+
+    def decode(self, encoded_packet):
+        """Decode a transmitted package.
+
+        The return value indicates how many binary attachment packets are
+        necessary to fully decode the packet.
+        """
+        ep = encoded_packet
+        try:
+            self.packet_type = int(ep[0:1])
+        except TypeError:
+            self.packet_type = ep
+            ep = ''
+        self.namespace = None
+        self.data = None
+        ep = ep[1:]
+        dash = ep.find('-')
+        attachment_count = 0
+        if dash > 0 and ep[0:dash].isdigit():
+            attachment_count = int(ep[0:dash])
+            ep = ep[dash + 1:]
+        if ep and ep[0:1] == '/':
+            sep = ep.find(',')
+            if sep == -1:
+                self.namespace = ep
+                ep = ''
+            else:
+                self.namespace = ep[0:sep]
+                ep = ep[sep + 1:]
+            q = self.namespace.find('?')
+            if q != -1:
+                self.namespace = self.namespace[0:q]
+        if ep and ep[0].isdigit():
+            self.id = 0
+            while ep and ep[0].isdigit():
+                self.id = self.id * 10 + int(ep[0])
+                ep = ep[1:]
+        if ep:
+            self.data = json.loads(ep)
+        return attachment_count
+
+    def add_attachment(self, attachment):
+        if self.attachment_count <= len(self.attachments):
+            raise ValueError('Unexpected binary attachment')
+        self.attachments.append(attachment)
+        if self.attachment_count == len(self.attachments):
+            self.reconstruct_binary(self.attachments)
+            return True
+        return False
+
+    def reconstruct_binary(self, attachments):
+        """Reconstruct a decoded packet using the given list of binary
+        attachments.
+        """
+        self.data = self._reconstruct_binary_internal(self.data,
+                                                      self.attachments)
+
+    def _reconstruct_binary_internal(self, data, attachments):
+        if isinstance(data, list):
+            return [self._reconstruct_binary_internal(item, attachments)
+                    for item in data]
+        elif isinstance(data, dict):
+            if data.get('_placeholder') and 'num' in data:
+                return attachments[data['num']]
+            else:
+                return {key: self._reconstruct_binary_internal(value,
+                                                               attachments)
+                        for key, value in six.iteritems(data)}
+        else:
+            return data
+
+    def _deconstruct_binary(self, data):
+        """Extract binary components in the packet."""
+        attachments = []
+        data = self._deconstruct_binary_internal(data, attachments)
+        return data, attachments
+
+    def _deconstruct_binary_internal(self, data, attachments):
+        if isinstance(data, six.binary_type):
+            attachments.append(data)
+            return {'_placeholder': True, 'num': len(attachments) - 1}
+        elif isinstance(data, list):
+            return [self._deconstruct_binary_internal(item, attachments)
+                    for item in data]
+        elif isinstance(data, dict):
+            return {key: self._deconstruct_binary_internal(value, attachments)
+                    for key, value in six.iteritems(data)}
+        else:
+            return data
+
+    def _data_is_binary(self, data):
+        """Check if the data contains binary components."""
+        if isinstance(data, six.binary_type):
+            return True
+        elif isinstance(data, list):
+            return functools.reduce(
+                lambda a, b: a or b, [self._data_is_binary(item)
+                                      for item in data], False)
+        elif isinstance(data, dict):
+            return functools.reduce(
+                lambda a, b: a or b, [self._data_is_binary(item)
+                                      for item in six.itervalues(data)],
+                False)
+        else:
+            return False
 
 
 class ChzzkGateway:
@@ -177,7 +332,9 @@ class ChzzkGateway:
 
         self.session: aiohttp.ClientSession = session
         self.state: ConnectionState = state
-        self.webscoket: Optional[aiohttp.ClientWebSocketResponse] = None
+        self.websocket: Optional[aiohttp.ClientWebSocketResponse] = None
+
+        self.is_connected = True
 
     @staticmethod
     def _get_engineio_url(
@@ -214,8 +371,14 @@ class ChzzkGateway:
         return url.with_query(query=query)
 
     @classmethod
-    async def connect(cls, url: str | URL):
-        return
+    async def connect(
+        cls, 
+        url: str | URL, 
+        state: ConnectionState, 
+        session: aiohttp.ClientSession
+    ):
+        engine_path = "socket.io"
+        return await cls._connect_polling(url, engine_path, state, session)
     
     @classmethod
     async def _connect_polling(
@@ -294,20 +457,20 @@ class ChzzkGateway:
             return
         
         if upgrade:
-            ping_packet = Packet(PackageType.PING, data='probe')
+            ping_packet = EnginePacket(EnginePacketType.PING, data='probe')
 
             await websocket.send_str(ping_packet.encode())
             raw_pong_packet = (await websocket.receive()).data
-            pong_packet = Packet.decode(raw_pong_packet)
+            pong_packet = EnginePacket.decode(raw_pong_packet)
 
-            if pong_packet.packet_type != PackageType.PONG or pong_packet.data != 'probe':
+            if pong_packet.packet_type != EnginePacketType.PONG or pong_packet.data != 'probe':
                 raise ConnectionError("WebSocket upgrade failed: no PONG packet")
             
-            upgrade_packet = Packet(PackageType.UPGRADE)
+            upgrade_packet = EnginePacket(EnginePacketType.UPGRADE)
             await websocket.send_str(upgrade_packet.encode())
         else:
             raw_open_packet = (await websocket.receive()).data
-            raw_open_packet = Packet.decode(raw_open_packet)
+            raw_open_packet = EnginePacket.decode(raw_open_packet)
             open_packet = OpenPacketInfo.model_validate(raw_open_packet)
         
             query = base_url.query.copy()
@@ -316,7 +479,7 @@ class ChzzkGateway:
             
         session_id = open_packet.sid
 
-        return cls(
+        new_cls = cls(
             base_url=base_url,
             session=session,
             state=state,
@@ -324,3 +487,21 @@ class ChzzkGateway:
             open_packet_info=open_packet,
             session_id = session_id,
         )
+        new_cls.websocket = websocket
+        return new_cls
+
+    async def _read_polling(self):
+        while self.is_connected:
+            base_url = self._get_timestamp_url(self.base_url)
+            response = await self.session.request("GET", base_url, timeout=max(self.ping_interval, self.ping_timeout) + 5)
+        
+            raw_payload = (await response.read()).decode('utf-8')
+            payload = Payload.decode(raw_payload)
+
+    async def _read_websocket(self):
+        while self.is_connected:
+            raw_payload = await self.websocket.receive(timeout=self.ping_interval + self.ping_timeout)
+            payload = Payload.decode(raw_payload)
+
+    async def _write(self):
+        pass
