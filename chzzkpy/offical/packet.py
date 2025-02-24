@@ -110,7 +110,7 @@ class Packet:
     
     @property
     def is_socket_packet(self) -> bool:
-        return self.socket_packet_type is not None
+        return self.socket_packet_type is not None and self.engine_packet_type == EnginePacketType.MESSAGE
     
     def encode(self, json_serialize = None) -> str:
         json_serialize = json_serialize or json.dumps
