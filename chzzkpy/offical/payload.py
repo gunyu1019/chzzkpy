@@ -21,6 +21,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
+import functools
+
 from urllib.parse import parse_qs
 from .packet import Packet
 
@@ -32,26 +34,63 @@ class Payload:
         self.packets: list[Packet] = packets or []
 
     def encode(self, jsonp_index=None):
-        encoded_payload = '\x1e'.join([pkt.encode(b64=True) for pkt in self.packets])
+        encoded_payload = b''
+        for packet in self.packets:
+            encoded_packet = packet.encode()
+            content_length = len(encoded_packet)
+            encoded_content_length = b""
+            while content_length > 0:
+                encoded_content_length = (content_length % 10).to_bytes() + encoded_content_length
+                content_length //= 10
+            
+            encoded_payload += (
+                b"\x00"  # Binrary Key
+                + encoded_content_length
+                + b"\xff"
+                + encoded_packet.encode()
+            )
         if jsonp_index is not None:
-            encoded_payload = f"___eio[{jsonp_index}]({encoded_payload.replace('"', '\\"')});"
+            encoded_payload = (
+                b"___eio[" 
+                + jsonp_index.encode() 
+                + b"](" 
+                + encoded_payload.replace(b'"', b'\\"')
+                + b");"
+            )
         return encoded_payload
 
     @classmethod
-    def decode(cls, encoded_payload):
+    def decode(cls, encoded_payload: bytes):
         if len(encoded_payload) == 0:
             return
 
         # JSONP POST payload starts with 'd='
-        if encoded_payload.startswith('d='):
-            encoded_payload = parse_qs(encoded_payload)['d'][0]
+        if encoded_payload.startswith(b'd='):
+            encoded_payload = parse_qs(encoded_payload)[b'd'][0]
         
-        encoded_packets = encoded_payload.split('\x1e')
+        is_binrary = encoded_payload.find(b'\xff')
+        packets = []
+        index = 0
 
-        if len(encoded_packets) > cls.max_decode_packets:
-            raise ValueError('Too many packets in payload')
-    
-        return cls(packets=[
-            Packet.decode(encoded_packet)
-            for encoded_packet in encoded_packets
-        ])
+        if not is_binrary:
+            encoded_payload = encoded_payload.decode('utf-8')
+            while index < len(encoded_payload):
+                content_length, content = encoded_payload[index:].split(':', maxsplit=1)
+                packets.append(Packet.decode(content[:int(content_length)]))
+                index += int(content_length)
+        else:
+            while index < len(encoded_payload):
+                is_binrary = int(encoded_payload[index])
+                index += 1
+
+                raw_content_length, content = encoded_payload[index:].split(b'\xff', maxsplit=1)
+                
+                index += len(raw_content_length) + 1
+                content_length = functools.reduce(lambda d, s : d * 10 + s, raw_content_length)
+                
+                # Binrary is not supported. (TODO)
+                if not is_binrary:
+                    content = content[:int(content_length)].decode('utf-8')
+                    packets.append(Packet.decode(content))
+                index += int(content_length)
+        return cls(packets=packets)
