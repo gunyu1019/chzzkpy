@@ -31,6 +31,8 @@ from yarl import URL
 
 from .base_model import ChzzkModel
 from .enums import EnginePacketType, SocketPacketType
+from .error import HTTPException
+from .packet import Packet, Payload
 
 if TYPE_CHECKING:
     from .state import ConnectionState
@@ -128,8 +130,7 @@ class ChzzkGateway:
         connection_response = await session.request("GET", base_url)
 
         if connection_response.status < 200 or connection_response.status >= 300:
-            # Connection Failed
-            return
+            raise HTTPException(connection_response.status, f"Unexpected status code {connection_response.status} in server response")
         
         raw_payload = (await connection_response.read()).decode('utf-8')
         payload = Payload.decode(raw_payload)
@@ -142,13 +143,23 @@ class ChzzkGateway:
             pass
 
         if "websocket" in open_packet.upgrades:
-            return await cls._connect_websocket(
-                url=url,
-                engine_path=engine_path,
-                state=state,
-                session=session,
-                open_packet=open_packet
-            )
+            try:
+                new_cls = await cls._connect_websocket(
+                    url=url,
+                    engine_path=engine_path,
+                    state=state,
+                    session=session,
+                    open_packet=open_packet
+                )
+            except (
+                aiohttp.client_exceptions.WSServerHandshakeError,
+                aiohttp.client_exceptions.ServerConnectionError,
+                aiohttp.client_exceptions.ClientConnectionError
+            ):
+                # Websocket upgrade failed / use transport polling.
+                pass
+            else:
+                return new_cls
         
         query = base_url.query.copy()
         query["sid"] = open_packet.sid
@@ -183,30 +194,24 @@ class ChzzkGateway:
         else:
             upgrade = False
 
-        try:
-            websocket = await session.ws_connect(base_url)
-        except (aiohttp.client_exceptions.WSServerHandshakeError,
-                aiohttp.client_exceptions.ServerConnectionError,
-                aiohttp.client_exceptions.ClientConnectionError):
-            "Connection Error"
-            return
+        websocket = await session.ws_connect(base_url)
         
         if upgrade:
-            ping_packet = EnginePacket(EnginePacketType.PING, data='probe')
+            ping_packet = Packet(EnginePacketType.PING, data='probe')
 
             await websocket.send_str(ping_packet.encode())
             raw_pong_packet = (await websocket.receive()).data
-            pong_packet = EnginePacket.decode(raw_pong_packet)
+            pong_packet = Packet.decode(raw_pong_packet)
 
             if pong_packet.packet_type != EnginePacketType.PONG or pong_packet.data != 'probe':
                 raise ConnectionError("WebSocket upgrade failed: no PONG packet")
             
-            upgrade_packet = EnginePacket(EnginePacketType.UPGRADE)
+            upgrade_packet = Packet(EnginePacketType.UPGRADE)
             await websocket.send_str(upgrade_packet.encode())
         else:
             raw_open_packet = (await websocket.receive()).data
-            raw_open_packet = EnginePacket.decode(raw_open_packet)
-            open_packet = OpenPacketInfo.model_validate(raw_open_packet)
+            raw_open_packet = Packet.decode(raw_open_packet)
+            open_packet = OpenPacketInfo.model_validate(raw_open_packet.data)
         
             query = base_url.query.copy()
             query["sid"] = open_packet.sid
@@ -234,9 +239,33 @@ class ChzzkGateway:
             payload = Payload.decode(raw_payload)
 
     async def _read_websocket(self):
-        while self.is_connected:
-            raw_payload = await self.websocket.receive(timeout=self.ping_interval + self.ping_timeout)
-            payload = Payload.decode(raw_payload)
+        try:
+            message = await self.websocket.receive(timeout=self.ping_interval + self.ping_timeout)
+            if message.type is aiohttp.WSMsgType.TEXT:
+                data = message.json()
+                payload = Payload.decode(data)
+            elif message.type is aiohttp.WSMsgType.PING:
+                return
+            elif message.type is aiohttp.WSMsgType.ERROR:
+                raise
+            elif message.type in (
+                aiohttp.WSMsgType.CLOSED,
+                aiohttp.WSMsgType.CLOSING,
+                aiohttp.WSMsgType.CLOSE,
+            ):
+                raise
+        except:
+            pass
+    
+    async def _write_polling(self, data: Packet):
+        write_response = await self.session.request("POST", self.base_url, data=data.encode())
+        if write_response.status < 200 and write_response.status >= 300:
+            raise HTTPException(write_response.status)
+        return
 
-    async def _write(self):
-        pass
+    async def _write_websocket(self, data: Packet):
+        await self.websocket.send_str(data.encode())
+        return
+    
+    async def received_message(self, data: Packet):
+        return
