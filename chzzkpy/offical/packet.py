@@ -24,7 +24,6 @@ SOFTWARE.
 import json
 
 from typing import Any, Optional
-from urllib.parse import parse_qs
 
 from .enums import EnginePacketType, SocketPacketType, get_enum
 
@@ -146,35 +145,3 @@ class Packet:
         elif self.data is not None:
             encoded_packet += str(self.data) 
         return encoded_packet
-
-
-class Payload:
-    max_decode_packets = 16
-
-    def __init__(self, packets=None):
-        self.packets: list[Packet] = packets or []
-
-    def encode(self, jsonp_index=None):
-        encoded_payload = '\x1e'.join([pkt.encode(b64=True) for pkt in self.packets])
-        if jsonp_index is not None:
-            encoded_payload = f"___eio[{jsonp_index}]({encoded_payload.replace('"', '\\"')});"
-        return encoded_payload
-
-    @classmethod
-    def decode(cls, encoded_payload):
-        if len(encoded_payload) == 0:
-            return
-
-        # JSONP POST payload starts with 'd='
-        if encoded_payload.startswith('d='):
-            encoded_payload = parse_qs(encoded_payload)['d'][0]
-        
-        encoded_packets = encoded_payload.split('\x1e')
-
-        if len(encoded_packets) > cls.max_decode_packets:
-            raise ValueError('Too many packets in payload')
-    
-        return cls(packets=[
-            Packet.decode(encoded_packet)
-            for encoded_packet in encoded_packets
-        ])
