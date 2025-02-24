@@ -224,7 +224,7 @@ class ChzzkGateway:
             raw_pong_packet = (await websocket.receive()).data
             pong_packet = Packet.decode(raw_pong_packet)
 
-            if pong_packet.packet_type != EnginePacketType.PONG or pong_packet.data != 'probe':
+            if pong_packet.engine_packet_type != EnginePacketType.PONG or pong_packet.data != 'probe':
                 raise ConnectionError("WebSocket upgrade failed: no PONG packet")
             
             upgrade_packet = Packet(EnginePacketType.UPGRADE)
@@ -268,6 +268,7 @@ class ChzzkGateway:
             message = await self.websocket.receive(timeout=self.ping_interval + self.ping_timeout)
             if message.type is aiohttp.WSMsgType.TEXT:
                 data = message.data
+                print(data)
                 payload = Payload.decode(data)
 
                 for packet in payload.packets:
@@ -290,22 +291,21 @@ class ChzzkGateway:
         return
 
     async def _write_websocket(self, data: Packet):
-        await self.websocket.send_str(data.encode())
+        await self.websocket.send_bytes(data.encode())
         return
     
     async def _ping_loop(self):
         while self.is_connected:
             await self.send_ping()
-            try:
-                await asyncio.wait_for(
-                    self._handshake_receive_event.wait(),
-                    timeout=self.ping_timeout
-                )
-            except (
-                asyncio.CancelledError,
-                asyncio.Timeout
-            ):
-                raise ConnectionError("PONG response has not been received.")
+            # try:
+            #     await asyncio.wait_for(
+            #         self._handshake_receive_event.wait(),
+            #         timeout=self.ping_timeout
+            #     )
+            # except asyncio.Timeout:
+            #     raise ConnectionError("PONG response has not been received.")
+            # except asyncio.CancelledError:
+            #     pass
             await asyncio.sleep(self.ping_interval)
     
     async def received_message(self, data: Packet):
@@ -313,11 +313,13 @@ class ChzzkGateway:
             return
         
         if data.engine_packet_type == EnginePacketType.PONG:
-            await self._handshake_receive_event.set()
-            await self._handshake_receive_event.clear()
+            self._handshake_receive_event.set()
+            self._handshake_receive_event.clear()
         return
     
-    async def send(self, packet: Packet):
+    async def send(self, packet: Payload | Packet):
+        if isinstance(packet, Packet):
+            packet = Payload(packets=[packet])
         await self._write(packet)
 
     async def send_ping(self, message: Optional[str] = None):
