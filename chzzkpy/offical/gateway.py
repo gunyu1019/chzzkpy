@@ -33,7 +33,8 @@ from yarl import URL
 from .base_model import ChzzkModel
 from .enums import EnginePacketType, SocketPacketType
 from .error import HTTPException
-from .packet import Packet, Payload
+from .packet import Packet
+from .payload import Payload
 
 if TYPE_CHECKING:
     from .state import ConnectionState
@@ -95,19 +96,21 @@ class ChzzkGateway:
         new_url = url
         if not isinstance(url, URL):
             new_url = URL(url)
+        
+        query = new_url.query.copy()
 
         if transport == "polling":
             new_url = new_url.with_scheme("https" if ssl else "http")
         else:
             new_url = new_url.with_scheme("wss" if ssl else "ws")
 
-        new_url = new_url.with_path(engine_path)
+        new_url = new_url.with_path(f"{engine_path}/")
 
-        query = new_url.query.copy()
-        query.update({
-
+        query.extend(**{
+            "EIO": "4",
+            "transport": transport
         })
-        new_url = new_url.with_query()
+        new_url = new_url.with_query(query)
         return new_url
 
     @staticmethod
@@ -117,17 +120,18 @@ class ChzzkGateway:
             return url
     
         query["t"] = str(time.time())
-        return url.with_query(query=query)
+        return url.with_query(query)
 
     @classmethod
     async def connect(
         cls, 
         url: str | URL, 
         state: ConnectionState, 
+        loop: asyncio.AbstractEventLoop,
         session: aiohttp.ClientSession
     ):
         engine_path = "socket.io"
-        return await cls._connect_polling(url, engine_path, state, session)
+        return await cls._connect_polling(url, engine_path, state, loop, session)
     
     @classmethod
     async def _connect_polling(
@@ -139,13 +143,13 @@ class ChzzkGateway:
         session: aiohttp.ClientSession
     ):
         base_url = cls._get_engineio_url(url=url, engine_path=engine_path, transport="polling")
-        base_url = cls._get_timestamp_url(url)
+        base_url = cls._get_timestamp_url(base_url)
         connection_response = await session.request("GET", base_url)
 
         if connection_response.status < 200 or connection_response.status >= 300:
             raise HTTPException(connection_response.status, f"Unexpected status code {connection_response.status} in server response")
         
-        raw_payload = (await connection_response.read()).decode('utf-8')
+        raw_payload = await connection_response.read()
         payload = Payload.decode(raw_payload)
 
         raw_open_packet = payload.packets[0]
@@ -201,7 +205,7 @@ class ChzzkGateway:
         open_packet: Optional[OpenPacketInfo] = None  # For update
     ):
         base_url = cls._get_engineio_url(url=url, engine_path=engine_path, transport="websocket")
-        base_url = cls._get_timestamp_url(url)
+        base_url = cls._get_timestamp_url(base_url)
 
         if open_packet is not None:
             query = base_url.query.copy()
@@ -253,7 +257,7 @@ class ChzzkGateway:
             base_url = self._get_timestamp_url(self.base_url)
             response = await self.session.request("GET", base_url, timeout=max(self.ping_interval, self.ping_timeout) + 5)
         
-            raw_payload = (await response.read()).decode('utf-8')
+            raw_payload = await response.read()
             payload = Payload.decode(raw_payload)
 
             for packet in payload.packets:
@@ -263,7 +267,7 @@ class ChzzkGateway:
         try:
             message = await self.websocket.receive(timeout=self.ping_interval + self.ping_timeout)
             if message.type is aiohttp.WSMsgType.TEXT:
-                data = message.json()
+                data = message.data
                 payload = Payload.decode(data)
 
                 for packet in payload.packets:
