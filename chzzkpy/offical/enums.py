@@ -27,7 +27,7 @@ from typing import TypeVar, Any
 E = TypeVar("E", bound="Enum")
 
 
-class PackageType(Enum):
+class EnginePacketType(Enum):
     OPEN = 0
     CLOSE = 1
     PING = 2
@@ -35,6 +35,16 @@ class PackageType(Enum):
     MESSAGE = 4
     UPGRADE = 5
     NOOP = 6
+
+
+class SocketPacketType(Enum):
+    CONNECT = 0
+    DISCONNECT = 1
+    EVENT = 2
+    ACK = 3
+    CONNECT_ERROR = 4
+    BINARY_EVENT = 5
+    BINARY_ACK = 6
 
 
 def get_enum(cls: type[E], val: Any) -> E:
