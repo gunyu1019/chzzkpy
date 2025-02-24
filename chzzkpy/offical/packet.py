@@ -30,7 +30,7 @@ from .enums import EnginePacketType, SocketPacketType, get_enum
 
 class Packet:
     """ Implement integrated packet(socket.io + engine.io)
-    Consider the environment, the attachments does not implement.
+    Consider the environment, the attachments does not implement and binrary does not support.
     """
     def __init__(
             self, 
