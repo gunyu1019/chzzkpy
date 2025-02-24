@@ -23,6 +23,7 @@ SOFTWARE.
 
 from __future__ import annotations
 
+import asyncio
 import aiohttp
 import time
 
@@ -52,6 +53,7 @@ class OpenPacketInfo(ChzzkModel):
 class ChzzkGateway:
     def __init__(
             self, 
+            loop: asyncio.AbstractEventLoop,
             base_url: URL, 
             session: aiohttp.ClientSession, 
             state: ConnectionState,
@@ -72,6 +74,16 @@ class ChzzkGateway:
         self.websocket: Optional[aiohttp.ClientWebSocketResponse] = None
 
         self.is_connected = True
+
+        if self.current_transport == "websocket":
+            self._write = self._write_websocket
+            self._read_loop = self._read_websocket
+        else:
+            self._write = self._write_websocket
+            self._read_loop = self._read_polling
+
+        self._handshake_receive_event = asyncio.Event()
+        self._ping_loop_task = loop.create_task(self._ping_loop())
 
     @staticmethod
     def _get_engineio_url(
@@ -123,6 +135,7 @@ class ChzzkGateway:
         url: str | URL, 
         engine_path: str,
         state: ConnectionState,
+        loop: asyncio.AbstractEventLoop,
         session: aiohttp.ClientSession
     ):
         base_url = cls._get_engineio_url(url=url, engine_path=engine_path, transport="polling")
@@ -138,16 +151,13 @@ class ChzzkGateway:
         raw_open_packet = payload.packets[0]
         open_packet = OpenPacketInfo.model_validate(raw_open_packet.data)
 
-        for packet in payload.packets[1:]:
-            # receive_packet
-            pass
-
         if "websocket" in open_packet.upgrades:
             try:
                 new_cls = await cls._connect_websocket(
                     url=url,
                     engine_path=engine_path,
                     state=state,
+                    loop=loop,
                     session=session,
                     open_packet=open_packet
                 )
@@ -159,13 +169,16 @@ class ChzzkGateway:
                 # Websocket upgrade failed / use transport polling.
                 pass
             else:
+                for packet in payload.packets[1:]:
+                    new_cls.received_message(packet)
                 return new_cls
         
         query = base_url.query.copy()
         query["sid"] = open_packet.sid
         base_url = base_url.with_query(query)
 
-        return cls(
+        new_cls = cls(
+            loop=loop,
             base_url = base_url,
             session = session,
             state=state,
@@ -173,6 +186,9 @@ class ChzzkGateway:
             open_packet_info=open_packet,
             session_id = open_packet.sid,
         )
+        for packet in payload.packets[1:]:
+            new_cls.received_message(packet)
+        return new_cls
     
     @classmethod
     async def _connect_websocket(
@@ -180,6 +196,7 @@ class ChzzkGateway:
         url: str | URL, 
         engine_path: str,
         state: ConnectionState,
+        loop: asyncio.AbstractEventLoop,
         session: aiohttp.ClientSession,
         open_packet: Optional[OpenPacketInfo] = None  # For update
     ):
@@ -220,6 +237,7 @@ class ChzzkGateway:
         session_id = open_packet.sid
 
         new_cls = cls(
+            loop=loop,
             base_url=base_url,
             session=session,
             state=state,
@@ -238,14 +256,18 @@ class ChzzkGateway:
             raw_payload = (await response.read()).decode('utf-8')
             payload = Payload.decode(raw_payload)
 
+            for packet in payload.packets:
+                await self.received_message(packet)
+
     async def _read_websocket(self):
         try:
             message = await self.websocket.receive(timeout=self.ping_interval + self.ping_timeout)
             if message.type is aiohttp.WSMsgType.TEXT:
                 data = message.json()
                 payload = Payload.decode(data)
-            elif message.type is aiohttp.WSMsgType.PING:
-                return
+
+                for packet in payload.packets:
+                    await self.received_message(packet)
             elif message.type is aiohttp.WSMsgType.ERROR:
                 raise
             elif message.type in (
@@ -267,5 +289,34 @@ class ChzzkGateway:
         await self.websocket.send_str(data.encode())
         return
     
+    async def _ping_loop(self):
+        while self.is_connected:
+            await self.send_ping()
+            try:
+                await asyncio.wait_for(
+                    self._handshake_receive_event.wait(),
+                    timeout=self.ping_timeout
+                )
+            except (
+                asyncio.CancelledError,
+                asyncio.Timeout
+            ):
+                raise ConnectionError("PONG response has not been received.")
+            await asyncio.sleep(self.ping_interval)
+    
     async def received_message(self, data: Packet):
+        if data.is_socket_packet:
+            return
+        
+        if data.engine_packet_type == EnginePacketType.PONG:
+            await self._handshake_receive_event.set()
+            await self._handshake_receive_event.clear()
         return
+    
+    async def send(self, packet: Packet):
+        await self._write(packet)
+
+    async def send_ping(self, message: Optional[str] = None):
+        await self.send(
+            Packet(engine_packet_type=EnginePacketType.PING, data=message)
+        )
