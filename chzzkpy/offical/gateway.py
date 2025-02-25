@@ -337,10 +337,18 @@ class ChzzkGateway:
 
     async def send_ping(self, message: Optional[str] = None):
         await self.send(
-            Packet(engine_packet_type=EnginePacketType.PING, data=message)
+            Packet(EnginePacketType.PING, data=message)
         )
 
     async def send_disconnet(self):
         await self.send(
-            Packet(engine_packet_type=EnginePacketType.CLOSE)
+            Packet(EnginePacketType.MESSAGE, SocketPacketType.DISCONNECT)
+        )
+        await self.send(
+            Packet(EnginePacketType.CLOSE)
+        )
+
+    async def send_ack(self, pakcet_id: int):
+        await self.send(
+            Packet(EnginePacketType.MESSAGE, SocketPacketType.ACK, packet_id=pakcet_id)
         )
