@@ -59,7 +59,7 @@ class Packet:
         
         # Decode Attachment (Binaray)
         attachment_separator = data.find('-')
-        if attachment_separator > 0 and data[0:attachment_separator]:
+        if attachment_separator > 0 and data[0:attachment_separator].isdigit():
             # Unused attachment feature in chzzk Session API.
             # attachment_count = data[0:attachment_separator]
             data = data[attachment_separator + 1:]
@@ -82,7 +82,7 @@ class Packet:
         # Decode Packet ID
         packet_id = None
         if len(data) > 0 and data[0].isdigit():
-            packet_id = data[0]
+            packet_id = int(data[0])
             while len(data) > 0 and data[0].isdigit():
                 packet_id *= 10
                 packet_id += int(data[0])
@@ -98,7 +98,7 @@ class Packet:
         packet_type = get_enum(EnginePacketType, int(payload[0]))
         
         if packet_type == EnginePacketType.MESSAGE:
-            return cls._decode_socket(packet_type, payload[1:])
+            return cls._decode_socket(packet_type, payload[1:], json_serialize = json_serialize)
         
         try:
             data = json_serialize(payload[1:])
