@@ -158,27 +158,27 @@ class ChzzkGateway:
         raw_open_packet = payload.packets[0]
         open_packet = OpenPacketInfo.model_validate(raw_open_packet.data)
 
-        # if "websocket" in open_packet.upgrades:
-        #     try:
-        #         new_cls = await cls._connect_websocket(
-        #             url=url,
-        #             engine_path=engine_path,
-        #             state=state,
-        #             loop=loop,
-        #             session=session,
-        #             open_packet=open_packet
-        #         )
-        #     except (
-        #         aiohttp.client_exceptions.WSServerHandshakeError,
-        #         aiohttp.client_exceptions.ServerConnectionError,
-        #         aiohttp.client_exceptions.ClientConnectionError
-        #     ):
-        #         # Websocket upgrade failed / use transport polling.
-        #         pass
-        #     else:
-        #         for packet in payload.packets[1:]:
-        #             new_cls.received_message(packet)
-        #         return new_cls
+        if "websocket" in open_packet.upgrades:
+            try:
+                new_cls = await cls._connect_websocket(
+                    url=url,
+                    engine_path=engine_path,
+                    state=state,
+                    loop=loop,
+                    session=session,
+                    open_packet=open_packet
+                )
+            except (
+                aiohttp.client_exceptions.WSServerHandshakeError,
+                aiohttp.client_exceptions.ServerConnectionError,
+                aiohttp.client_exceptions.ClientConnectionError
+            ):
+                # Websocket upgrade failed / use transport polling.
+                pass
+            else:
+                for packet in payload.packets[1:]:
+                    new_cls.received_message(packet)
+                return new_cls
         
         query = base_url.query.copy()
         query["sid"] = open_packet.sid
@@ -256,15 +256,14 @@ class ChzzkGateway:
         return new_cls
 
     async def _read_polling(self):
-        while self.is_connected:
-            base_url = self._get_timestamp_url(self.base_url)
-            response = await self.session.request("GET", base_url, timeout=max(self.ping_interval, self.ping_timeout) + 5)
-        
-            raw_payload = await response.read()
-            payload = Payload.decode(raw_payload)
+        base_url = self._get_timestamp_url(self.base_url)
+        response = await self.session.request("GET", base_url, timeout=max(self.ping_interval, self.ping_timeout) + 5)
+    
+        raw_payload = await response.read()
+        payload = Payload.decode(raw_payload)
 
-            for packet in payload.packets:
-                await self.received_message(packet)
+        for packet in payload.packets:
+            await self.received_message(packet)
 
     async def _read_websocket(self):
         try:
