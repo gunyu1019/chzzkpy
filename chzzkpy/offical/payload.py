@@ -68,7 +68,7 @@ class Payload:
         if encoded_payload.startswith(b'd='):
             encoded_payload = parse_qs(encoded_payload)[b'd'][0]
         
-        is_binrary = encoded_payload.find(b'\xff')
+        is_binrary = encoded_payload.find(b'\xff') > -1
         packets = []
         index = 0
 
