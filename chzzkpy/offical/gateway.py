@@ -321,7 +321,18 @@ class ChzzkGateway:
             packet = Payload(packets=[packet])
         await self._write(packet)
 
+    async def disconnect(self):
+        self._ping_loop_task.cancel()
+        await self.send_disconnet()
+        self.is_connected = False
+        await self.websocket.close()
+
     async def send_ping(self, message: Optional[str] = None):
         await self.send(
             Packet(engine_packet_type=EnginePacketType.PING, data=message)
+        )
+
+    async def send_disconnet(self):
+        await self.send(
+            Packet(engine_packet_type=EnginePacketType.CLOSE)
         )
