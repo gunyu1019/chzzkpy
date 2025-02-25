@@ -307,6 +307,14 @@ class ChzzkGateway:
             ):
                 raise ConnectionError("PONG response has not been received.")
             await asyncio.sleep(self.ping_interval)
+
+    async def read(self):
+        while self.is_connected:
+            await self._read_loop()
+    
+    def read_in_background(self) -> asyncio.Task:
+        task = self.loop.create_task(self.read)
+        return task
     
     async def received_message(self, data: Packet):
         if data.is_socket_packet:
