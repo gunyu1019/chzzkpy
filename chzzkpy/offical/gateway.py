@@ -25,19 +25,23 @@ from __future__ import annotations
 
 import asyncio
 import aiohttp
+import logging
 import time
 
-from typing import Optional, Literal, TYPE_CHECKING
+from typing import Literal, TYPE_CHECKING
 from yarl import URL
 
 from .base_model import ChzzkModel
 from .enums import EnginePacketType, SocketPacketType
-from .error import HTTPException
+from .error import HTTPException, ChatConnectFailed, ReceiveErrorPacket
 from .packet import Packet
 from .payload import Payload
 
 if TYPE_CHECKING:
+    from typing import Any, Callable, Optional
     from .state import ConnectionState
+
+_log = logging.getLogger(__name__)
 
 
 class SessionKey(ChzzkModel):
@@ -56,8 +60,7 @@ class ChzzkGateway:
             self, 
             loop: asyncio.AbstractEventLoop,
             base_url: URL, 
-            session: aiohttp.ClientSession, 
-            state: ConnectionState,
+            session: aiohttp.ClientSession,
             current_transport: Literal['polling', 'websocket'],
             open_packet_info: OpenPacketInfo,
             session_id: Optional[str] = None
@@ -70,23 +73,39 @@ class ChzzkGateway:
         self.base_url = base_url
         self.session_id = session_id or open_packet_info.sid
 
+        self.loop = loop
         self.session: aiohttp.ClientSession = session
         self.state: ConnectionState = state
         self.websocket: Optional[aiohttp.ClientWebSocketResponse] = None
 
         self.is_connected = True
+        
+        self._heartbeat_receive_event = asyncio.Event()
+        self._heartbeat_receive_event.clear()
 
         if self.current_transport == "websocket":
             self._write = self._write_websocket
             self._read_loop = self._read_websocket
         else:
             self._write = self._write_polling
-            self._read_loop = self._read_polling
+            self._read_loop = self._read_polling 
 
-        self._handshake_receive_event = asyncio.Event()
-        self._handshake_receive_event.clear()
+        self._read_background_loop: Optional[asyncio.Task] = None
+        
+        _log.debug(f"Success connected to {self.base_url.host} with socket.io gateway")
 
+        self._event_hook: dict[SocketPacketType | EnginePacketType, Optional[Callable[..., Any]]] = {
+            key: None for key in list(SocketPacketType) + list(EnginePacketType)
+        }
+
+        _log.debug("Start handshake task")
         self._ping_loop_task = loop.create_task(self._ping_loop())
+
+    def set_hook(self, event: SocketPacketType | EnginePacketType, coro_func: Callable[..., Any]):
+        self._event_hook[event] = coro_func
+
+    def remove_hook(self, event: SocketPacketType | EnginePacketType):
+        self._event_hook[event] = None
 
     @staticmethod
     def _get_engineio_url(
@@ -141,7 +160,6 @@ class ChzzkGateway:
         cls,
         url: str | URL, 
         engine_path: str,
-        state: ConnectionState,
         loop: asyncio.AbstractEventLoop,
         session: aiohttp.ClientSession
     ):
@@ -150,7 +168,7 @@ class ChzzkGateway:
         connection_response = await session.request("GET", base_url)
 
         if connection_response.status < 200 or connection_response.status >= 300:
-            raise HTTPException(connection_response.status, f"Unexpected status code {connection_response.status} in server response")
+            raise ChatConnectFailed.polling_connect_failed(connection_response.status)
         
         raw_payload = await connection_response.read()
         payload = Payload.decode(raw_payload)
@@ -163,7 +181,6 @@ class ChzzkGateway:
                 new_cls = await cls._connect_websocket(
                     url=url,
                     engine_path=engine_path,
-                    state=state,
                     loop=loop,
                     session=session,
                     open_packet=open_packet
@@ -171,9 +188,10 @@ class ChzzkGateway:
             except (
                 aiohttp.client_exceptions.WSServerHandshakeError,
                 aiohttp.client_exceptions.ServerConnectionError,
-                aiohttp.client_exceptions.ClientConnectionError
+                aiohttp.client_exceptions.ClientConnectionError,
+                ChatConnectFailed
             ):
-                # Websocket upgrade failed / use transport polling.
+                _log.info("Failed upgrade to websocket transport: use polling transport.")
                 pass
             else:
                 for packet in payload.packets[1:]:
@@ -188,7 +206,6 @@ class ChzzkGateway:
             loop=loop,
             base_url = base_url,
             session = session,
-            state=state,
             current_transport = "polling",
             open_packet_info=open_packet,
             session_id = open_packet.sid,
@@ -202,7 +219,6 @@ class ChzzkGateway:
         cls, 
         url: str | URL, 
         engine_path: str,
-        state: ConnectionState,
         loop: asyncio.AbstractEventLoop,
         session: aiohttp.ClientSession,
         open_packet: Optional[OpenPacketInfo] = None  # For update
@@ -228,7 +244,7 @@ class ChzzkGateway:
             pong_packet = Packet.decode(raw_pong_packet)
 
             if pong_packet.engine_packet_type != EnginePacketType.PONG or pong_packet.data != 'probe':
-                raise ConnectionError("WebSocket upgrade failed: no PONG packet")
+                raise ChatConnectFailed.websocket_upgrade_failed()
             
             upgrade_packet = Packet(EnginePacketType.UPGRADE)
             await websocket.send_str(upgrade_packet.encode())
@@ -247,7 +263,6 @@ class ChzzkGateway:
             loop=loop,
             base_url=base_url,
             session=session,
-            state=state,
             current_transport = "websocket",
             open_packet_info=open_packet,
             session_id = session_id,
@@ -258,6 +273,9 @@ class ChzzkGateway:
     async def _read_polling(self):
         base_url = self._get_timestamp_url(self.base_url)
         response = await self.session.request("GET", base_url, timeout=max(self.ping_interval, self.ping_timeout) + 5)
+
+        if response.status >= 300 and response.status < 200:
+            raise ReceiveErrorPacket(self.current_transport, self.status)
     
         raw_payload = await response.read()
         payload = Payload.decode(raw_payload)
@@ -266,22 +284,13 @@ class ChzzkGateway:
             await self.received_message(packet)
 
     async def _read_websocket(self):
-        try:
-            message = await self.websocket.receive(timeout=self.ping_interval + self.ping_timeout)
-            if message.type is aiohttp.WSMsgType.TEXT:
-                data = message.data
-                packet = Packet.decode(data)
-                await self.received_message(packet)
-            elif message.type == aiohttp.WSMsgType.ERROR:
-                raise
-            elif message.type in (
-                aiohttp.WSMsgType.CLOSED,
-                aiohttp.WSMsgType.CLOSING,
-                aiohttp.WSMsgType.CLOSE,
-            ):
-                raise
-        except:
-            pass
+        message = await self.websocket.receive(timeout=self.ping_interval + self.ping_timeout)
+        if message.type is aiohttp.WSMsgType.TEXT:
+            data = message.data
+            packet = Packet.decode(data)
+            await self.received_message(packet)
+        elif message.type == aiohttp.WSMsgType.ERROR:
+            raise ReceiveErrorPacket(self.current_transport, self.data)
     
     async def _write_polling(self, data: Packet):
         write_response = await self.session.request("POST", self.base_url, data=data.encode())
@@ -295,17 +304,19 @@ class ChzzkGateway:
     
     async def _ping_loop(self):
         while self.is_connected:
+            _log.debug("Send Ping packet to server for heartbeat")
             await self.send_ping()
             try:
                 await asyncio.wait_for(
-                    self._handshake_receive_event.wait(),
+                    self._heartbeat_receive_event.wait(),
                     timeout=self.ping_timeout
                 )
             except (
                 asyncio.Timeout,
                 asyncio.CancelledError
             ):
-                raise ConnectionError("PONG response has not been received.")
+                raise ConnectionError("PONG response has not been received.")    
+            _log.debug("Received Pong packet from server.")
             await asyncio.sleep(self.ping_interval)
 
     async def read(self):
@@ -313,15 +324,29 @@ class ChzzkGateway:
             await self._read_loop()
     
     def read_in_background(self) -> asyncio.Task:
-        task = self.loop.create_task(self.read)
+        task = self.loop.create_task(self.read())
+        self._read_background_loop = task
         return task
     
     async def received_message(self, data: Packet):
         if data.is_socket_packet:
+            if data.socket_packet_type == SocketPacketType.EVENT and data.id is not None:
+                await self.send_ack(data.id)
+
+            func = self._event_hook.get(data.socket_packet_type)
+            if func is not None:
+                func(data.data)
             return
 
         if data.engine_packet_type == EnginePacketType.PONG:
-            self._handshake_receive_event.set()
+            self._heartbeat_receive_event.set()
+        elif data.engine_packet_type == EnginePacketType.CLOSE:
+            _log.warning("Received close packet, close connection.")
+            await self.disconnect()
+
+        func = self._event_hook.get(data.engine_packet_type)
+        if func is not None:
+            func(data.data)
         return
     
     async def send(self, packet: Payload | Packet):
@@ -330,9 +355,15 @@ class ChzzkGateway:
         await self._write(packet)
 
     async def disconnect(self):
+        if not self.is_connected:
+            return 
+        
         self._ping_loop_task.cancel()
         await self.send_disconnet()
         self.is_connected = False
+
+        if self._read_background_loop is not None and not self._read_background_loop.cancelled():
+            self._read_background_loop.cancel()
         await self.websocket.close()
 
     async def send_ping(self, message: Optional[str] = None):
