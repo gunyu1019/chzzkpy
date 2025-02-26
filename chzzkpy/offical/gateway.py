@@ -75,7 +75,6 @@ class ChzzkGateway:
 
         self.loop = loop
         self.session: aiohttp.ClientSession = session
-        self.state: ConnectionState = state
         self.websocket: Optional[aiohttp.ClientWebSocketResponse] = None
 
         self.is_connected = True
@@ -153,7 +152,8 @@ class ChzzkGateway:
         engine_path: Optional[str] = None
     ):
         engine_path = engine_path or "socket.io"
-        return await cls._connect_polling(url, engine_path, state, loop, session)
+        gateway = await cls._connect_polling(url, engine_path, loop, session)
+        return gateway
     
     @classmethod
     async def _connect_polling(
