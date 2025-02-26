@@ -40,6 +40,14 @@ class ConnectionState:
     ):
         self.dispatch = dispatch
         self.handler = handler
+        self.parsers: dict[SocketPacketType | EnginePacketType, Callable[..., Any]] = dict()
+
+        for _, func in inspect.getmembers(self):
+            if hasattr(func, "__parsing_eventable__") and func.__parsing_eventable__:
+                self.parsers[
+                    func.__parsing_socket_packet__ or 
+                    func.__parsing_engine_packet__
+                ] = func
 
     @staticmethod
     def parsable(
