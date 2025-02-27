@@ -47,6 +47,11 @@ class SocketPacketType(Enum):
     BINARY_ACK = 6
 
 
+class EvnetSubscripition(Enum):
+    CHAT = 1
+    DONATION = 2
+
+
 def get_enum(cls: type[E], val: Any) -> E:
     enum_val = [i for i in cls if i.value == val]
     if len(enum_val) == 0:
