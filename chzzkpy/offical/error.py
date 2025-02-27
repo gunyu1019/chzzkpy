@@ -21,7 +21,33 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
+from typing import Any, Literal
+
 from ..error import ChzzkpyException
 from ..error import LoginRequired
 from ..error import NotFound
 from ..error import HTTPException
+
+
+class ChatConnectFailed(ChzzkpyException):
+    def __init__(self, message: str):
+        super(ChatConnectFailed, self).__init__(message)
+
+    @classmethod
+    def websocket_upgrade_failed(cls):
+        return cls("WebSocket upgrade failed: no PONG packet")
+
+    @classmethod
+    def polling_connect_failed(cls, status: int):
+        return cls(f"Unexpected status code {status} in connect polling")
+
+
+class ReceiveErrorPacket(ChzzkpyException):
+    def __init__(self, transport: Literal['polling', 'websocket'], data: Any):
+        super().__init__(
+            f"{transport} type of connection received packet with an error. "
+            f" (data: {self.code})"
+        )
+
+        self.current_transport = transport
+        self.data = data
