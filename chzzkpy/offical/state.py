@@ -27,37 +27,58 @@ import logging
 import inspect
 from typing import Callable, Any, TYPE_CHECKING, Optional
 
+from .enums import EnginePacketType, SocketPacketType
+
 if TYPE_CHECKING:
     from .client import Client
-    from .enums import EnginePacketType, SocketPacketType
 
 
 class ConnectionState:
     def __init__(
         self,
         dispatch: Callable[..., Any],
-        handler: dict[str, Callable[..., Any]]
+        handler: dict[str, Callable[..., Any]],
+        debug_mode: bool = False
     ):
         self.dispatch = dispatch
         self.handler = handler
-        self.parsers: dict[SocketPacketType | EnginePacketType, Callable[..., Any]] = dict()
+        self.gateway_parsers: dict[SocketPacketType | EnginePacketType, Callable[..., Any]] = dict()
+        self.event_parsers: dict[str, Callable[..., Any]] = dict()
+
+        self.debug_mode = debug_mode
 
         for _, func in inspect.getmembers(self):
-            if hasattr(func, "__parsing_eventable__") and func.__parsing_eventable__:
-                self.parsers[
+            if hasattr(func, "__gateway_parsing__") and func.__gateway_parsing__:
+                self.gateway_parsers[
                     func.__parsing_socket_packet__ or 
                     func.__parsing_engine_packet__
                 ] = func
 
+        for _, func in inspect.getmembers(self):
+            if hasattr(func, "__event_parsing__"):
+                self.event_parsers[
+                    func.__event_parsing__
+                ] = func
+
     @staticmethod
-    def parsable(
+    def gateway_parsable(
         engine_packet_type: EnginePacketType, 
         socket_packet_type: Optional[SocketPacketType] = None
     ):
         def decorator(func: Callable[..., Any]):
-            func.__parsing_eventable__ = True
+            func.__gateway_parsing__ = True
             func.__parsing_engine_packet__ = engine_packet_type
             func.__parsing_socket_packet__ = socket_packet_type
+            return func
+
+        return decorator
+
+    @staticmethod
+    def event_parsable(
+        event_name: str
+    ):
+        def decorator(func: Callable[..., Any]):
+            func.__event_parsing__ = event_name
             return func
 
         return decorator
@@ -66,3 +87,48 @@ class ConnectionState:
         if key in self.handler:
             func = self.handler[key]
             func(*args, **kwargs)
+
+    @gateway_parsable(EnginePacketType.MESSAGE, SocketPacketType.EVENT)
+    async def _handle_evnet(self, data: list[Any]):
+        event = str(data[0]).lower()
+        arguments = data[1:]
+
+        print(event, arguments)
+
+        event_func = self.event_parsers.get(event)
+        if event_func is not None:
+            await event_func(*arguments)
+
+        if not self.debug_mode:
+            return
+        self.dispatch("socket_event", event,*data)
+        return
+    
+    @gateway_parsable(EnginePacketType.MESSAGE, SocketPacketType.CONNECT)
+    async def _handle_connect(self, _):
+        if not self.debug_mode:
+            return
+        self.dispatch("socket_connect")
+        return
+    
+    @gateway_parsable(EnginePacketType.MESSAGE, SocketPacketType.DISCONNECT)
+    async def _handle_disconnect(self, _):
+        if not self.debug_mode:
+            return
+        self.dispatch("socket_disconnect")
+        return
+    
+    @event_parsable("system")
+    async def _handle_system(self, data):
+        print(data)
+        return
+    
+    @event_parsable("chat")
+    async def _handle_chat(self, data):
+        print(data)
+        return
+    
+    @event_parsable("donation")
+    async def _handle_chat(self, data):
+        print(data)
+        return
