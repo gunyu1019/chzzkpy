@@ -31,8 +31,10 @@ from functools import wraps
 from typing import Any, Callable, Coroutine, Optional, TYPE_CHECKING
 from yarl import URL
 
-from .enums import APIScope
+from .gateway import ChzzkGateway
 from .http import ChzzkOpenAPISession
+from .state import ConnectionState
+
 
 if TYPE_CHECKING:
     from typing import Self
@@ -200,6 +202,14 @@ class Client(BaseEventManager):
 
         self._listeners: dict[str, list[tuple[asyncio.Future, Callable[..., bool]]]] = dict()
         self._extra_event: dict[str, list[Callable[..., Coroutine[Any, Any, Any]]]] = dict()
+
+        self._ready = asyncio.Event()
+
+        handler = {"connect": self._ready.set}
+        self._connection = ConnectionState(
+            dispatch=self.dispatch, handler=handler, client=self
+        )
+        self._gateway: Optional[ChzzkGateway] = None
     
     async def __aenter__(self) -> Self:
         await self._async_setup_hook()
@@ -219,36 +229,38 @@ class Client(BaseEventManager):
             return await func(*args, **kwargs)
         return wrppaer
 
-    def generate_authorization_token_url(self, redirect_url: str, state: list[APIScope]) -> str:
+    def generate_authorization_token_url(self, redirect_url: str, state: str) -> str:
         default_url = URL.build(scheme="https", authority="chzzk.naver.com", path="/account-interlock")
         default_url = default_url.with_query({
             "clientId": self.client_id,
             "redirectUri": redirect_url,
-            "state": ",".join(state)
+            "state": state
         })
         return default_url.geturl()
 
     @initial_async_setup
-    async def generate_access_token(self, code: str, state: list[APIScope]) -> AccessToken:
+    async def generate_access_token(self, code: str, state: str) -> AccessToken:
         result = await self.http.generate_access_token(
             grant_type="authorization_code",
             client_id=self.client_id,
             client_secret=self.client_secret,
             code=code,
-            state=",".join(state)
+            state=state
         )
         return result.content
 
-    async def generate_user_client(self, code: str, state: list[APIScope]) -> UserClient:
+    async def generate_user_client(self, code: str, state: str) -> UserClient:
         access_token = await self.generate_access_token(code, state)
         user_cls = UserClient(self, access_token)
         self.user_client.append(user_cls)
         return user_cls
     
+    @initial_async_setup
     async def get_channel(self, channel_ids: list[str]) -> list[Channel]:
         result = await self.http.get_channel(channel_ids=",".join(channel_ids))
         return result.content.data
     
+    @initial_async_setup
     async def get_category(self, query: str, size: Optional[int] = 20) -> list[Channel]:
         result = await self.http.get_category(query=query, size=size)
         return result.content.data
@@ -268,6 +280,10 @@ class UserClient:
         self._token_generated_at = datetime.datetime.now()
 
         self.dispatch = parent.dispatch
+        
+        self._ready = asyncio.Event()
+
+        handler = {"connect": self._ready.set}
     
     @property
     def is_expired(self) -> bool:
@@ -291,6 +307,11 @@ class UserClient:
             token=self.access_token.access_token,
         )
         return
+    
+    @property
+    def is_connected(self) -> bool:
+        return self._session.connected
         
-    async def connect(self):
-        await self.http.generate_user_session()
+    async def connect(self, addition_connect: bool = False):
+        session_key = await self.http.generate_user_session()
+        await self._session.connect(url=session_key.content.url)
