@@ -153,6 +153,12 @@ class ChzzkGateway:
     ):
         engine_path = engine_path or "socket.io"
         gateway = await cls._connect_polling(url, engine_path, loop, session)
+
+        for event, parsing_func in state.gateway_parsers.items():
+            if parsing_func is None:
+                continue
+            gateway.set_hook(event, parsing_func)
+        
         return gateway
     
     @classmethod
@@ -335,7 +341,7 @@ class ChzzkGateway:
 
             func = self._event_hook.get(data.socket_packet_type)
             if func is not None:
-                func(data.data)
+                await func(data.data)
             return
 
         if data.engine_packet_type == EnginePacketType.PONG:
@@ -346,7 +352,7 @@ class ChzzkGateway:
 
         func = self._event_hook.get(data.engine_packet_type)
         if func is not None:
-            func(data.data)
+            await func(data.data)
         return
     
     async def send(self, packet: Payload | Packet):
