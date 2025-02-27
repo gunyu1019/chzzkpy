@@ -120,7 +120,19 @@ class ConnectionState:
     
     @event_parsable("system")
     async def _handle_system(self, data):
-        print(data)
+        event_type = data["type"]
+        event_data = data["data"]
+
+        if event_type == "connected":
+            session_id = event_data["sessionKey"]
+            self.dispatch("connect", session_id)
+            self.call_handler("connect", session_id)
+        elif event_type == "subscribed":
+            self.dispatch("permission_invoked")
+        elif event_type == "unsubscribed":
+            self.dispatch("permission_reinvoked")
+        elif event_type == "revoked":
+            self.dispatch("permission_reinvoked_force")
         return
     
     @event_parsable("chat")
