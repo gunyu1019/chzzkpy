@@ -44,7 +44,7 @@ class BadRequestException(ChzzkpyException):
     def __init__(self, message: Optional[str] = None):
         if message is None:
             message = "Invaild input value"
-        super(NotFoundException, self).__init__(message)
+        super(BadRequestException, self).__init__(message)
 
 
 class UnauthorizedException(ChzzkpyException):
@@ -53,7 +53,7 @@ class UnauthorizedException(ChzzkpyException):
     def __init__(self, message: Optional[str] = None):
         if message is None:
             message = "Not Found"
-        super(NotFoundException, self).__init__(message)
+        super(UnauthorizedException, self).__init__(message)
 
 
 class ForbiddenException(ChzzkpyException):
@@ -62,7 +62,7 @@ class ForbiddenException(ChzzkpyException):
     def __init__(self, message: Optional[str] = None):
         if message is None:
             message = "Invaild permission"
-        super(NotFoundException, self).__init__(message)
+        super(ForbiddenException, self).__init__(message)
 
 
 class NotFoundException(ChzzkpyException):
@@ -80,7 +80,7 @@ class TooManyRequestsException(ChzzkpyException):
     def __init__(self, message: Optional[str] = None):
         if message is None:
             message = "Too many requests, try later."
-        super(NotFoundException, self).__init__(message)
+        super(TooManyRequestsException, self).__init__(message)
 
 
 class HTTPException(ChzzkpyException):
