@@ -32,4 +32,4 @@ class Channel(ChzzkModel):
     name: str = Field(alias="channelName")
     image: Optional[str] = Field(alias="channelImageUrl")
 
-    follower_count: int
+    follower_count: Optional[int] = 0
