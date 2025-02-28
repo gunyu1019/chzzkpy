@@ -1,8 +1,8 @@
-aiohttp==3.11.2
+aiohttp>=3.11.2
 aiosignal==1.3.2
 annotated-types==0.7.0
 async-timeout==5.0.1
-ahttp_client==1.0.2
+ahttp_client==1.0.3
 attrs==25.1.0
 charset-normalizer==3.4.1
 frozenlist==1.5.0
@@ -11,4 +11,4 @@ multidict==6.1.0
 pydantic==2.10.6
 pydantic_core==2.27.2
 typing_extensions==4.12.2
-yarl==1.17.0
+yarl==1.18.3
