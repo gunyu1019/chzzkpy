@@ -31,6 +31,7 @@ from functools import wraps
 from typing import Any, Callable, Coroutine, Optional, TYPE_CHECKING
 from yarl import URL
 
+from .error import ForbiddenException
 from .gateway import ChzzkGateway
 from .http import ChzzkOpenAPISession
 from .state import ConnectionState
@@ -252,6 +253,10 @@ class Client(BaseEventManager):
     async def generate_user_client(self, code: str, state: str) -> UserClient:
         access_token = await self.generate_access_token(code, state)
         user_cls = UserClient(self, access_token)
+        try:
+            user_cls.fetch_self()
+        except ForbiddenException:
+            pass
         self.user_client.append(user_cls)
         return user_cls
     
@@ -270,20 +275,24 @@ class UserClient:
     def __init__(
         self,
         parent: Client,
-        access_token: AccessToken,
+        access_token: AccessToken
     ):
         self.parent_client = parent
+        self.dispatch = self.parent_client.dispatch
         self.loop = self.parent_client.loop
         self.http = self.parent_client.http
 
         self.access_token = access_token
         self._token_generated_at = datetime.datetime.now()
 
-        self.dispatch = parent.dispatch
-        
-        self._ready = asyncio.Event()
+        self._gateway: Optional[ChzzkGateway] = None
+        self._gateway_ready = asyncio.Event()
+
+        self.channel_id: Optional[str] = None
+        self.channel_name: Optional[str] = None
 
         handler = {"connect": self._ready.set}
+        self.state = None  # TODO
     
     @property
     def is_expired(self) -> bool:
@@ -308,10 +317,32 @@ class UserClient:
         )
         return
     
+    async def fetch_self(self) -> Channel:
+        user_self = await self.http.get_user_self(token=self.access_token)
+        self.channel_id = user_self.id
+        self.channel_name = user_self.name
+        return user_self
+    
+    async def send_message(self, content: str) -> str:
+        message_id = await self.http.create_message(content)
+        return message_id
+    
     @property
     def is_connected(self) -> bool:
-        return self._session.connected
+        if self._gateway is None:
+            return False
+        return self._gateway.is_connected
         
     async def connect(self, addition_connect: bool = False):
         session_key = await self.http.generate_user_session()
-        await self._session.connect(url=session_key.content.url)
+        self._gateway = await ChzzkGateway.connect(
+            url=session_key.content.url,
+            state=self.state,
+            loop=self.loop,
+            session=self.http.session
+        )
+
+    async def disconnect(self):
+        if self._gateway is None:
+            return
+        await self._gateway.disconnect()
