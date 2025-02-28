@@ -279,7 +279,7 @@ class ChzzkGateway:
             session_id = session_id,
             event_hook=event_hook
         )
-        new_cls.received_message(
+        await new_cls.received_message(
             Packet(engine_packet_type=EnginePacketType.OPEN, data=open_packet.model_dump())
         )
         new_cls.websocket = websocket
