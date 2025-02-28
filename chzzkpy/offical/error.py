@@ -25,7 +25,11 @@ from typing import Any, Literal
 
 from ..error import ChzzkpyException
 from ..error import LoginRequired
-from ..error import NotFound
+from ..error import BadRequestException
+from ..error import UnauthorizedException
+from ..error import ForbiddenException
+from ..error import NotFoundException
+from ..error import TooManyRequestsException
 from ..error import HTTPException
 
 
