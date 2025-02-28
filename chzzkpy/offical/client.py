@@ -24,6 +24,7 @@ SOFTWARE.
 from __future__ import annotations
 
 import asyncio
+import aiohttp
 import datetime
 import logging
 
@@ -352,7 +353,7 @@ class UserClient:
             url=session_key.content.url,
             state=self.state,
             loop=self.loop,
-            session=self.http.session
+            session=aiohttp.ClientSession(loop=self.loop)
         )
         task = self._gateway.read_in_background()
         await self._gateway_ready.wait()
