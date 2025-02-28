@@ -63,7 +63,8 @@ class ChzzkGateway:
             session: aiohttp.ClientSession,
             current_transport: Literal['polling', 'websocket'],
             open_packet_info: OpenPacketInfo,
-            session_id: Optional[str] = None
+            session_id: Optional[str] = None,
+            event_hook = None
     ):
         self.current_transport = current_transport
         self.upgrades = open_packet_info.upgrades
@@ -93,7 +94,7 @@ class ChzzkGateway:
         
         _log.debug(f"Success connected to {self.base_url.host} with socket.io gateway")
 
-        self._event_hook: dict[SocketPacketType | EnginePacketType, Optional[Callable[..., Any]]] = {
+        self._event_hook: dict[SocketPacketType | EnginePacketType, Optional[Callable[..., Any]]] = event_hook or {
             key: None for key in list(SocketPacketType) + list(EnginePacketType)
         }
 
@@ -167,7 +168,8 @@ class ChzzkGateway:
         url: str | URL, 
         engine_path: str,
         loop: asyncio.AbstractEventLoop,
-        session: aiohttp.ClientSession
+        session: aiohttp.ClientSession,
+        event_hook: Optional[dict[EnginePacketType | SocketPacketType, Callable[..., Any]]] = None
     ):
         base_url = cls._get_engineio_url(url=url, engine_path=engine_path, transport="polling")
         base_url = cls._get_timestamp_url(base_url)
@@ -189,7 +191,8 @@ class ChzzkGateway:
                     engine_path=engine_path,
                     loop=loop,
                     session=session,
-                    open_packet=open_packet
+                    open_packet=open_packet,
+                    event_hook=event_hook
                 )
             except (
                 aiohttp.client_exceptions.WSServerHandshakeError,
@@ -215,8 +218,9 @@ class ChzzkGateway:
             current_transport = "polling",
             open_packet_info=open_packet,
             session_id = open_packet.sid,
+            event_hook=event_hook
         )
-        for packet in payload.packets[1:]:
+        for packet in payload.packets:
             new_cls.received_message(packet)
         return new_cls
     
@@ -227,7 +231,8 @@ class ChzzkGateway:
         engine_path: str,
         loop: asyncio.AbstractEventLoop,
         session: aiohttp.ClientSession,
-        open_packet: Optional[OpenPacketInfo] = None  # For update
+        open_packet: Optional[OpenPacketInfo] = None,  # For update,
+        event_hook: Optional[dict[EnginePacketType | SocketPacketType, Callable[..., Any]]] = None
     ):
         base_url = cls._get_engineio_url(url=url, engine_path=engine_path, transport="websocket")
         base_url = cls._get_timestamp_url(base_url)
@@ -272,6 +277,10 @@ class ChzzkGateway:
             current_transport = "websocket",
             open_packet_info=open_packet,
             session_id = session_id,
+            event_hook=event_hook
+        )
+        new_cls.received_message(
+            Packet(engine_packet_type=EnginePacketType.OPEN, data=open_packet.model_dump())
         )
         new_cls.websocket = websocket
         return new_cls
