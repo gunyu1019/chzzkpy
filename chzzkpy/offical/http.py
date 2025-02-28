@@ -34,7 +34,15 @@ from .authorization import AccessToken
 from .base_model import Content, SearchResult
 from .category import Category
 from .channel import Channel
-from .error import LoginRequired, NotFoundException, HTTPException
+from .error import (
+    LoginRequired, 
+    BadRequestException, 
+    UnauthorizedException, 
+    ForbiddenException, 
+    NotFoundException, 
+    TooManyRequestsException, 
+    HTTPException
+)
 from .gateway import SessionKey
 
 _log = logging.getLogger(__name__)
@@ -78,9 +86,19 @@ class ChzzkOpenAPISession(Session):
         return request, path
 
     async def after_request(self, response: aiohttp.ClientResponse):
-        if response.status == 404:
+        if response.status == 400:
+            raise BadRequestException(response.reason)
+        elif response.status == 401:
+            data = await response.json()
+            raise UnauthorizedException(data.get("message"))
+        elif response.status == 403:
             data = await response.json()
             raise NotFoundException(data.get("message"))
+        elif response.status == 404:
+            data = await response.json()
+            raise NotFoundException(data.get("message"))
+        elif response.status == 429:
+            raise TooManyRequestsException(response.reason)
         elif response.status >= 400:
             data = await response.json()
             raise HTTPException(code=data["code"], message=data["message"])
