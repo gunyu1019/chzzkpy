@@ -30,6 +30,6 @@ from .base_model import ChzzkModel
 class Channel(ChzzkModel):
     id: str = Field(alias="channelId")
     name: str = Field(alias="channelName")
-    image: Optional[str] = Field(alias="channelImageUrl")
+    image: Optional[str] = Field(alias="channelImageUrl", default=None)
 
     follower_count: Optional[int] = 0
