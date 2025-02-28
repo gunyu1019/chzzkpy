@@ -30,7 +30,7 @@ from typing import Callable, Any, TYPE_CHECKING, Optional
 from .enums import EnginePacketType, SocketPacketType
 
 if TYPE_CHECKING:
-    from .client import Client
+    from .http import ChzzkOpenAPISession
 
 
 class ConnectionState:
@@ -38,10 +38,13 @@ class ConnectionState:
         self,
         dispatch: Callable[..., Any],
         handler: dict[str, Callable[..., Any]],
+        http: ChzzkOpenAPISession,
         debug_mode: bool = False
     ):
         self.dispatch = dispatch
         self.handler = handler
+        self.http = http
+
         self.gateway_parsers: dict[SocketPacketType | EnginePacketType, Callable[..., Any]] = dict()
         self.event_parsers: dict[str, Callable[..., Any]] = dict()
 
