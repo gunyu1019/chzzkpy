@@ -188,3 +188,13 @@ class ChzzkOpenAPISession(Session):
     @authorization_configuration(is_client=True, is_user=True)
     async def unsubcribe_event(self, event: Annotated[str, Path], session_key: Annotated[str, Query.to_camel()]) -> Content[None]:
         pass
+
+    @post("/open/v1/chats/send", directly_response=True)
+    @authorization_configuration(is_client=False, is_user=True)
+    async def create_message(self, message: Annotated[str, BodyJson]) -> Content[str]:
+        pass
+
+    @post("/open/v1/chats/notice", directly_response=True)
+    @authorization_configuration(is_client=False, is_user=True)
+    async def create_notice(self, message: Annotated[Optional[str], BodyJson] = None, message_id: Annotated[Optional[str], BodyJson.to_camel()] = None) -> Content[int]:
+        pass
