@@ -31,7 +31,7 @@ from ahttp_client.extension import get_pydantic_response_model
 from ahttp_client.request import RequestCore
 
 from .base_model import Content
-from .error import LoginRequired, HTTPException, NotFound
+from .error import LoginRequired, HTTPException, NotFoundException
 from .live import LiveStatus, LiveDetail
 from .search import TopSearchResult
 from .user import User
@@ -90,7 +90,7 @@ class ChzzkSession(Session):
     async def after_request(self, response: aiohttp.ClientResponse):
         if response.status == 404:
             data = await response.json()
-            raise NotFound(data.get("message"))
+            raise NotFoundException(data.get("message"))
         elif response.status >= 400:
             data = await response.json()
             raise HTTPException(code=data["code"], message=data["message"])
