@@ -68,11 +68,12 @@ class ChzzkOpenAPISession(Session):
             authorization_configuration = request.func.__authorization_configuration__
             
             if authorization_configuration["user"]:
-                for key, value in request.headers:
+                for key, value in request.headers.items():
                     if not isinstance(value, AccessToken):
                         continue
-
-                    request.headers["Authorization"] = request.headers.pop(key)
+                    
+                    access_token = request.headers.pop(key)
+                    request.headers["Authorization"] = f"{access_token.token_type} {access_token.access_token}"
                     break
                 else:
                     if not authorization_configuration["client"]:
@@ -170,6 +171,7 @@ class ChzzkOpenAPISession(Session):
     ) -> None:
         pass
     
+    @pydantic_response_model()
     @post("/open/v1/channels", directly_response=True)
     @authorization_configuration(is_client=True, is_user=False)
     async def get_channel(
@@ -178,6 +180,7 @@ class ChzzkOpenAPISession(Session):
     ) -> Content[SearchResult[Channel]]: 
         pass
     
+    @pydantic_response_model()
     @post("/open/v1/categories/search", directly_response=True)
     @authorization_configuration(is_client=True, is_user=False)
     async def get_category(
@@ -187,16 +190,19 @@ class ChzzkOpenAPISession(Session):
     ) -> Content[SearchResult[Category]]: 
         pass
 
+    @pydantic_response_model()
     @get("/open/v1/sessions/auth/client", directly_response=True)
     @authorization_configuration(is_client=True, is_user=False)
     async def generate_client_session(self) -> Content[SessionKey]:
         pass
 
+    @pydantic_response_model()
     @get("/open/v1/sessions/auth", directly_response=True)
-    @authorization_configuration(is_client=True, is_user=False)
-    async def generate_user_session(self) -> Content[SessionKey]:
+    @authorization_configuration(is_client=False, is_user=True)
+    async def generate_user_session(self, token: Annotated[Optional[AccessToken], Header] = None) -> Content[SessionKey]:
         pass
 
+    @pydantic_response_model()
     @get("/open/v1/sessions/events/subscribe/{event}", directly_response=True)
     @authorization_configuration(is_client=True, is_user=True)
     async def subcribe_event(
@@ -207,6 +213,7 @@ class ChzzkOpenAPISession(Session):
     ) -> Content[None]:
         pass
 
+    @pydantic_response_model()
     @get("/open/v1/sessions/events/unsubscribe/{event}", directly_response=True)
     @authorization_configuration(is_client=True, is_user=True)
     async def unsubcribe_event(
@@ -217,16 +224,19 @@ class ChzzkOpenAPISession(Session):
     ) -> Content[None]:
         pass
 
+    @pydantic_response_model()
     @get("/open/v1/users/me", directly_response=True)
     @authorization_configuration(is_client=False, is_user=True)
     async def get_user_self(self, token: Annotated[AccessToken, Header], ) -> Content[Channel]:
         pass
 
+    @pydantic_response_model()
     @post("/open/v1/chats/send", directly_response=True)
     @authorization_configuration(is_client=False, is_user=True)
     async def create_message(self, token: Annotated[AccessToken, Header], message: Annotated[str, BodyJson]) -> Content[str]:
         pass
 
+    @pydantic_response_model()
     @post("/open/v1/chats/notice", directly_response=True)
     @authorization_configuration(is_client=False, is_user=True)
     async def create_notice(self, token: Annotated[AccessToken, Header], message: Annotated[Optional[str], BodyJson] = None, message_id: Annotated[Optional[str], BodyJson.to_camel()] = None) -> Content[int]:
