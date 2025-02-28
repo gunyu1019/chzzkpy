@@ -26,7 +26,7 @@ import aiohttp
 import logging
 from typing import Annotated, Optional, Literal, overload
 
-from ahttp_client import Session, get, post, BodyJson, Query, Path
+from ahttp_client import Session, get, post, BodyJson, Query, Header, Path
 from ahttp_client.extension import pydantic_response_model
 from ahttp_client.request import RequestCore
 
@@ -34,7 +34,7 @@ from .authorization import AccessToken
 from .base_model import Content, SearchResult
 from .category import Category
 from .channel import Channel
-from .error import LoginRequired, NotFound, HTTPException
+from .error import LoginRequired, NotFoundException, HTTPException
 from .gateway import SessionKey
 
 _log = logging.getLogger(__name__)
@@ -80,7 +80,7 @@ class ChzzkOpenAPISession(Session):
     async def after_request(self, response: aiohttp.ClientResponse):
         if response.status == 404:
             data = await response.json()
-            raise NotFound(data.get("message"))
+            raise NotFoundException(data.get("message"))
         elif response.status >= 400:
             data = await response.json()
             raise HTTPException(code=data["code"], message=data["message"])
@@ -181,20 +181,35 @@ class ChzzkOpenAPISession(Session):
 
     @get("/open/v1/sessions/events/subscribe/{event}", directly_response=True)
     @authorization_configuration(is_client=True, is_user=True)
-    async def subcribe_event(self, event: Annotated[str, Path], session_key: Annotated[str, Query.to_camel()]) -> Content[None]:
+    async def subcribe_event(
+        self, 
+        event: Annotated[str, Path], 
+        session_key: Annotated[str, Query.to_camel()],
+        token: Annotated[Optional[AccessToken], Header] = None
+    ) -> Content[None]:
         pass
 
     @get("/open/v1/sessions/events/unsubscribe/{event}", directly_response=True)
     @authorization_configuration(is_client=True, is_user=True)
-    async def unsubcribe_event(self, event: Annotated[str, Path], session_key: Annotated[str, Query.to_camel()]) -> Content[None]:
+    async def unsubcribe_event(
+        self, 
+        event: Annotated[str, Path], 
+        session_key: Annotated[str, Query.to_camel()], 
+        token: Annotated[Optional[AccessToken], Header] = None
+    ) -> Content[None]:
+        pass
+
+    @get("/open/v1/users/me", directly_response=True)
+    @authorization_configuration(is_client=False, is_user=True)
+    async def get_user_self(self, token: Annotated[AccessToken, Header], ) -> Content[Channel]:
         pass
 
     @post("/open/v1/chats/send", directly_response=True)
     @authorization_configuration(is_client=False, is_user=True)
-    async def create_message(self, message: Annotated[str, BodyJson]) -> Content[str]:
+    async def create_message(self, token: Annotated[AccessToken, Header], message: Annotated[str, BodyJson]) -> Content[str]:
         pass
 
     @post("/open/v1/chats/notice", directly_response=True)
     @authorization_configuration(is_client=False, is_user=True)
-    async def create_notice(self, message: Annotated[Optional[str], BodyJson] = None, message_id: Annotated[Optional[str], BodyJson.to_camel()] = None) -> Content[int]:
+    async def create_notice(self, token: Annotated[AccessToken, Header], message: Annotated[Optional[str], BodyJson] = None, message_id: Annotated[Optional[str], BodyJson.to_camel()] = None) -> Content[int]:
         pass
