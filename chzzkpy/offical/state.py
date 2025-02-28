@@ -23,11 +23,12 @@ SOFTWARE.
 
 from __future__ import annotations
 
-import logging
+import asyncio
 import inspect
 from typing import Callable, Any, TYPE_CHECKING, Optional
 
 from .enums import EnginePacketType, SocketPacketType
+from .message import Donation, Message
 
 if TYPE_CHECKING:
     from .http import ChzzkOpenAPISession
@@ -47,6 +48,8 @@ class ConnectionState:
 
         self.gateway_parsers: dict[SocketPacketType | EnginePacketType, Callable[..., Any]] = dict()
         self.event_parsers: dict[str, Callable[..., Any]] = dict()
+
+        self.gateway_id: Optional[str] = None
 
         self.debug_mode = debug_mode
 
@@ -86,9 +89,14 @@ class ConnectionState:
 
         return decorator
 
-    def call_handler(self, key: str, *args: Any, **kwargs: Any):
-        if key in self.handler:
-            func = self.handler[key]
+    async def call_handler(self, key: str, *args: Any, **kwargs: Any):
+        if key not in self.handler:
+            return 
+        func = self.handler[key]
+
+        if asyncio.iscoroutinefunction(func):
+            await func(*args, **kwargs)
+        else:
             func(*args, **kwargs)
 
     @gateway_parsable(EnginePacketType.MESSAGE, SocketPacketType.EVENT)
@@ -105,6 +113,15 @@ class ConnectionState:
         if not self.debug_mode:
             return
         self.dispatch("socket_event", event,*data)
+        return
+    
+    @gateway_parsable(EnginePacketType.OPEN)
+    async def _handle_eio_connect(self, open_packet: dict[str, Any]):
+        sid = open_packet["sid"]
+        self.gateway_id = sid
+        if not self.debug_mode:
+            return
+        self.dispatch("engine_connect", sid)
         return
     
     @gateway_parsable(EnginePacketType.MESSAGE, SocketPacketType.CONNECT)
@@ -129,7 +146,7 @@ class ConnectionState:
         if event_type == "connected":
             session_id = event_data["sessionKey"]
             self.dispatch("connect", session_id)
-            self.call_handler("connect", session_id)
+            await self.call_handler("connect", session_id)
         elif event_type == "subscribed":
             self.dispatch("permission_invoked")
         elif event_type == "unsubscribed":
