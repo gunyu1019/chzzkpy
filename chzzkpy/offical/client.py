@@ -42,6 +42,7 @@ if TYPE_CHECKING:
 
     from .authorization import AccessToken
     from .channel import Channel
+    from .flags import UserPermission
 
 
 class _LoopSentinel:
@@ -208,7 +209,7 @@ class Client(BaseEventManager):
 
         handler = {"connect": self._ready.set}
         self._connection = ConnectionState(
-            dispatch=self.dispatch, handler=handler, client=self
+            dispatch=self.dispatch, handler=handler, http=self.http
         )
         self._gateway: Optional[ChzzkGateway] = None
     
@@ -227,7 +228,7 @@ class Client(BaseEventManager):
         async def wrppaer(self: Self, *args, **kwargs):
             if self.loop is _LoopSentinel:
                 await self._async_setup_hook()
-            return await func(*args, **kwargs)
+            return await func(self, *args, **kwargs)
         return wrppaer
 
     def generate_authorization_token_url(self, redirect_url: str, state: str) -> str:
@@ -254,7 +255,7 @@ class Client(BaseEventManager):
         access_token = await self.generate_access_token(code, state)
         user_cls = UserClient(self, access_token)
         try:
-            user_cls.fetch_self()
+            await user_cls.fetch_self()
         except ForbiddenException:
             pass
         self.user_client.append(user_cls)
@@ -287,12 +288,14 @@ class UserClient:
 
         self._gateway: Optional[ChzzkGateway] = None
         self._gateway_ready = asyncio.Event()
+        self._gateway_id: Optional[str] = None
+        self._session_id: Optional[str] = None
 
         self.channel_id: Optional[str] = None
         self.channel_name: Optional[str] = None
 
-        handler = {"connect": self._ready.set}
-        self.state = None  # TODO
+        handler = {"connect": self.__on_connected}
+        self.state = ConnectionState(dispatch=self.dispatch, handler=handler, http=self.http)
     
     @property
     def is_expired(self) -> bool:
@@ -318,31 +321,58 @@ class UserClient:
         return
     
     async def fetch_self(self) -> Channel:
-        user_self = await self.http.get_user_self(token=self.access_token)
+        raw_user_self = await self.http.get_user_self(token=self.access_token)
+        user_self = raw_user_self.content
         self.channel_id = user_self.id
         self.channel_name = user_self.name
         return user_self
     
     async def send_message(self, content: str) -> str:
         message_id = await self.http.create_message(content)
-        return message_id
+        return message_id.content
     
     @property
     def is_connected(self) -> bool:
         if self._gateway is None:
             return False
         return self._gateway.is_connected
+    
+    def __on_connected(self, session_id: str):
+        self._session_id = session_id
+        self._gateway_ready.set()
+        return
+    
+    async def wait_until_connect(self):
+        await self._gateway_ready.wait()
+        return
         
-    async def connect(self, addition_connect: bool = False):
-        session_key = await self.http.generate_user_session()
+    async def connect(self, permission: UserPermission, addition_connect: bool = False):
+        session_key = await self.http.generate_user_session(token=self.access_token)
         self._gateway = await ChzzkGateway.connect(
             url=session_key.content.url,
             state=self.state,
             loop=self.loop,
             session=self.http.session
         )
+        task = self._gateway.read_in_background()
+        await self._gateway_ready.wait()
+        self._gateway_id = self._gateway.session_id
+        for (permission_name, condition) in permission:
+            if not condition:
+                continue
+
+            await self.http.subcribe_event(event=permission_name, session_key=self._session_id, token=self.access_token)
+            _log.debug(f"Subscribe {permission_name.upper()} Event")
+        if not addition_connect:
+            await task
+        return 
 
     async def disconnect(self):
         if self._gateway is None:
             return
         await self._gateway.disconnect()
+
+        self._gateway = None
+        self._gateway_id = None
+        self._session_id = None
+        self._gateway_ready.clear()
