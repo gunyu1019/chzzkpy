@@ -328,7 +328,7 @@ class UserClient:
         return user_self
     
     async def send_message(self, content: str) -> str:
-        message_id = await self.http.create_message(content)
+        message_id = await self.http.create_message(token=self.access_token, message=content)
         return message_id.content
     
     @property
