@@ -235,9 +235,8 @@ class ChzzkOpenAPISession(Session):
     @authorization_configuration(is_client=False, is_user=True)
     async def create_message(self, token: Annotated[AccessToken, Header], message: Annotated[str, BodyJson]) -> Content[str]:
         pass
-
-    @pydantic_response_model()
+    
     @post("/open/v1/chats/notice", directly_response=True)
     @authorization_configuration(is_client=False, is_user=True)
-    async def create_notice(self, token: Annotated[AccessToken, Header], message: Annotated[Optional[str], BodyJson] = None, message_id: Annotated[Optional[str], BodyJson.to_camel()] = None) -> Content[int]:
+    async def create_notice(self, token: Annotated[AccessToken, Header], message: Annotated[Optional[str], BodyJson] = None, message_id: Annotated[Optional[str], BodyJson.to_camel()] = None) -> None:
         pass
