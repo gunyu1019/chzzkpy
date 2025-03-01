@@ -196,11 +196,7 @@ class Client(BaseEventManager):
         self.client_id = client_id
         self.client_secret = client_secret
 
-        self.http = ChzzkOpenAPISession(
-            loop=self.loop,
-            client_id=client_id,
-            client_secret=client_secret
-        )
+        self.http: Optional[ChzzkOpenAPISession] = None
         self.user_client = []
 
         self._listeners: dict[str, list[tuple[asyncio.Future, Callable[..., bool]]]] = dict()
@@ -219,18 +215,21 @@ class Client(BaseEventManager):
         return self
     
     async def _async_setup_hook(self) -> None:
-        loop = asyncio.get_running_loop()
-        self.loop = loop
-        self.http.loop = loop
+        self.loop = loop = asyncio.get_running_loop()
+        self.http = ChzzkOpenAPISession(
+            loop=loop,
+            client_id=self.client_id,
+            client_secret=self.client_secret
+        )
 
     @staticmethod
     def initial_async_setup(func):
         @wraps(func)
-        async def wrppaer(self: Self, *args, **kwargs):
-            if self.loop is _LoopSentinel:
+        async def wrapper(self: Self, *args, **kwargs):
+            if isinstance(self.loop, _LoopSentinel):
                 await self._async_setup_hook()
             return await func(self, *args, **kwargs)
-        return wrppaer
+        return wrapper
 
     def generate_authorization_token_url(self, redirect_url: str, state: str) -> str:
         default_url = URL.build(scheme="https", authority="chzzk.naver.com", path="/account-interlock")
