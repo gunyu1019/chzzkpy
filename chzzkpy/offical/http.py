@@ -203,7 +203,7 @@ class ChzzkOpenAPISession(Session):
         pass
 
     @pydantic_response_model()
-    @get("/open/v1/sessions/events/subscribe/{event}", directly_response=True)
+    @post("/open/v1/sessions/events/subscribe/{event}", directly_response=True)
     @authorization_configuration(is_client=True, is_user=True)
     async def subcribe_event(
         self, 
@@ -214,7 +214,7 @@ class ChzzkOpenAPISession(Session):
         pass
 
     @pydantic_response_model()
-    @get("/open/v1/sessions/events/unsubscribe/{event}", directly_response=True)
+    @post("/open/v1/sessions/events/unsubscribe/{event}", directly_response=True)
     @authorization_configuration(is_client=True, is_user=True)
     async def unsubcribe_event(
         self, 
