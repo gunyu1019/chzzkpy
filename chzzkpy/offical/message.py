@@ -22,10 +22,13 @@ SOFTWARE.
 """
 import datetime
 
-from pydantic import Field
-from typing import Any, Literal
+from pydantic import Field, PrivateAttr
+from typing import Any, Literal, TYPE_CHECKING
 
 from .base_model import ChzzkModel
+
+if TYPE_CHECKING:
+    from .state import ConnectionState
 
 
 class Profile(ChzzkModel):
@@ -52,3 +55,10 @@ class Message(ChzzkModel):
     channel: str = Field(alias="channelId")
     created_time: datetime.datetime = Field(alias="messageTime")
     
+
+class SentMessage(ChzzkModel):
+    id: str
+    content: str
+    created_time: datetime.datetime = Field(default_factory=datetime.datetime.now)
+
+    _state: ConnectionState = PrivateAttr(default=None)
