@@ -344,6 +344,7 @@ class ChzzkGateway:
         return task
     
     async def received_message(self, data: Packet):
+        _log.debug(f"Received Packet (Engine Packet Type: {data.engine_packet_type}, Socket Packet Type: {data.socket_packet_type}, Data: {data.data})")
         if data.is_socket_packet:
             if data.socket_packet_type == SocketPacketType.EVENT and data.id is not None:
                 await self.send_ack(data.id)
