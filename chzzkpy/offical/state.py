@@ -32,6 +32,7 @@ from .enums import EnginePacketType, SocketPacketType
 from .message import Donation, Message
 
 if TYPE_CHECKING:
+    from .authorization import AccessToken
     from .http import ChzzkOpenAPISession
 
 
@@ -41,6 +42,7 @@ class ConnectionState:
         dispatch: Callable[..., Any],
         handler: dict[str, Callable[..., Any]],
         http: ChzzkOpenAPISession,
+        access_token: Optional[AccessToken] = None,
         debug_mode: bool = False
     ):
         self.dispatch = dispatch
@@ -53,6 +55,7 @@ class ConnectionState:
         self.gateway_id: Optional[str] = None
 
         self.debug_mode = debug_mode
+        self.access_token = access_token
 
         for _, func in inspect.getmembers(self):
             if hasattr(func, "__gateway_parsing__") and func.__gateway_parsing__:

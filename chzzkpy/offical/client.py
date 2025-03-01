@@ -295,7 +295,7 @@ class UserClient:
         self.channel_name: Optional[str] = None
 
         handler = {"connect": self.__on_connected}
-        self.state = ConnectionState(dispatch=self.dispatch, handler=handler, http=self.http)
+        self._connection = ConnectionState(dispatch=self.dispatch, handler=handler, http=self.http, access_token=self.access_token)
     
     @property
     def is_expired(self) -> bool:
@@ -318,7 +318,7 @@ class UserClient:
             client_secret=self.client_secret,
             refresh_token=self.access_token.refresh_token,
         )
-        self.access_token = refresh_token.data
+        self._connection.access_token = self.access_token = refresh_token.data
         self._token_generated_at = datetime.datetime.now()
         return
     
@@ -363,7 +363,7 @@ class UserClient:
         session_key = await self.http.generate_user_session(token=self.access_token)
         self._gateway = await ChzzkGateway.connect(
             url=session_key.content.url,
-            state=self.state,
+            state=self._connection,
             loop=self.loop,
             session=aiohttp.ClientSession(loop=self.loop)
         )
