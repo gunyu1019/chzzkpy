@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import asyncio
 import inspect
+import json
 from typing import Callable, Any, TYPE_CHECKING, Optional
 
 from .enums import EnginePacketType, SocketPacketType
@@ -104,15 +105,13 @@ class ConnectionState:
         event = str(data[0]).lower()
         arguments = data[1:]
 
-        print(event, arguments)
-
         event_func = self.event_parsers.get(event)
         if event_func is not None:
             await event_func(*arguments)
 
         if not self.debug_mode:
             return
-        self.dispatch("socket_event", event,*data)
+        self.dispatch("socket_event", event, *data)
         return
     
     @gateway_parsable(EnginePacketType.OPEN)
@@ -139,7 +138,8 @@ class ConnectionState:
         return
     
     @event_parsable("system")
-    async def _handle_system(self, data):
+    async def _handle_system(self, raw_data):
+        data = json.loads(raw_data)
         event_type = data["type"]
         event_data = data["data"]
 
@@ -156,11 +156,15 @@ class ConnectionState:
         return
     
     @event_parsable("chat")
-    async def _handle_chat(self, data):
-        print(data)
+    async def _handle_chat(self, raw_data):
+        data = json.loads(raw_data)
+        message = Message.model_validate(data)
+        self.dispatch("chat", message)
         return
     
     @event_parsable("donation")
-    async def _handle_chat(self, data):
-        print(data)
+    async def _handle_donation(self, raw_data):
+        data = json.loads(raw_data)
+        message = Donation.model_validate(data)
+        self.dispatch("donation", message)
         return
