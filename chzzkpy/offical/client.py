@@ -36,6 +36,7 @@ from .error import ForbiddenException
 from .gateway import ChzzkGateway
 from .http import ChzzkOpenAPISession
 from .state import ConnectionState
+from .message import SentMessage
 
 
 if TYPE_CHECKING:
@@ -339,9 +340,11 @@ class UserClient:
         return user_self
     
     @refreshable
-    async def send_message(self, content: str) -> str:
+    async def send_message(self, content: str) -> SentMessage:
         message_id = await self.http.create_message(token=self.access_token, message=content)
-        return message_id.content
+        message = SentMessage(id=message_id, content=content)
+        message._state = self._connection
+        return message
     
     @property
     def is_connected(self) -> bool:
