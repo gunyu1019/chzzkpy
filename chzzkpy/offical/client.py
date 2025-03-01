@@ -300,6 +300,16 @@ class UserClient:
     @property
     def is_expired(self) -> bool:
         return (datetime.datetime.now() - self._token_generated_at).hours > self.access_token.expires_in
+
+    @staticmethod
+    def refreshable(func):
+        @wraps(func)
+        async def wrapper(self: Self, *args, **kwargs):
+            remaining_expired_time = datetime.datetime.now() - self._token_generated_at
+            if remaining_expired_time.days > 0:
+                await self.refresh()
+            return await func(self, *args, **kwargs)
+        return wrapper
     
     async def refresh(self):
         refresh_token = await self.http.generate_access_token(
@@ -320,6 +330,7 @@ class UserClient:
         )
         return
     
+    @refreshable
     async def fetch_self(self) -> Channel:
         raw_user_self = await self.http.get_user_self(token=self.access_token)
         user_self = raw_user_self.content
@@ -327,6 +338,7 @@ class UserClient:
         self.channel_name = user_self.name
         return user_self
     
+    @refreshable
     async def send_message(self, content: str) -> str:
         message_id = await self.http.create_message(token=self.access_token, message=content)
         return message_id.content
@@ -346,6 +358,7 @@ class UserClient:
         await self._gateway_ready.wait()
         return
         
+    @refreshable
     async def connect(self, permission: UserPermission, addition_connect: bool = False):
         session_key = await self.http.generate_user_session(token=self.access_token)
         self._gateway = await ChzzkGateway.connect(
