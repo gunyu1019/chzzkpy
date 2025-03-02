@@ -26,7 +26,7 @@ import aiohttp
 import logging
 from typing import Annotated, Optional, Literal, overload
 
-from ahttp_client import Session, get, post, put, BodyJson, Query, Header, Path
+from ahttp_client import Session, request, get, post, put, BodyJson, Query, Header, Path
 from ahttp_client.extension import pydantic_response_model
 from ahttp_client.request import RequestCore
 
@@ -44,6 +44,7 @@ from .error import (
     TooManyRequestsException,
     HTTPException,
 )
+from .live import BrodecastSetting
 from .session import SessionKey
 
 _log = logging.getLogger(__name__)
@@ -97,7 +98,7 @@ class ChzzkOpenAPISession(Session):
             raise UnauthorizedException(data.get("message"))
         elif response.status == 403:
             data = await response.json()
-            raise NotFoundException(data.get("message"))
+            raise ForbiddenException(data.get("message"))
         elif response.status == 404:
             data = await response.json()
             raise NotFoundException(data.get("message"))
@@ -257,7 +258,8 @@ class ChzzkOpenAPISession(Session):
         message_id: Annotated[Optional[str], BodyJson.to_camel()] = None,
     ) -> None:
         pass
-
+    
+    @pydantic_response_model()
     @get("/open/v1/chats/settings", directly_response=True)
     @authorization_configuration(is_client=False, is_user=True)
     async def get_chat_setting(
@@ -275,5 +277,26 @@ class ChzzkOpenAPISession(Session):
         chat_available_group: Annotated[Literal["ALL", "FOLLOWER", "MANAGER", "SUBSCRIBER"], BodyJson.to_camel()],
         min_follower_minute: Annotated[int, BodyJson.to_camel()],
         allow_subscriber_in_follower_mode: Annotated[bool, BodyJson.to_camel()]
+    ) -> None:
+        pass
+
+    @pydantic_response_model()
+    @get("/open/v1/lives/settings", directly_response=True)
+    @authorization_configuration(is_client=False, is_user=True)
+    async def get_live_setting(
+        self,
+        token: Annotated[AccessToken, Header]
+    ) -> Content[BrodecastSetting]:
+        pass
+
+    @request("patch", "/open/v1/lives/settings", directly_response=True)
+    @authorization_configuration(is_client=False, is_user=True)
+    async def set_live_setting(
+        self,
+        token: Annotated[AccessToken, Header],
+        default_live_title: Annotated[Optional[str], BodyJson.to_camel()] = None,
+        category_type: Annotated[Optional[Literal['GAME', 'SPORT', 'ETC']], BodyJson.to_camel()] = None,
+        category_id: Annotated[Optional[str], BodyJson.to_camel()] = None,
+        tags : Annotated[Optional[list[str]], BodyJson.to_camel()] = None
     ) -> None:
         pass

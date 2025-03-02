@@ -36,8 +36,9 @@ from .chat import ChatSetting
 from .error import ForbiddenException
 from .gateway import ChzzkGateway
 from .http import ChzzkOpenAPISession
-from .state import ConnectionState
+from .live import BrodecastSetting
 from .message import SentMessage
+from .state import ConnectionState
 
 
 if TYPE_CHECKING:
@@ -45,6 +46,7 @@ if TYPE_CHECKING:
 
     from .authorization import AccessToken
     from .channel import Channel
+    from .category import Category
     from .enums import FollowingPeriod
     from .flags import UserPermission
 
@@ -279,7 +281,7 @@ class Client(BaseEventManager):
         return result.content.data
 
     @initial_async_setup
-    async def get_category(self, query: str, size: Optional[int] = 20) -> list[Channel]:
+    async def get_category(self, query: str, size: Optional[int] = 20) -> list[Category]:
         result = await self.http.get_category(query=query, size=size)
         return result.content.data
 
@@ -377,7 +379,7 @@ class UserClient:
         return message
 
     @refreshable
-    async def send_announcement(self, content: str) -> SentMessage:
+    async def send_announcement(self, content: str):
         await self.http.create_notice(token=self.access_token, message=content)
         return
 
@@ -491,5 +493,50 @@ class UserClient:
             chat_available_group=chat_available_group,
             min_follower_minute=min_follower_minute,
             allow_subscriber_in_follower_mode=allow_subscriber_in_follower_mode,
+        )  
+        return 
+
+    async def get_live_setting(self) -> BrodecastSetting:
+        raw_live_setting = await self.http.get_live_setting(token=self.access_token)
+        return raw_live_setting.content
+
+    @overload
+    async def set_live_setting(
+            self,
+            instance: BrodecastSetting
+    ) -> None:
+        ...
+
+    @overload
+    async def set_live_setting(
+            self,
+            title: Optional[str] = None,
+            category: Optional[Category] = None,
+            tags: Optional[list[str]] = None
+    ) -> None:
+        ...
+
+    async def set_live_setting(
+            self,
+            instance: BrodecastSetting = None,
+            title: Optional[str] = None,
+            category: Optional[Category] = None,
+            tags: Optional[list[str]] = None
+    ) -> None:
+        if instance is not None:
+            await self.http.set_live_setting(
+                token=self.access_token,
+                default_live_title=instance.title,
+                category_id=instance.category.id,
+                category_type=instance.category.type,
+                tags=instance.tags
+            )  
+            return  
+        await self.http.set_live_setting(
+            token=self.access_token,
+            default_live_title=title,
+            category_id=category.id,
+            category_type=category.type,
+            tags=tags
         )  
         return 
