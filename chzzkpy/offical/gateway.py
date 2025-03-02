@@ -44,10 +44,6 @@ if TYPE_CHECKING:
 _log = logging.getLogger(__name__)
 
 
-class SessionKey(ChzzkModel):
-    url: str
-
-
 class OpenPacketInfo(ChzzkModel):
     sid: str
     upgrades: list[str]
