@@ -46,12 +46,26 @@ class Messageable(ChzzkModel):
     _state: Optional[ConnectionState] = PrivateAttr(default=None)
 
     def __init__(self, *args, **kwargs):
-        self._access_token = kwargs.pop("access_token")
-        self._state = kwargs.pop("state")
         super().__init__(*args, **kwargs)
 
+        if "state" in kwargs.keys() and "access_token" in kwargs.keys():
+            self._access_token = kwargs.pop("access_token")
+            self._state = kwargs.pop("state")
+    
+    async def send(self, content: str) -> SentMessage:
+        if self._state is None or self._access_token is None:
+            raise RuntimeError(
+                f"This {self.__class__.__name__} is intended to store data only."
+            )
+        message = await self._state.http.create_message(
+            message=content, token=self._access_token
+        )
+        message._state = self._state
+        message._access_token = self._access_token
+        return message
 
-class Donation(ChzzkModel):
+
+class Donation(Messageable):
     type: Literal["CHAT", "VIDEO"] = Field(alias="donationType")
     channel: str = Field(alias="channelId")
     donator_id: str = Field(alias="donatorChannelId")
@@ -61,7 +75,7 @@ class Donation(ChzzkModel):
     donation_text: str
 
 
-class Message(ChzzkModel):
+class Message(Messageable):
     user_id: str = Field(alias="senderChannelId")
 
     profile: Profile
@@ -70,13 +84,10 @@ class Message(ChzzkModel):
     created_time: datetime.datetime = Field(alias="messageTime")
 
 
-class SentMessage(ChzzkModel):
+class SentMessage(Messageable):
     id: str
     content: str
     created_time: datetime.datetime = Field(default_factory=datetime.datetime.now)
-
-    _access_token: Optional[AccessToken] = PrivateAttr(default=None)
-    _state: Optional[ConnectionState] = PrivateAttr(default=None)
 
     async def pin(self) -> None:
         if self._state is None or self._access_token is None:
