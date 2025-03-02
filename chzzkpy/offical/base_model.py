@@ -23,13 +23,39 @@ SOFTWARE.
 
 from __future__ import annotations
 
-from typing import Generic, TypeVar
+from pydantic import PrivateAttr
+from typing import Generic, TypeVar, TYPE_CHECKING
 
 from ..base_model import ChzzkModel
-from ..base_model import Content
+
+if TYPE_CHECKING:
+    from typing import Any, Callable, Coroutine, Optional
 
 T = TypeVar("T")
 
 
 class SearchResult(ChzzkModel, Generic[T]):
     data: list[T]
+    
+    def __init__(self, *args, **kwargs):
+        if "page" in kwargs.keys():
+            self._page = kwargs.pop("page")
+        
+        super().__init__(*args, **kwargs)
+    
+    _page: Optional[dict[str]] = PrivateAttr(default=None)
+    _next_method: Optional[Callable[..., Coroutine[Any, Any, T]]] = PrivateAttr(default=None)
+    _next_method_arguments: Optional[tuple[Any]] = PrivateAttr(default=None)
+    _next_method_key_argument: Optional[dict[str, Any]] = PrivateAttr(default=None)
+
+    async def next(self) -> None:
+        if self._page is None or self._next_method:
+            raise RuntimeError(
+                f"This search result has only one result."
+            )
+        next_id = self._page["next"]
+        next_method_arguments = self._next_method_arguments or tuple()
+        next_method_key_argument = self._next_method_key_argument or dict()
+        await self._next_method(
+            *next_method_arguments, next=next_id, **next_method_key_argument
+        )
