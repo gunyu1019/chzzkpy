@@ -205,7 +205,9 @@ class Client(BaseEventManager):
 
         self._ready = asyncio.Event()
 
-        handler = {"connect": self._ready.set}
+        handler = {
+            "connect": self._ready.set
+        }
         self._connection = ConnectionState(
             dispatch=self.dispatch, handler=handler, http=self.http
         )
@@ -295,8 +297,19 @@ class UserClient:
         self.channel_id: Optional[str] = None
         self.channel_name: Optional[str] = None
 
-        handler = {"connect": self.__on_connected}
+        handler = {
+            "connect": self.__on_connected,
+            "channel_id_invoked": self.__on_channel_id_invoked
+        }
         self._connection = ConnectionState(dispatch=self.dispatch, handler=handler, http=self.http, access_token=self.access_token)
+    
+    def __on_connected(self, session_id: str):
+        self._session_id = session_id
+        self._gateway_ready.set()
+        return
+
+    def __on_channel_id_invoked(self, channel_id: str):
+        self.channel_id = channel_id
     
     @property
     def is_expired(self) -> bool:
@@ -342,8 +355,9 @@ class UserClient:
     @refreshable
     async def send_message(self, content: str) -> SentMessage:
         response = await self.http.create_message(token=self.access_token, message=content)
-        message_id = response.content["message_id"]
+        message_id = response.content["messageId"]
         message = SentMessage(id=message_id, content=content)
+        message._access_token = self.access_token
         message._state = self._connection
         return message
     
@@ -352,11 +366,6 @@ class UserClient:
         if self._gateway is None:
             return False
         return self._gateway.is_connected
-    
-    def __on_connected(self, session_id: str):
-        self._session_id = session_id
-        self._gateway_ready.set()
-        return
     
     async def wait_until_connect(self):
         await self._gateway_ready.wait()
@@ -374,21 +383,22 @@ class UserClient:
         task = self._gateway.read_in_background()
         await self._gateway_ready.wait()
         self._gateway_id = self._gateway.session_id
-        await self.subscribe(permission, self._gateway_id)
+        await self.subscribe(permission, self._session_id)
         if not addition_connect:
             await task
         return 
-    
+        
+    @refreshable
     async def subscribe(self, permission: UserPermission, session_id: Optional[str] = None):
-        session_id = session_id or self._gateway_id
+        session_id = session_id or self._session_id
         for (permission_name, condition) in permission:
             if not condition:
                 continue
-
             await self.http.subcribe_event(event=permission_name, session_key=session_id, token=self.access_token)
             _log.debug(f"Subscribe {permission_name.upper()} Event")
         return
     
+    @refreshable
     async def unsubscribe(self, permission: UserPermission, session_id: Optional[str] = None):
         session_id = session_id or self._gateway_id
         for (permission_name, condition) in permission:

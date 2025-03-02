@@ -154,12 +154,15 @@ class ConnectionState:
         elif event_type == "subscribed":
             event_message = EventSubscribeMessage.model_validate(event_data)
             self.dispatch("permission_invoked", event_message)
+            await self.call_handler("channel_id_invoked", event_message.channel_id)
         elif event_type == "unsubscribed":
             event_message = EventSubscribeMessage.model_validate(event_data)
             self.dispatch("permission_reinvoked", event_message)
+            await self.call_handler("channel_id_invoked", event_message.channel_id)
         elif event_type == "revoked":
             event_message = EventSubscribeMessage.model_validate(event_data)
             self.dispatch("permission_reinvoked_force", event_message)
+            await self.call_handler("channel_id_invoked", event_message.channel_id)
         return
     
     @event_parsable("chat")
