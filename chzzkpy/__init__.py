@@ -35,6 +35,11 @@ try:
 except ModuleNotFoundError:
     pass
 
+try:
+    from .offical import *
+except ModuleNotFoundError:
+    pass
+
 
 __title__ = "chzzkpy"
 __author__ = "gunyu1019"
