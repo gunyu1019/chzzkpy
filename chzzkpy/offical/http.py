@@ -281,7 +281,7 @@ class ChzzkOpenAPISession(Session):
         pass
 
     @pydantic_response_model()
-    @get("/open/v1/lives/settings", directly_response=True)
+    @get("/open/v1/lives/setting", directly_response=True)
     @authorization_configuration(is_client=False, is_user=True)
     async def get_live_setting(
         self,
@@ -289,7 +289,7 @@ class ChzzkOpenAPISession(Session):
     ) -> Content[BrodecastSetting]:
         pass
 
-    @request("patch", "/open/v1/lives/settings", directly_response=True)
+    @request("patch", "/open/v1/lives/setting", directly_response=True)
     @authorization_configuration(is_client=False, is_user=True)
     async def set_live_setting(
         self,
