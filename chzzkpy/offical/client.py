@@ -458,6 +458,7 @@ class UserClient:
         self._session_id = None
         self._gateway_ready.clear()
 
+    @refreshable
     async def get_chat_setting(self) -> ChatSetting:
         raw_chat_setting = await self.http.get_chat_setting(token=self.access_token)
         return raw_chat_setting.content
@@ -479,6 +480,7 @@ class UserClient:
     ) -> None:
         ...
 
+    @refreshable
     async def set_chat_setting(
             self,
             instance: ChatSetting = None,
@@ -505,6 +507,7 @@ class UserClient:
         )  
         return 
 
+    @refreshable
     async def get_live_setting(self) -> BrodecastSetting:
         raw_live_setting = await self.http.get_live_setting(token=self.access_token)
         return raw_live_setting.content
@@ -525,6 +528,7 @@ class UserClient:
     ) -> None:
         ...
 
+    @refreshable
     async def set_live_setting(
             self,
             instance: BrodecastSetting = None,
@@ -549,3 +553,8 @@ class UserClient:
             tags=tags
         )  
         return 
+
+    @refreshable
+    async def get_stream_key(self) -> str:
+        stream_key = await self.http.get_stream_key()
+        return stream_key.content["streamKey"]
