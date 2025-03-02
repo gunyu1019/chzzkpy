@@ -361,6 +361,11 @@ class UserClient:
         message._state = self._connection
         return message
     
+    @refreshable
+    async def send_announcement(self, content: str) -> SentMessage:
+        await self.http.create_notice(token=self.access_token, message=content)
+        return
+    
     @property
     def is_connected(self) -> bool:
         if self._gateway is None:
