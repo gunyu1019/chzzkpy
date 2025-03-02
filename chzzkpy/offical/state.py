@@ -30,6 +30,7 @@ from typing import Callable, Any, TYPE_CHECKING, Optional
 
 from .enums import EnginePacketType, SocketPacketType
 from .message import Donation, Message
+from .session import EventSubscribeMessage
 
 if TYPE_CHECKING:
     from .authorization import AccessToken
@@ -151,11 +152,14 @@ class ConnectionState:
             self.dispatch("connect", session_id)
             await self.call_handler("connect", session_id)
         elif event_type == "subscribed":
-            self.dispatch("permission_invoked")
+            event_message = EventSubscribeMessage.model_validate(event_data)
+            self.dispatch("permission_invoked", event_message)
         elif event_type == "unsubscribed":
-            self.dispatch("permission_reinvoked")
+            event_message = EventSubscribeMessage.model_validate(event_data)
+            self.dispatch("permission_reinvoked", event_message)
         elif event_type == "revoked":
-            self.dispatch("permission_reinvoked_force")
+            event_message = EventSubscribeMessage.model_validate(event_data)
+            self.dispatch("permission_reinvoked_force", event_message)
         return
     
     @event_parsable("chat")
