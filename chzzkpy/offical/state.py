@@ -44,6 +44,8 @@ class ConnectionState:
         handler: dict[str, Callable[..., Any]],
         http: ChzzkOpenAPISession,
         access_token: Optional[AccessToken] = None,
+        variable_access_token: Optional[Callable[..., AccessToken]] = None,
+        json_serializer: Optional[Callable[..., dict[str, Any]]] = None,
         debug_mode: bool = False,
     ):
         self.dispatch = dispatch
@@ -60,6 +62,9 @@ class ConnectionState:
         self.debug_mode = debug_mode
         self.access_token = access_token
 
+        self.variable_access_token = variable_access_token or self.__dummy_method
+        self.json_serializer = json_serializer or json.loads
+
         for _, func in inspect.getmembers(self):
             if hasattr(func, "__gateway_parsing__") and func.__gateway_parsing__:
                 self.gateway_parsers[
@@ -69,6 +74,10 @@ class ConnectionState:
         for _, func in inspect.getmembers(self):
             if hasattr(func, "__event_parsing__"):
                 self.event_parsers[func.__event_parsing__] = func
+    
+    @staticmethod
+    def __dummy_method(payload):
+        return payload
 
     @staticmethod
     def gateway_parsable(
@@ -140,7 +149,7 @@ class ConnectionState:
 
     @event_parsable("system")
     async def _handle_system(self, raw_data):
-        data = json.loads(raw_data)
+        data = self.json_serializer(raw_data)
         event_type = data["type"]
         event_data = data["data"]
 
@@ -164,14 +173,18 @@ class ConnectionState:
 
     @event_parsable("chat")
     async def _handle_chat(self, raw_data):
-        data = json.loads(raw_data)
+        data = self.json_serializer(raw_data)
         message = Message.model_validate(data)
+        message._state = self
+        message._access_token = self.access_token or self.variable_access_token(message.channel)
         self.dispatch("chat", message)
         return
 
     @event_parsable("donation")
     async def _handle_donation(self, raw_data):
-        data = json.loads(raw_data)
+        data = self.json_serializer(raw_data)
         message = Donation.model_validate(data)
+        message._state = self
+        message._access_token = self.access_token or self.variable_access_token(message.channel)
         self.dispatch("donation", message)
         return
