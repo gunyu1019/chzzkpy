@@ -20,13 +20,23 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+
 from __future__ import annotations
 
 from functools import reduce
-from typing import Any, Callable, ClassVar, Iterator, Type, TypeVar, Optional, overload, Self
+from typing import (
+    Any,
+    Callable,
+    ClassVar,
+    Iterator,
+    Type,
+    TypeVar,
+    Optional,
+    overload,
+    Self,
+)
 
-BF = TypeVar('BF', bound='BaseFlags')
-
+BF = TypeVar("BF", bound="BaseFlags")
 
 
 class flag_value:
@@ -35,12 +45,10 @@ class flag_value:
         self.__doc__: Optional[str] = func.__doc__
 
     @overload
-    def __get__(self, instance: None, owner: Type[BF]) -> Self:
-        ...
+    def __get__(self, instance: None, owner: Type[BF]) -> Self: ...
 
     @overload
-    def __get__(self, instance: BF, owner: Type[BF]) -> bool:
-        ...
+    def __get__(self, instance: BF, owner: Type[BF]) -> bool: ...
 
     def __get__(self, instance: Optional[BF], owner: Type[BF]) -> Any:
         if instance is None:
@@ -51,7 +59,7 @@ class flag_value:
         instance._set_flag(self.flag, value)
 
     def __repr__(self) -> str:
-        return f'<flag_value flag={self.flag!r}>'
+        return f"<flag_value flag={self.flag!r}>"
 
 
 def fill_with_flags(*, inverted: bool = False) -> Callable[[Type[BF]], Type[BF]]:
@@ -84,7 +92,7 @@ class BaseFlags:
         self.value = self.DEFAULT_VALUE
         for key, value in kwargs.items():
             if key not in self.VALID_FLAGS:
-                raise TypeError(f'{key!r} is not a valid flag name.')
+                raise TypeError(f"{key!r} is not a valid flag name.")
             setattr(self, key, value)
 
     @classmethod
@@ -132,7 +140,7 @@ class BaseFlags:
         return hash(self.value)
 
     def __repr__(self) -> str:
-        return f'<{self.__class__.__name__} value={self.value}>'
+        return f"<{self.__class__.__name__} value={self.value}>"
 
     def __iter__(self) -> Iterator[tuple[str, bool]]:
         for name, value in self.__class__.__dict__.items():
@@ -148,16 +156,18 @@ class BaseFlags:
         elif toggle is False:
             self.value &= ~o
         else:
-            raise TypeError(f'Value to set for {self.__class__.__name__} must be a bool.')
-        
-    
+            raise TypeError(
+                f"Value to set for {self.__class__.__name__} must be a bool."
+            )
+
+
 @fill_with_flags()
 class UserPermission(BaseFlags):
     def __init__(self, value: int = 0, **kwargs: bool) -> None:
         self.value: int = value
         for key, value in kwargs.items():
             if key not in self.VALID_FLAGS:
-                raise TypeError(f'{key!r} is not a valid flag name.')
+                raise TypeError(f"{key!r} is not a valid flag name.")
             setattr(self, key, value)
 
     @classmethod
@@ -167,11 +177,11 @@ class UserPermission(BaseFlags):
         self = cls.__new__(cls)
         self.value = value
         return self
-    
+
     @flag_value
     def chat(self):
         return 1 << 0
-    
+
     @flag_value
     def donation(self):
         return 1 << 1

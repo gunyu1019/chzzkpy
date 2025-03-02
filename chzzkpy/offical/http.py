@@ -35,13 +35,13 @@ from .base_model import Content, SearchResult
 from .category import Category
 from .channel import Channel
 from .error import (
-    LoginRequired, 
-    BadRequestException, 
-    UnauthorizedException, 
-    ForbiddenException, 
-    NotFoundException, 
-    TooManyRequestsException, 
-    HTTPException
+    LoginRequired,
+    BadRequestException,
+    UnauthorizedException,
+    ForbiddenException,
+    NotFoundException,
+    TooManyRequestsException,
+    HTTPException,
 )
 from .session import SessionKey
 
@@ -50,11 +50,11 @@ _log = logging.getLogger(__name__)
 
 class ChzzkOpenAPISession(Session):
     def __init__(
-            self,
-            client_id: str,
-            client_secret: str,
-            loop: Optional[asyncio.AbstractEventLoop] = None
-        ):
+        self,
+        client_id: str,
+        client_secret: str,
+        loop: Optional[asyncio.AbstractEventLoop] = None,
+    ):
         self.client_id = client_id
         self.client_secret = client_secret
         super().__init__(base_url="https://openapi.chzzk.naver.com", loop=loop)
@@ -66,23 +66,25 @@ class ChzzkOpenAPISession(Session):
 
         if hasattr(request.func, "__authorization_configuration__"):
             authorization_configuration = request.func.__authorization_configuration__
-            
+
             if authorization_configuration["user"]:
                 for key, value in request.headers.items():
                     if not isinstance(value, AccessToken):
                         continue
-                    
+
                     access_token = request.headers.pop(key)
-                    request.headers["Authorization"] = f"{access_token.token_type} {access_token.access_token}"
+                    request.headers["Authorization"] = (
+                        f"{access_token.token_type} {access_token.access_token}"
+                    )
                     break
                 else:
                     if not authorization_configuration["client"]:
                         raise LoginRequired()
-                
+
             if authorization_configuration["client"]:
                 request.headers["Client-Id"] = self.client_id
                 request.headers["Client-Secret"] = self.client_secret
-        
+
         request.headers["Content-Type"] = "application/json"
         return request, path
 
@@ -114,15 +116,16 @@ class ChzzkOpenAPISession(Session):
         copied_request_obj.params = dict()
         copied_request_obj.body = body
         return copied_request_obj, path
-    
+
     @staticmethod
     def authorization_configuration(is_client: bool = False, is_user: bool = False):
         def decorator(func):
             func.__authorization_configuration__ = {
                 "client": is_client,
-                "user": is_user
+                "user": is_user,
             }
             return func
+
         return decorator
 
     @overload
@@ -132,7 +135,7 @@ class ChzzkOpenAPISession(Session):
         client_id: Annotated[str, BodyJson.to_camel()],
         client_secret: Annotated[str, BodyJson.to_camel()],
         code: Annotated[Optional[str], BodyJson.to_camel()],
-        state: Annotated[Optional[str], BodyJson.to_camel()]
+        state: Annotated[Optional[str], BodyJson.to_camel()],
     ) -> Content[AccessToken]:
         pass
 
@@ -145,13 +148,15 @@ class ChzzkOpenAPISession(Session):
         refresh_token: Annotated[Optional[str], BodyJson.to_camel()],
     ) -> Content[AccessToken]:
         pass
-    
+
     @pydantic_response_model()
     @post("/auth/v1/token", directly_response=True)
     @authorization_configuration(is_client=True, is_user=False)
     async def generate_access_token(
         self,
-        grant_type: Annotated[Literal["authorization_code", "refresh_token"], BodyJson.to_camel()],
+        grant_type: Annotated[
+            Literal["authorization_code", "refresh_token"], BodyJson.to_camel()
+        ],
         client_id: Annotated[str, BodyJson.to_camel()],
         client_secret: Annotated[str, BodyJson.to_camel()],
         code: Annotated[Optional[str], BodyJson.to_camel()] = None,
@@ -159,7 +164,7 @@ class ChzzkOpenAPISession(Session):
         refresh_token: Annotated[Optional[str], BodyJson.to_camel()] = None,
     ) -> Content[AccessToken]:
         pass
-    
+
     @post("/auth/v1/token/revoke", directly_response=True)
     @authorization_configuration(is_client=True, is_user=False)
     async def revoke_access_token(
@@ -167,27 +172,26 @@ class ChzzkOpenAPISession(Session):
         client_id: Annotated[str, BodyJson.to_camel()],
         client_secret: Annotated[str, BodyJson.to_camel()],
         token: Annotated[Optional[str], BodyJson.to_camel()],
-        token_type_hint: Annotated[Literal["access_token", "refresh_token"], BodyJson.to_camel()] = "access_token",
+        token_type_hint: Annotated[
+            Literal["access_token", "refresh_token"], BodyJson.to_camel()
+        ] = "access_token",
     ) -> None:
         pass
-    
+
     @pydantic_response_model()
     @post("/open/v1/channels", directly_response=True)
     @authorization_configuration(is_client=True, is_user=False)
     async def get_channel(
-        self,
-        channel_ids: Annotated[str, Query.to_camel()]
-    ) -> Content[SearchResult[Channel]]: 
+        self, channel_ids: Annotated[str, Query.to_camel()]
+    ) -> Content[SearchResult[Channel]]:
         pass
-    
+
     @pydantic_response_model()
     @post("/open/v1/categories/search", directly_response=True)
     @authorization_configuration(is_client=True, is_user=False)
     async def get_category(
-        self,
-        query: Annotated[str, Query],
-        size: Annotated[Optional[int], Query] = 20
-    ) -> Content[SearchResult[Category]]: 
+        self, query: Annotated[str, Query], size: Annotated[Optional[int], Query] = 20
+    ) -> Content[SearchResult[Category]]:
         pass
 
     @pydantic_response_model()
@@ -199,17 +203,19 @@ class ChzzkOpenAPISession(Session):
     @pydantic_response_model()
     @get("/open/v1/sessions/auth", directly_response=True)
     @authorization_configuration(is_client=False, is_user=True)
-    async def generate_user_session(self, token: Annotated[Optional[AccessToken], Header] = None) -> Content[SessionKey]:
+    async def generate_user_session(
+        self, token: Annotated[Optional[AccessToken], Header] = None
+    ) -> Content[SessionKey]:
         pass
 
     @pydantic_response_model()
     @post("/open/v1/sessions/events/subscribe/{event}", directly_response=True)
     @authorization_configuration(is_client=True, is_user=True)
     async def subcribe_event(
-        self, 
-        event: Annotated[str, Path], 
+        self,
+        event: Annotated[str, Path],
         session_key: Annotated[str, Query.to_camel()],
-        token: Annotated[Optional[AccessToken], Header] = None
+        token: Annotated[Optional[AccessToken], Header] = None,
     ) -> Content[None]:
         pass
 
@@ -217,26 +223,36 @@ class ChzzkOpenAPISession(Session):
     @post("/open/v1/sessions/events/unsubscribe/{event}", directly_response=True)
     @authorization_configuration(is_client=True, is_user=True)
     async def unsubcribe_event(
-        self, 
-        event: Annotated[str, Path], 
-        session_key: Annotated[str, Query.to_camel()], 
-        token: Annotated[Optional[AccessToken], Header] = None
+        self,
+        event: Annotated[str, Path],
+        session_key: Annotated[str, Query.to_camel()],
+        token: Annotated[Optional[AccessToken], Header] = None,
     ) -> Content[None]:
         pass
 
     @pydantic_response_model()
     @get("/open/v1/users/me", directly_response=True)
     @authorization_configuration(is_client=False, is_user=True)
-    async def get_user_self(self, token: Annotated[AccessToken, Header], ) -> Content[Channel]:
+    async def get_user_self(
+        self,
+        token: Annotated[AccessToken, Header],
+    ) -> Content[Channel]:
         pass
 
     @pydantic_response_model()
     @post("/open/v1/chats/send", directly_response=True)
     @authorization_configuration(is_client=False, is_user=True)
-    async def create_message(self, token: Annotated[AccessToken, Header], message: Annotated[str, BodyJson]) -> Content[dict[str, str]]:
+    async def create_message(
+        self, token: Annotated[AccessToken, Header], message: Annotated[str, BodyJson]
+    ) -> Content[dict[str, str]]:
         pass
 
     @post("/open/v1/chats/notice", directly_response=True)
     @authorization_configuration(is_client=False, is_user=True)
-    async def create_notice(self, token: Annotated[AccessToken, Header], message: Annotated[Optional[str], BodyJson] = None, message_id: Annotated[Optional[str], BodyJson.to_camel()] = None) -> None:
+    async def create_notice(
+        self,
+        token: Annotated[AccessToken, Header],
+        message: Annotated[Optional[str], BodyJson] = None,
+        message_id: Annotated[Optional[str], BodyJson.to_camel()] = None,
+    ) -> None:
         pass

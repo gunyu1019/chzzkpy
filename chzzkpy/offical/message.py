@@ -42,23 +42,23 @@ class Profile(ChzzkModel):
 
 
 class Donation(ChzzkModel):
-    type: Literal['CHAT', 'VIDEO'] = Field(alias="donationType")
+    type: Literal["CHAT", "VIDEO"] = Field(alias="donationType")
     channel: str = Field(alias="channelId")
     donator_id: str = Field(alias="donatorChannelId")
     donator_name: str = Field(alias="donatorChannelId")
-    
+
     pay_amount: int
     donation_text: str
 
 
 class Message(ChzzkModel):
     user_id: str = Field(alias="senderChannelId")
-    
+
     profile: Profile
     content: str
     channel: str = Field(alias="channelId")
     created_time: datetime.datetime = Field(alias="messageTime")
-    
+
 
 class SentMessage(ChzzkModel):
     id: str
@@ -73,5 +73,6 @@ class SentMessage(ChzzkModel):
             raise RuntimeError(
                 f"This {self.__class__.__name__} is intended to store data only."
             )
-        await self._state.http.create_notice(message_id=self.id, token=self._access_token)
-        
+        await self._state.http.create_notice(
+            message_id=self.id, token=self._access_token
+        )

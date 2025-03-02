@@ -44,13 +44,15 @@ class ConnectionState:
         handler: dict[str, Callable[..., Any]],
         http: ChzzkOpenAPISession,
         access_token: Optional[AccessToken] = None,
-        debug_mode: bool = False
+        debug_mode: bool = False,
     ):
         self.dispatch = dispatch
         self.handler = handler
         self.http = http
 
-        self.gateway_parsers: dict[SocketPacketType | EnginePacketType, Callable[..., Any]] = dict()
+        self.gateway_parsers: dict[
+            SocketPacketType | EnginePacketType, Callable[..., Any]
+        ] = dict()
         self.event_parsers: dict[str, Callable[..., Any]] = dict()
 
         self.gateway_id: Optional[str] = None
@@ -61,20 +63,17 @@ class ConnectionState:
         for _, func in inspect.getmembers(self):
             if hasattr(func, "__gateway_parsing__") and func.__gateway_parsing__:
                 self.gateway_parsers[
-                    func.__parsing_socket_packet__ or 
-                    func.__parsing_engine_packet__
+                    func.__parsing_socket_packet__ or func.__parsing_engine_packet__
                 ] = func
 
         for _, func in inspect.getmembers(self):
             if hasattr(func, "__event_parsing__"):
-                self.event_parsers[
-                    func.__event_parsing__
-                ] = func
+                self.event_parsers[func.__event_parsing__] = func
 
     @staticmethod
     def gateway_parsable(
-        engine_packet_type: EnginePacketType, 
-        socket_packet_type: Optional[SocketPacketType] = None
+        engine_packet_type: EnginePacketType,
+        socket_packet_type: Optional[SocketPacketType] = None,
     ):
         def decorator(func: Callable[..., Any]):
             func.__gateway_parsing__ = True
@@ -85,9 +84,7 @@ class ConnectionState:
         return decorator
 
     @staticmethod
-    def event_parsable(
-        event_name: str
-    ):
+    def event_parsable(event_name: str):
         def decorator(func: Callable[..., Any]):
             func.__event_parsing__ = event_name
             return func
@@ -96,7 +93,7 @@ class ConnectionState:
 
     async def call_handler(self, key: str, *args: Any, **kwargs: Any):
         if key not in self.handler:
-            return 
+            return
         func = self.handler[key]
 
         if asyncio.iscoroutinefunction(func):
@@ -117,7 +114,7 @@ class ConnectionState:
             return
         self.dispatch("socket_event", event, *data)
         return
-    
+
     @gateway_parsable(EnginePacketType.OPEN)
     async def _handle_eio_connect(self, open_packet: dict[str, Any]):
         sid = open_packet["sid"]
@@ -126,21 +123,21 @@ class ConnectionState:
             return
         self.dispatch("engine_connect", sid)
         return
-    
+
     @gateway_parsable(EnginePacketType.MESSAGE, SocketPacketType.CONNECT)
     async def _handle_connect(self, _):
         if not self.debug_mode:
             return
         self.dispatch("socket_connect")
         return
-    
+
     @gateway_parsable(EnginePacketType.MESSAGE, SocketPacketType.DISCONNECT)
     async def _handle_disconnect(self, _):
         if not self.debug_mode:
             return
         self.dispatch("socket_disconnect")
         return
-    
+
     @event_parsable("system")
     async def _handle_system(self, raw_data):
         data = json.loads(raw_data)
@@ -164,14 +161,14 @@ class ConnectionState:
             self.dispatch("permission_reinvoked_force", event_message)
             await self.call_handler("channel_id_invoked", event_message.channel_id)
         return
-    
+
     @event_parsable("chat")
     async def _handle_chat(self, raw_data):
         data = json.loads(raw_data)
         message = Message.model_validate(data)
         self.dispatch("chat", message)
         return
-    
+
     @event_parsable("donation")
     async def _handle_donation(self, raw_data):
         data = json.loads(raw_data)

@@ -28,7 +28,7 @@ from typing import Generic, TypeVar
 from ..base_model import ChzzkModel
 from ..base_model import Content
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class SearchResult(ChzzkModel, Generic[T]):

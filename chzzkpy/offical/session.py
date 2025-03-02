@@ -27,8 +27,8 @@ from .base_model import ChzzkModel
 
 class SessionKey(ChzzkModel):
     url: str
-    
+
 
 class EventSubscribeMessage(ChzzkModel):
-    event_type: Literal['CHAT', 'DONATION']
+    event_type: Literal["CHAT", "DONATION"]
     channel_id: str

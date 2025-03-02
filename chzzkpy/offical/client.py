@@ -52,11 +52,11 @@ class _LoopSentinel:
 
     def __getattr__(self, attr: str) -> None:
         msg = (
-            'loop attribute cannot be accessed in non-async contexts. '
-            'Consider using either an asynchronous main function and passing it to asyncio.run'
+            "loop attribute cannot be accessed in non-async contexts. "
+            "Consider using either an asynchronous main function and passing it to asyncio.run"
         )
         raise AttributeError(msg)
-    
+
 
 _log = logging.getLogger(__name__)
 
@@ -64,9 +64,12 @@ _log = logging.getLogger(__name__)
 class BaseEventManager:
     def __init__(self, loop: asyncio.AbstractEventLoop):
         self.loop = loop
-        self._listeners: dict[str, list[tuple[asyncio.Future, Callable[..., bool]]]] = dict()
-        self._extra_event: dict[str, list[Callable[..., Coroutine[Any, Any, Any]]]] = dict()
-    
+        self._listeners: dict[str, list[tuple[asyncio.Future, Callable[..., bool]]]] = (
+            dict()
+        )
+        self._extra_event: dict[str, list[Callable[..., Coroutine[Any, Any, Any]]]] = (
+            dict()
+        )
 
     def wait_for(
         self,
@@ -200,29 +203,32 @@ class Client(BaseEventManager):
         self.http: Optional[ChzzkOpenAPISession] = None
         self.user_client = []
 
-        self._listeners: dict[str, list[tuple[asyncio.Future, Callable[..., bool]]]] = dict()
-        self._extra_event: dict[str, list[Callable[..., Coroutine[Any, Any, Any]]]] = dict()
+        self._listeners: dict[str, list[tuple[asyncio.Future, Callable[..., bool]]]] = (
+            dict()
+        )
+        self._extra_event: dict[str, list[Callable[..., Coroutine[Any, Any, Any]]]] = (
+            dict()
+        )
 
+        # Single Session
         self._ready = asyncio.Event()
+        self._session: Optional[ChzzkGateway] = None
+        self._multiple_session: list[ChzzkGateway] = list()
 
-        handler = {
-            "connect": self._ready.set
-        }
+        handler = {"connect": self._ready.set}
         self._connection = ConnectionState(
             dispatch=self.dispatch, handler=handler, http=self.http
         )
         self._gateway: Optional[ChzzkGateway] = None
-    
+
     async def __aenter__(self) -> Self:
         await self._async_setup_hook()
         return self
-    
+
     async def _async_setup_hook(self) -> None:
         self.loop = loop = asyncio.get_running_loop()
         self.http = ChzzkOpenAPISession(
-            loop=loop,
-            client_id=self.client_id,
-            client_secret=self.client_secret
+            loop=loop, client_id=self.client_id, client_secret=self.client_secret
         )
 
     @staticmethod
@@ -232,15 +238,16 @@ class Client(BaseEventManager):
             if isinstance(self.loop, _LoopSentinel):
                 await self._async_setup_hook()
             return await func(self, *args, **kwargs)
+
         return wrapper
 
     def generate_authorization_token_url(self, redirect_url: str, state: str) -> str:
-        default_url = URL.build(scheme="https", authority="chzzk.naver.com", path="/account-interlock")
-        default_url = default_url.with_query({
-            "clientId": self.client_id,
-            "redirectUri": redirect_url,
-            "state": state
-        })
+        default_url = URL.build(
+            scheme="https", authority="chzzk.naver.com", path="/account-interlock"
+        )
+        default_url = default_url.with_query(
+            {"clientId": self.client_id, "redirectUri": redirect_url, "state": state}
+        )
         return default_url.geturl()
 
     @initial_async_setup
@@ -250,7 +257,7 @@ class Client(BaseEventManager):
             client_id=self.client_id,
             client_secret=self.client_secret,
             code=code,
-            state=state
+            state=state,
         )
         return result.content
 
@@ -263,12 +270,12 @@ class Client(BaseEventManager):
             pass
         self.user_client.append(user_cls)
         return user_cls
-    
+
     @initial_async_setup
     async def get_channel(self, channel_ids: list[str]) -> list[Channel]:
         result = await self.http.get_channel(channel_ids=",".join(channel_ids))
         return result.content.data
-    
+
     @initial_async_setup
     async def get_category(self, query: str, size: Optional[int] = 20) -> list[Channel]:
         result = await self.http.get_category(query=query, size=size)
@@ -276,11 +283,7 @@ class Client(BaseEventManager):
 
 
 class UserClient:
-    def __init__(
-        self,
-        parent: Client,
-        access_token: AccessToken
-    ):
+    def __init__(self, parent: Client, access_token: AccessToken):
         self.parent_client = parent
         self.dispatch = self.parent_client.dispatch
         self.loop = self.parent_client.loop
@@ -299,10 +302,15 @@ class UserClient:
 
         handler = {
             "connect": self.__on_connected,
-            "channel_id_invoked": self.__on_channel_id_invoked
+            "channel_id_invoked": self.__on_channel_id_invoked,
         }
-        self._connection = ConnectionState(dispatch=self.dispatch, handler=handler, http=self.http, access_token=self.access_token)
-    
+        self._connection = ConnectionState(
+            dispatch=self.dispatch,
+            handler=handler,
+            http=self.http,
+            access_token=self.access_token,
+        )
+
     def __on_connected(self, session_id: str):
         self._session_id = session_id
         self._gateway_ready.set()
@@ -310,10 +318,12 @@ class UserClient:
 
     def __on_channel_id_invoked(self, channel_id: str):
         self.channel_id = channel_id
-    
+
     @property
     def is_expired(self) -> bool:
-        return (datetime.datetime.now() - self._token_generated_at).hours > self.access_token.expires_in
+        return (
+            datetime.datetime.now() - self._token_generated_at
+        ).hours > self.access_token.expires_in
 
     @staticmethod
     def refreshable(func):
@@ -323,8 +333,9 @@ class UserClient:
             if remaining_expired_time.days > 0:
                 await self.refresh()
             return await func(self, *args, **kwargs)
+
         return wrapper
-    
+
     async def refresh(self):
         refresh_token = await self.http.generate_access_token(
             grant_type="refresh_token",
@@ -335,7 +346,7 @@ class UserClient:
         self._connection.access_token = self.access_token = refresh_token.data
         self._token_generated_at = datetime.datetime.now()
         return
-    
+
     async def revoke(self):
         await self.http.revoke_access_token(
             client_id=self.client_id,
@@ -343,7 +354,7 @@ class UserClient:
             token=self.access_token.access_token,
         )
         return
-    
+
     @refreshable
     async def fetch_self(self) -> Channel:
         raw_user_self = await self.http.get_user_self(token=self.access_token)
@@ -351,31 +362,33 @@ class UserClient:
         self.channel_id = user_self.id
         self.channel_name = user_self.name
         return user_self
-    
+
     @refreshable
     async def send_message(self, content: str) -> SentMessage:
-        response = await self.http.create_message(token=self.access_token, message=content)
+        response = await self.http.create_message(
+            token=self.access_token, message=content
+        )
         message_id = response.content["messageId"]
         message = SentMessage(id=message_id, content=content)
         message._access_token = self.access_token
         message._state = self._connection
         return message
-    
+
     @refreshable
     async def send_announcement(self, content: str) -> SentMessage:
         await self.http.create_notice(token=self.access_token, message=content)
         return
-    
+
     @property
     def is_connected(self) -> bool:
         if self._gateway is None:
             return False
         return self._gateway.is_connected
-    
+
     async def wait_until_connect(self):
         await self._gateway_ready.wait()
         return
-        
+
     @refreshable
     async def connect(self, permission: UserPermission, addition_connect: bool = False):
         session_key = await self.http.generate_user_session(token=self.access_token)
@@ -383,7 +396,7 @@ class UserClient:
             url=session_key.content.url,
             state=self._connection,
             loop=self.loop,
-            session=aiohttp.ClientSession(loop=self.loop)
+            session=aiohttp.ClientSession(loop=self.loop),
         )
         task = self._gateway.read_in_background()
         await self._gateway_ready.wait()
@@ -391,26 +404,34 @@ class UserClient:
         await self.subscribe(permission, self._session_id)
         if not addition_connect:
             await task
-        return 
-        
+        return
+
     @refreshable
-    async def subscribe(self, permission: UserPermission, session_id: Optional[str] = None):
+    async def subscribe(
+        self, permission: UserPermission, session_id: Optional[str] = None
+    ):
         session_id = session_id or self._session_id
-        for (permission_name, condition) in permission:
+        for permission_name, condition in permission:
             if not condition:
                 continue
-            await self.http.subcribe_event(event=permission_name, session_key=session_id, token=self.access_token)
+            await self.http.subcribe_event(
+                event=permission_name, session_key=session_id, token=self.access_token
+            )
             _log.debug(f"Subscribe {permission_name.upper()} Event")
         return
-    
+
     @refreshable
-    async def unsubscribe(self, permission: UserPermission, session_id: Optional[str] = None):
+    async def unsubscribe(
+        self, permission: UserPermission, session_id: Optional[str] = None
+    ):
         session_id = session_id or self._gateway_id
-        for (permission_name, condition) in permission:
+        for permission_name, condition in permission:
             if not condition:
                 continue
 
-            await self.http.unsubcribe_event(event=permission_name, session_key=session_id, token=self.access_token)
+            await self.http.unsubcribe_event(
+                event=permission_name, session_key=session_id, token=self.access_token
+            )
             _log.debug(f"Unsubscribe {permission_name.upper()} Event")
         return
 

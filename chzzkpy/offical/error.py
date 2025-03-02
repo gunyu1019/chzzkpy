@@ -47,7 +47,7 @@ class ChatConnectFailed(ChzzkpyException):
 
 
 class ReceiveErrorPacket(ChzzkpyException):
-    def __init__(self, transport: Literal['polling', 'websocket'], data: Any):
+    def __init__(self, transport: Literal["polling", "websocket"], data: Any):
         super().__init__(
             f"{transport} type of connection received packet with an error. "
             f" (data: {self.code})"

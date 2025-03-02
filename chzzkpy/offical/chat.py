@@ -21,45 +21,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from enum import IntEnum, Enum
-from typing import TypeVar, Any
+from pydantic import Field
+from typing import Literal
 
-E = TypeVar("E", bound="Enum")
-
-
-class EnginePacketType(Enum):
-    OPEN = 0
-    CLOSE = 1
-    PING = 2
-    PONG = 3
-    MESSAGE = 4
-    UPGRADE = 5
-    NOOP = 6
+from .base_model import ChzzkModel
+from .enums import FollowingPeriod
 
 
-class SocketPacketType(Enum):
-    CONNECT = 0
-    DISCONNECT = 1
-    EVENT = 2
-    ACK = 3
-    CONNECT_ERROR = 4
-    BINARY_EVENT = 5
-    BINARY_ACK = 6
-
-
-class FollowingPeriod(IntEnum):
-    NONE = 0
-    FIVE_MINUTE = 5
-    TEN_MINUTE = 10
-    HALF_HOUR = 30
-    HOUR = 60
-    DAY = 1440
-    WEEK = 10080
-    MONTH = 43200
-
-
-def get_enum(cls: type[E], val: Any) -> E:
-    enum_val = [i for i in cls if i.value == val]
-    if len(enum_val) == 0:
-        return val
-    return enum_val[0]
+class ChatSetting(ChzzkModel):
+    chat_available_condition: Literal["NONE", "REAL_NAME"]
+    chat_available_group: Literal["ALL", "FOLLOWER", "MANAGER", "SUBSCRIBER"]
+    min_follower_minute: FollowingPeriod
+    allow_subscriber_in_follower_mode: bool
