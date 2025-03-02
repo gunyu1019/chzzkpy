@@ -38,19 +38,18 @@ T = TypeVar("T")
 class SearchResult(ChzzkModel, Generic[T]):
     data: list[T]
     
-    def __init__(self, *args, **kwargs):
-        if "page" in kwargs.keys():
-            self._page = kwargs.pop("page")
-        
-        super().__init__(*args, **kwargs)
-    
     _page: Optional[dict[str]] = PrivateAttr(default=None)
     _next_method: Optional[Callable[..., Coroutine[Any, Any, Content[T]]]] = PrivateAttr(default=None)
     _next_method_arguments: Optional[tuple[Any]] = PrivateAttr(default=None)
     _next_method_key_argument: Optional[dict[str, Any]] = PrivateAttr(default=None)
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if "page" in kwargs.keys():
+            self._page = kwargs.pop("page")
 
     async def next(self) -> None:
-        if self._page is None or self._next_method:
+        if self._page is None or self._next_method is None:
             raise RuntimeError(
                 f"This search result has only one result."
             )

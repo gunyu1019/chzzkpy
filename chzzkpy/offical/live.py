@@ -20,19 +20,16 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-from __future__ import annotations
 
 import datetime
 
-from typing import TYPE_CHECKING
+from typing import Optional, Literal
 from pydantic import Field, PrivateAttr, computed_field
 
 from .base_model import ChzzkModel
+from .category import Category
+from .channel import Channel
 
-if TYPE_CHECKING:
-    from typing import Optional, Literal
-    from .category import Category
-    from .channel import Channel
 
 
 class Live(ChzzkModel):
@@ -53,6 +50,8 @@ class Live(ChzzkModel):
     _channel_image: Optional[str] = PrivateAttr(default=None)
 
     def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
         self._category_id = kwargs.pop("liveCategory")
         self._category_name = kwargs.pop("liveCategoryValue")
         self._category_type = kwargs.pop("categoryType")
@@ -60,8 +59,6 @@ class Live(ChzzkModel):
         self._channel_id = kwargs.pop("channelId")
         self._channel_name = kwargs.pop("channelName")
         self._channel_image = kwargs.pop("channelImageUrl")
-        
-        super().__init__(*args, **kwargs)
 
     @computed_field
     @property

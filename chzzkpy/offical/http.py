@@ -307,7 +307,7 @@ class ChzzkOpenAPISession(Session):
     async def get_stream_key(
         self,
         token: Annotated[AccessToken, Header]
-    ) -> Content[dict[str]]:
+    ) -> Content[dict[str, str]]:
         pass
 
     @pydantic_response_model()
