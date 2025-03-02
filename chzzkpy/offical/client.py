@@ -206,7 +206,7 @@ class Client(BaseEventManager):
         self.client_secret = client_secret
 
         self.http: Optional[ChzzkOpenAPISession] = None
-        self.user_client = []
+        self.user_client: list[UserClient] = []
 
         self._listeners: dict[str, list[tuple[asyncio.Future, Callable[..., bool]]]] = (
             dict()
@@ -215,16 +215,24 @@ class Client(BaseEventManager):
             dict()
         )
 
-        # Single Session
-        self._ready = asyncio.Event()
-        self._session: Optional[ChzzkGateway] = None
-        self._multiple_session: list[ChzzkGateway] = list()
-
         handler = {"connect": self._ready.set}
         self._connection = ConnectionState(
-            dispatch=self.dispatch, handler=handler, http=self.http
+            dispatch=self.dispatch, 
+            handler=handler, 
+            http=self.http,
+            variable_access_token=self.__variable_access_token
         )
+
+        # Single Session
         self._gateway: Optional[ChzzkGateway] = None
+        self._gateway_ready = asyncio.Event()
+        self._gateway_id: Optional[str] = None
+
+    def __variable_access_token(self, channel_id: str) -> Optional[AccessToken]:
+        user_client = self.get_user_client_cached(channel_id)
+        if user_client is not None:
+            return user_client.access_token
+        return
 
     async def __aenter__(self) -> Self:
         await self._async_setup_hook()
@@ -277,6 +285,39 @@ class Client(BaseEventManager):
         return user_cls
 
     @initial_async_setup
+    async def refresh_user_client(self, refresh_token: str) -> UserClient:
+        refresh_token = await self.http.generate_access_token(
+            grant_type="refresh_token",
+            client_id=self.client_id,
+            client_secret=self.client_secret,
+            refresh_token=self.access_token.refresh_token,
+        )
+        user_cls = UserClient(self, refresh_token)
+        try:
+            await user_cls.fetch_self()
+        except ForbiddenException:
+            pass
+        self.user_client.append(user_cls)
+        return user_cls
+
+    @initial_async_setup
+    async def get_user_client(self, access_token: AccessToken) -> UserClient:
+        user_cls = UserClient(self, access_token)
+        try:
+            await user_cls.fetch_self()
+        except ForbiddenException:
+            pass
+        self.user_client.append(user_cls)
+        return user_cls
+    
+    def get_user_client_cached(self, channel_id: str) -> Optional[UserClient]:
+        for user_client in self.user_client:
+            if user_client.channel_id != channel_id:
+                continue
+            return user_client
+        return
+
+    @initial_async_setup
     async def get_channel(self, channel_ids: list[str]) -> list[Channel]:
         result = await self.http.get_channel(channel_ids=",".join(channel_ids))
         return result.content.data
@@ -295,6 +336,30 @@ class Client(BaseEventManager):
         data._next_method = self.http.get_lives
         data._next_method_key_argument = {"size": size}
         return data
+
+    async def connect(self, addition_connect: bool = False):
+        session_key = await self.http.generate_user_session(token=self.access_token)
+        self._gateway = await ChzzkGateway.connect(
+            url=session_key.content.url,
+            state=self._connection,
+            loop=self.loop,
+            session=aiohttp.ClientSession(loop=self.loop),
+        )
+        task = self._gateway.read_in_background()
+        await self._gateway_ready.wait()
+        self._gateway_id = self._gateway.session_id
+        if not addition_connect:
+            await task
+        return
+
+    async def disconnect(self):
+        if self._gateway is None:
+            return
+        await self._gateway.disconnect()
+
+        self._gateway = None
+        self._gateway_id = None
+        self._gateway_ready.clear()
 
 
 class UserClient:
@@ -421,6 +486,16 @@ class UserClient:
             await task
         return
 
+    async def disconnect(self):
+        if self._gateway is None:
+            return
+        await self._gateway.disconnect()
+
+        self._gateway = None
+        self._gateway_id = None
+        self._session_id = None
+        self._gateway_ready.clear()
+
     @refreshable
     async def subscribe(
         self, permission: UserPermission, session_id: Optional[str] = None
@@ -449,16 +524,6 @@ class UserClient:
             )
             _log.debug(f"Unsubscribe {permission_name.upper()} Event")
         return
-
-    async def disconnect(self):
-        if self._gateway is None:
-            return
-        await self._gateway.disconnect()
-
-        self._gateway = None
-        self._gateway_id = None
-        self._session_id = None
-        self._gateway_ready.clear()
 
     @refreshable
     async def get_chat_setting(self) -> ChatSetting:
