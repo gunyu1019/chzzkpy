@@ -26,11 +26,12 @@ from __future__ import annotations
 import datetime
 
 from pydantic import Field, PrivateAttr
-from typing import Any, Literal, TYPE_CHECKING
+from typing import Any, Literal, Optional, TYPE_CHECKING
 
 from .base_model import ChzzkModel
 
 if TYPE_CHECKING:
+    from .authorization import AccessToken
     from .state import ConnectionState
 
 
@@ -64,4 +65,13 @@ class SentMessage(ChzzkModel):
     content: str
     created_time: datetime.datetime = Field(default_factory=datetime.datetime.now)
 
-    _state: ConnectionState = PrivateAttr(default=None)
+    _access_token: Optional[AccessToken] = PrivateAttr(default=None)
+    _state: Optional[ConnectionState] = PrivateAttr(default=None)
+
+    async def pin(self) -> None:
+        if self._state is None or self._access_token is None:
+            raise RuntimeError(
+                f"This {self.__class__.__name__} is intended to store data only."
+            )
+        await self._state.http.create_notice(message_id=self.id, token=self._access_token)
+        
