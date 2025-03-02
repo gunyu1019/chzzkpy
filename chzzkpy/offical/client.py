@@ -548,13 +548,13 @@ class UserClient:
         await self.http.set_live_setting(
             token=self.access_token,
             default_live_title=title,
-            category_id=category.id,
-            category_type=category.type,
+            category_id=category.id if category is not None else None,
+            category_type=category.type if category is not None else None,
             tags=tags
         )  
         return 
 
     @refreshable
     async def get_stream_key(self) -> str:
-        stream_key = await self.http.get_stream_key()
+        stream_key = await self.http.get_stream_key(token=self.access_token)
         return stream_key.content["streamKey"]
