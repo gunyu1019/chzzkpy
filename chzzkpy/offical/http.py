@@ -43,7 +43,7 @@ from .error import (
     TooManyRequestsException, 
     HTTPException
 )
-from .gateway import SessionKey
+from .session import SessionKey
 
 _log = logging.getLogger(__name__)
 
