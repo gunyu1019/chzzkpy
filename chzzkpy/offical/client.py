@@ -341,7 +341,8 @@ class UserClient:
     
     @refreshable
     async def send_message(self, content: str) -> SentMessage:
-        message_id = await self.http.create_message(token=self.access_token, message=content)
+        response = await self.http.create_message(token=self.access_token, message=content)
+        message_id = response.content["message_id"]
         message = SentMessage(id=message_id, content=content)
         message._state = self._connection
         return message
@@ -373,15 +374,30 @@ class UserClient:
         task = self._gateway.read_in_background()
         await self._gateway_ready.wait()
         self._gateway_id = self._gateway.session_id
+        await self.subscribe(permission, self._gateway_id)
+        if not addition_connect:
+            await task
+        return 
+    
+    async def subscribe(self, permission: UserPermission, session_id: Optional[str] = None):
+        session_id = session_id or self._gateway_id
         for (permission_name, condition) in permission:
             if not condition:
                 continue
 
-            await self.http.subcribe_event(event=permission_name, session_key=self._session_id, token=self.access_token)
+            await self.http.subcribe_event(event=permission_name, session_key=session_id, token=self.access_token)
             _log.debug(f"Subscribe {permission_name.upper()} Event")
-        if not addition_connect:
-            await task
-        return 
+        return
+    
+    async def unsubscribe(self, permission: UserPermission, session_id: Optional[str] = None):
+        session_id = session_id or self._gateway_id
+        for (permission_name, condition) in permission:
+            if not condition:
+                continue
+
+            await self.http.unsubcribe_event(event=permission_name, session_key=session_id, token=self.access_token)
+            _log.debug(f"Unsubscribe {permission_name.upper()} Event")
+        return
 
     async def disconnect(self):
         if self._gateway is None:
