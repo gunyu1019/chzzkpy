@@ -53,6 +53,7 @@ class ChatType(IntEnum):
     RICH = 5
     DONATION = 10
     SUBSCRIPTION = 11
+    SUBSCRIPTION_GIFT = 12
     SYSTEM_MESSAGE = 30
     OPEN = 121
 
