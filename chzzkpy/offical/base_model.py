@@ -27,6 +27,7 @@ from pydantic import PrivateAttr
 from typing import Generic, TypeVar, TYPE_CHECKING
 
 from ..base_model import ChzzkModel
+from ..base_model import Content
 
 if TYPE_CHECKING:
     from typing import Any, Callable, Coroutine, Optional
@@ -44,7 +45,7 @@ class SearchResult(ChzzkModel, Generic[T]):
         super().__init__(*args, **kwargs)
     
     _page: Optional[dict[str]] = PrivateAttr(default=None)
-    _next_method: Optional[Callable[..., Coroutine[Any, Any, T]]] = PrivateAttr(default=None)
+    _next_method: Optional[Callable[..., Coroutine[Any, Any, Content[T]]]] = PrivateAttr(default=None)
     _next_method_arguments: Optional[tuple[Any]] = PrivateAttr(default=None)
     _next_method_key_argument: Optional[dict[str, Any]] = PrivateAttr(default=None)
 
@@ -56,6 +57,12 @@ class SearchResult(ChzzkModel, Generic[T]):
         next_id = self._page["next"]
         next_method_arguments = self._next_method_arguments or tuple()
         next_method_key_argument = self._next_method_key_argument or dict()
-        await self._next_method(
+        
+        result = await self._next_method(
             *next_method_arguments, next=next_id, **next_method_key_argument
         )
+        data = result.content
+        data._next_method = self._next_method
+        data._next_method_arguments = self._next_method_arguments
+        data._next_method_key_argument = self._next_method_key_argument
+        return data

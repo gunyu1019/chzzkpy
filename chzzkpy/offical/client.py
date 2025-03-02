@@ -36,7 +36,7 @@ from .chat import ChatSetting
 from .error import ForbiddenException
 from .gateway import ChzzkGateway
 from .http import ChzzkOpenAPISession
-from .live import BrodecastSetting
+from .live import BrodecastSetting, Live
 from .message import SentMessage
 from .state import ConnectionState
 
@@ -45,6 +45,7 @@ if TYPE_CHECKING:
     from typing import Self, Literal, Optional, Callable, Coroutine
 
     from .authorization import AccessToken
+    from .base_model import SearchResult
     from .channel import Channel
     from .category import Category
     from .enums import FollowingPeriod
@@ -284,6 +285,14 @@ class Client(BaseEventManager):
     async def get_category(self, query: str, size: Optional[int] = 20) -> list[Category]:
         result = await self.http.get_category(query=query, size=size)
         return result.content.data
+
+    @initial_async_setup
+    async def get_live(self, size: int = 20) -> SearchResult[Live]:
+        result = await self.http.get_lives(size=size)
+        data = result.content
+        data._next_method = self.http.get_lives
+        data._next_method_key_argument = {"size": size}
+        return data
 
 
 class UserClient:
