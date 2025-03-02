@@ -26,7 +26,7 @@ import aiohttp
 import logging
 from typing import Annotated, Optional, Literal, overload
 
-from ahttp_client import Session, get, post, BodyJson, Query, Header, Path
+from ahttp_client import Session, get, post, put, BodyJson, Query, Header, Path
 from ahttp_client.extension import pydantic_response_model
 from ahttp_client.request import RequestCore
 
@@ -34,6 +34,7 @@ from .authorization import AccessToken
 from .base_model import Content, SearchResult
 from .category import Category
 from .channel import Channel
+from .chat import ChatSetting
 from .error import (
     LoginRequired,
     BadRequestException,
@@ -254,5 +255,25 @@ class ChzzkOpenAPISession(Session):
         token: Annotated[AccessToken, Header],
         message: Annotated[Optional[str], BodyJson] = None,
         message_id: Annotated[Optional[str], BodyJson.to_camel()] = None,
+    ) -> None:
+        pass
+
+    @get("/open/v1/chats/settings", directly_response=True)
+    @authorization_configuration(is_client=False, is_user=True)
+    async def get_chat_setting(
+        self,
+        token: Annotated[AccessToken, Header],
+    ) -> Content[ChatSetting]:
+        pass
+
+    @put("/open/v1/chats/settings", directly_response=True)
+    @authorization_configuration(is_client=False, is_user=True)
+    async def set_chat_setting(
+        self,
+        token: Annotated[AccessToken, Header],
+        chat_available_condition: Annotated[Literal["NONE", "REAL_NAME"], BodyJson.to_camel()],
+        chat_available_group: Annotated[Literal["ALL", "FOLLOWER", "MANAGER", "SUBSCRIBER"], BodyJson.to_camel()],
+        min_follower_minute: Annotated[int, BodyJson.to_camel()],
+        allow_subscriber_in_follower_mode: Annotated[bool, BodyJson.to_camel()]
     ) -> None:
         pass

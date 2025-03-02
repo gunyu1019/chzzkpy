@@ -29,9 +29,10 @@ import datetime
 import logging
 
 from functools import wraps
-from typing import Any, Callable, Coroutine, Optional, TYPE_CHECKING
+from typing import Any, overload, TYPE_CHECKING
 from yarl import URL
 
+from .chat import ChatSetting
 from .error import ForbiddenException
 from .gateway import ChzzkGateway
 from .http import ChzzkOpenAPISession
@@ -40,10 +41,11 @@ from .message import SentMessage
 
 
 if TYPE_CHECKING:
-    from typing import Self
+    from typing import Self, Literal, Optional, Callable, Coroutine
 
     from .authorization import AccessToken
     from .channel import Channel
+    from .enums import FollowingPeriod
     from .flags import UserPermission
 
 
@@ -444,3 +446,50 @@ class UserClient:
         self._gateway_id = None
         self._session_id = None
         self._gateway_ready.clear()
+
+    async def get_chat_setting(self) -> ChatSetting:
+        raw_chat_setting = await self.http.get_chat_setting(token=self.access_token)
+        return raw_chat_setting.content
+
+    @overload
+    async def set_chat_setting(
+            self,
+            instance: ChatSetting
+    ) -> None:
+        ...
+
+    @overload
+    async def set_chat_setting(
+            self,
+            chat_available_condition: Literal["NONE", "REAL_NAME"],
+            chat_available_group: Literal["ALL", "FOLLOWER", "MANAGER", "SUBSCRIBER"],
+            min_follower_minute: FollowingPeriod,
+            allow_subscriber_in_follower_mode: bool,
+    ) -> None:
+        ...
+
+    async def set_chat_setting(
+            self,
+            instance: ChatSetting = None,
+            chat_available_condition: Literal["NONE", "REAL_NAME"] = None,
+            chat_available_group: Literal["ALL", "FOLLOWER", "MANAGER", "SUBSCRIBER"] = None,
+            min_follower_minute: FollowingPeriod = None,
+            allow_subscriber_in_follower_mode: bool = None,
+    ) -> None:
+        if instance is not None:
+            await self.http.set_chat_setting(
+                token=self.access_token,
+                chat_available_condition=instance.chat_available_condition,
+                chat_available_group=instance.chat_available_group,
+                min_follower_minute=instance.min_follower_minute,
+                allow_subscriber_in_follower_mode=instance.allow_subscriber_in_follower_mode,
+            )  
+            return  
+        await self.http.set_chat_setting(
+            token=self.access_token,
+            chat_available_condition=chat_available_condition,
+            chat_available_group=chat_available_group,
+            min_follower_minute=min_follower_minute,
+            allow_subscriber_in_follower_mode=allow_subscriber_in_follower_mode,
+        )  
+        return 
