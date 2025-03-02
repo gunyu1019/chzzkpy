@@ -282,7 +282,9 @@ class Client(BaseEventManager):
         return result.content.data
 
     @initial_async_setup
-    async def get_category(self, query: str, size: Optional[int] = 20) -> list[Category]:
+    async def get_category(
+        self, query: str, size: Optional[int] = 20
+    ) -> list[Category]:
         result = await self.http.get_category(query=query, size=size)
         return result.content.data
 
@@ -464,30 +466,27 @@ class UserClient:
         return raw_chat_setting.content
 
     @overload
-    async def set_chat_setting(
-            self,
-            instance: ChatSetting
-    ) -> None:
-        ...
+    async def set_chat_setting(self, instance: ChatSetting) -> None: ...
 
     @overload
     async def set_chat_setting(
-            self,
-            chat_available_condition: Literal["NONE", "REAL_NAME"],
-            chat_available_group: Literal["ALL", "FOLLOWER", "MANAGER", "SUBSCRIBER"],
-            min_follower_minute: FollowingPeriod,
-            allow_subscriber_in_follower_mode: bool,
-    ) -> None:
-        ...
+        self,
+        chat_available_condition: Literal["NONE", "REAL_NAME"],
+        chat_available_group: Literal["ALL", "FOLLOWER", "MANAGER", "SUBSCRIBER"],
+        min_follower_minute: FollowingPeriod,
+        allow_subscriber_in_follower_mode: bool,
+    ) -> None: ...
 
     @refreshable
     async def set_chat_setting(
-            self,
-            instance: ChatSetting = None,
-            chat_available_condition: Literal["NONE", "REAL_NAME"] = None,
-            chat_available_group: Literal["ALL", "FOLLOWER", "MANAGER", "SUBSCRIBER"] = None,
-            min_follower_minute: FollowingPeriod = None,
-            allow_subscriber_in_follower_mode: bool = None,
+        self,
+        instance: ChatSetting = None,
+        chat_available_condition: Literal["NONE", "REAL_NAME"] = None,
+        chat_available_group: Literal[
+            "ALL", "FOLLOWER", "MANAGER", "SUBSCRIBER"
+        ] = None,
+        min_follower_minute: FollowingPeriod = None,
+        allow_subscriber_in_follower_mode: bool = None,
     ) -> None:
         if instance is not None:
             await self.http.set_chat_setting(
@@ -496,16 +495,16 @@ class UserClient:
                 chat_available_group=instance.chat_available_group,
                 min_follower_minute=instance.min_follower_minute,
                 allow_subscriber_in_follower_mode=instance.allow_subscriber_in_follower_mode,
-            )  
-            return  
+            )
+            return
         await self.http.set_chat_setting(
             token=self.access_token,
             chat_available_condition=chat_available_condition,
             chat_available_group=chat_available_group,
             min_follower_minute=min_follower_minute,
             allow_subscriber_in_follower_mode=allow_subscriber_in_follower_mode,
-        )  
-        return 
+        )
+        return
 
     @refreshable
     async def get_live_setting(self) -> BrodecastSetting:
@@ -513,28 +512,23 @@ class UserClient:
         return raw_live_setting.content
 
     @overload
-    async def set_live_setting(
-            self,
-            instance: BrodecastSetting
-    ) -> None:
-        ...
+    async def set_live_setting(self, instance: BrodecastSetting) -> None: ...
 
     @overload
     async def set_live_setting(
-            self,
-            title: Optional[str] = None,
-            category: Optional[Category] = None,
-            tags: Optional[list[str]] = None
-    ) -> None:
-        ...
+        self,
+        title: Optional[str] = None,
+        category: Optional[Category] = None,
+        tags: Optional[list[str]] = None,
+    ) -> None: ...
 
     @refreshable
     async def set_live_setting(
-            self,
-            instance: BrodecastSetting = None,
-            title: Optional[str] = None,
-            category: Optional[Category] = None,
-            tags: Optional[list[str]] = None
+        self,
+        instance: BrodecastSetting = None,
+        title: Optional[str] = None,
+        category: Optional[Category] = None,
+        tags: Optional[list[str]] = None,
     ) -> None:
         if instance is not None:
             await self.http.set_live_setting(
@@ -542,17 +536,17 @@ class UserClient:
                 default_live_title=instance.title,
                 category_id=instance.category.id,
                 category_type=instance.category.type,
-                tags=instance.tags
-            )  
-            return  
+                tags=instance.tags,
+            )
+            return
         await self.http.set_live_setting(
             token=self.access_token,
             default_live_title=title,
             category_id=category.id if category is not None else None,
             category_type=category.type if category is not None else None,
-            tags=tags
-        )  
-        return 
+            tags=tags,
+        )
+        return
 
     @refreshable
     async def get_stream_key(self) -> str:

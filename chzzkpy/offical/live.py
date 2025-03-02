@@ -31,7 +31,6 @@ from .category import Category
 from .channel import Channel
 
 
-
 class Live(ChzzkModel):
     live_id: int
     live_title: str
@@ -43,8 +42,10 @@ class Live(ChzzkModel):
 
     _category_id: Optional[str] = PrivateAttr(default=None)
     _category_name: Optional[str] = PrivateAttr(default=None)
-    _category_type: Optional[Literal["GAME", "SPORT", "ETC"]] = PrivateAttr(default=None)
-    
+    _category_type: Optional[Literal["GAME", "SPORT", "ETC"]] = PrivateAttr(
+        default=None
+    )
+
     _channel_id: Optional[str] = PrivateAttr(default=None)
     _channel_name: Optional[str] = PrivateAttr(default=None)
     _channel_image: Optional[str] = PrivateAttr(default=None)

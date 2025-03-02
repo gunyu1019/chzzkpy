@@ -258,7 +258,7 @@ class ChzzkOpenAPISession(Session):
         message_id: Annotated[Optional[str], BodyJson.to_camel()] = None,
     ) -> None:
         pass
-    
+
     @pydantic_response_model()
     @get("/open/v1/chats/settings", directly_response=True)
     @authorization_configuration(is_client=False, is_user=True)
@@ -273,10 +273,14 @@ class ChzzkOpenAPISession(Session):
     async def set_chat_setting(
         self,
         token: Annotated[AccessToken, Header],
-        chat_available_condition: Annotated[Literal["NONE", "REAL_NAME"], BodyJson.to_camel()],
-        chat_available_group: Annotated[Literal["ALL", "FOLLOWER", "MANAGER", "SUBSCRIBER"], BodyJson.to_camel()],
+        chat_available_condition: Annotated[
+            Literal["NONE", "REAL_NAME"], BodyJson.to_camel()
+        ],
+        chat_available_group: Annotated[
+            Literal["ALL", "FOLLOWER", "MANAGER", "SUBSCRIBER"], BodyJson.to_camel()
+        ],
         min_follower_minute: Annotated[int, BodyJson.to_camel()],
-        allow_subscriber_in_follower_mode: Annotated[bool, BodyJson.to_camel()]
+        allow_subscriber_in_follower_mode: Annotated[bool, BodyJson.to_camel()],
     ) -> None:
         pass
 
@@ -284,8 +288,7 @@ class ChzzkOpenAPISession(Session):
     @get("/open/v1/lives/setting", directly_response=True)
     @authorization_configuration(is_client=False, is_user=True)
     async def get_live_setting(
-        self,
-        token: Annotated[AccessToken, Header]
+        self, token: Annotated[AccessToken, Header]
     ) -> Content[BrodecastSetting]:
         pass
 
@@ -295,9 +298,11 @@ class ChzzkOpenAPISession(Session):
         self,
         token: Annotated[AccessToken, Header],
         default_live_title: Annotated[Optional[str], BodyJson.to_camel()] = None,
-        category_type: Annotated[Optional[Literal['GAME', 'SPORT', 'ETC']], BodyJson.to_camel()] = None,
+        category_type: Annotated[
+            Optional[Literal["GAME", "SPORT", "ETC"]], BodyJson.to_camel()
+        ] = None,
         category_id: Annotated[Optional[str], BodyJson.to_camel()] = None,
-        tags : Annotated[Optional[list[str]], BodyJson.to_camel()] = None
+        tags: Annotated[Optional[list[str]], BodyJson.to_camel()] = None,
     ) -> None:
         pass
 
@@ -305,8 +310,7 @@ class ChzzkOpenAPISession(Session):
     @get("/open/v1/streams/key", directly_response=True)
     @authorization_configuration(is_client=False, is_user=True)
     async def get_stream_key(
-        self,
-        token: Annotated[AccessToken, Header]
+        self, token: Annotated[AccessToken, Header]
     ) -> Content[dict[str, str]]:
         pass
 
