@@ -44,7 +44,7 @@ from .error import (
     TooManyRequestsException,
     HTTPException,
 )
-from .live import BrodecastSetting
+from .live import BrodecastSetting, Live
 from .session import SessionKey
 
 _log = logging.getLogger(__name__)
@@ -299,4 +299,23 @@ class ChzzkOpenAPISession(Session):
         category_id: Annotated[Optional[str], BodyJson.to_camel()] = None,
         tags : Annotated[Optional[list[str]], BodyJson.to_camel()] = None
     ) -> None:
+        pass
+
+    @pydantic_response_model()
+    @get("/open/v1/streams/key", directly_response=True)
+    @authorization_configuration(is_client=False, is_user=True)
+    async def get_stream_key(
+        self,
+        token: Annotated[AccessToken, Header]
+    ) -> Content[dict[str]]:
+        pass
+
+    @pydantic_response_model()
+    @get("/open/v1/lives", directly_response=True)
+    @authorization_configuration(is_client=True, is_user=False)
+    async def get_lives(
+        self,
+        size: Annotated[Optional[int], Query] = 20,
+        next: Annotated[Optional[str], Query] = None,
+    ) -> Content[SearchResult[Live]]:
         pass
