@@ -41,6 +41,16 @@ class Profile(ChzzkModel):
     verified_mark: bool
 
 
+class Messageable(ChzzkModel):
+    _access_token: Optional[AccessToken] = PrivateAttr(default=None)
+    _state: Optional[ConnectionState] = PrivateAttr(default=None)
+
+    def __init__(self, *args, **kwargs):
+        self._access_token = kwargs.pop("access_token")
+        self._state = kwargs.pop("state")
+        super().__init__(*args, **kwargs)
+
+
 class Donation(ChzzkModel):
     type: Literal["CHAT", "VIDEO"] = Field(alias="donationType")
     channel: str = Field(alias="channelId")
