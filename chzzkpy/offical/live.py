@@ -64,18 +64,18 @@ class Live(ChzzkModel):
     @property
     def category(self) -> Category:
         return Category(
-            id=self._category_id,
-            name=self._category_name,
-            type=self._category_type,
+            categoryId=self._category_id,
+            categoryValue=self._category_name,
+            categoryType=self._category_type,
         )
 
     @computed_field
     @property
     def channel(self) -> Channel:
         return Channel(
-            id=self._channel_id,
-            name=self._channel_name,
-            image=self._channel_image,
+            channelId=self._channel_id,
+            channelName=self._channel_name,
+            channelImageUrl=self._channel_image,
         )
 
 
