@@ -22,7 +22,7 @@ SOFTWARE.
 """
 
 from pydantic import Field
-from typing import Literal
+from typing import Literal, Optional
 
 from .base_model import ChzzkModel
 
@@ -31,4 +31,4 @@ class Category(ChzzkModel):
     id: str = Field(alias="categoryId")
     name: str = Field(alias="categoryValue")
     type: Literal["GAME", "SPORT", "ETC"] = Field(alias="categoryType")
-    image: str = Field(alias="posterImageUrl")
+    image: Optional[str] = Field(alias="posterImageUrl", default=None)
