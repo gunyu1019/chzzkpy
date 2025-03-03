@@ -53,6 +53,19 @@ class Messageable(ChzzkModel):
             self._state = kwargs.pop("state")
     
     async def send(self, content: str) -> SentMessage:
+        """Send a message to the received channel 
+
+        Parameters
+        ----------
+        content : str
+            A content of message to send.
+
+        Raises
+        ------
+        RuntimeError
+            Raised when the access token is missing, 
+            or there is insufficient data to send message due to unusual situations.
+        """
         if self._state is None or self._access_token is None:
             raise RuntimeError(
                 f"This {self.__class__.__name__} is intended to store data only."
@@ -67,6 +80,9 @@ class Messageable(ChzzkModel):
 
 
 class Donation(Messageable):
+    """A donation instance received form the live.
+    Donations can be received via the `on_donation` event.
+    """
     type: Literal["CHAT", "VIDEO"] = Field(alias="donationType")
     channel: str = Field(alias="channelId")
     donator_id: str = Field(alias="donatorChannelId")
@@ -77,6 +93,9 @@ class Donation(Messageable):
 
 
 class Message(Messageable):
+    """A message instance received from the live.
+    Messages can be received via the `on_chat` event.
+    """
     user_id: str = Field(alias="senderChannelId")
 
     profile: Profile
@@ -86,11 +105,13 @@ class Message(Messageable):
 
 
 class SentMessage(Messageable):
+    """Represents a message sent by client.send() method"""
     id: str
     content: str
     created_time: datetime.datetime = Field(default_factory=datetime.datetime.now)
 
     async def pin(self) -> None:
+        """Pin the sent message for announcement."""
         if self._state is None or self._access_token is None:
             raise RuntimeError(
                 f"This {self.__class__.__name__} is intended to store data only."
