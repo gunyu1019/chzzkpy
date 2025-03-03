@@ -187,7 +187,33 @@ class DonationMessage(
         | MissionParticipationDonation
     ]
 ):
-    pass
+    @Message._based_client
+    async def approve(self):
+        if self.type != ChatType.DONATION or not isinstance(self.extras, (MissionDonationExtra, MissionParticipationDonation)):
+            raise TypeError("approve method allow in Mission Donation Message.")
+        
+        if self.extras.status != "PENDING":
+            raise TypeError("This mission is not pending status.")
+    
+        await self._client._api_session.mission_request_approve(
+            channel_id=self._client.channel_id,
+            mission_donation_id=self.extras.mission_donation_id
+        )
+        return
+    
+    @Message._based_client
+    async def reject(self):
+        if self.type != ChatType.DONATION or not isinstance(self.extras, (MissionDonationExtra, MissionParticipationDonation)):
+            raise TypeError("approve method allow in Mission Donation Message.")
+        
+        if self.extras.status != "PENDING":
+            raise TypeError("This mission is not pending status.")
+    
+        await self._client._api_session.mission_request_reject(
+            channel_id=self._client.channel_id,
+            mission_donation_id=self.extras.mission_donation_id
+        )
+        return
 
 
 class SubscriptionExtra(ExtraBase):
