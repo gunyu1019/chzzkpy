@@ -56,6 +56,7 @@ class Messageable(ChzzkModel):
         if self._state is None or self._access_token is None:
             raise RuntimeError(
                 f"This {self.__class__.__name__} is intended to store data only."
+                f"Or don't have the authentication token to send the message."
             )
         message = await self._state.http.create_message(
             message=content, token=self._access_token
