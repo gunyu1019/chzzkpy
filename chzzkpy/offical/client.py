@@ -33,7 +33,7 @@ from typing import Any, overload, TYPE_CHECKING
 from yarl import URL
 
 from .chat import ChatSetting
-from .error import ForbiddenException
+from .error import ChatConnectFailed, ForbiddenException
 from .gateway import ChzzkGateway
 from .http import ChzzkOpenAPISession
 from .live import BrodecastSetting, Live
@@ -201,6 +201,7 @@ class Client(BaseEventManager):
         client_secret: str,
         loop: Optional[asyncio.AbstractEventLoop] = None,
     ):
+        super().__init__(loop)
         self.loop = loop or _LoopSentinel()
         self.client_id = client_id
         self.client_secret = client_secret
@@ -208,14 +209,9 @@ class Client(BaseEventManager):
         self.http: Optional[ChzzkOpenAPISession] = None
         self.user_client: list[UserClient] = []
 
-        self._listeners: dict[str, list[tuple[asyncio.Future, Callable[..., bool]]]] = (
-            dict()
-        )
-        self._extra_event: dict[str, list[Callable[..., Coroutine[Any, Any, Any]]]] = (
-            dict()
-        )
-
-        handler = {"connect": self._ready.set}
+        handler = {
+            "connect": lambda _ : self._gateway_ready.set()
+        }
         self._connection = ConnectionState(
             dispatch=self.dispatch, 
             handler=handler, 
@@ -223,10 +219,8 @@ class Client(BaseEventManager):
             variable_access_token=self.__variable_access_token
         )
 
-        # Single Session
-        self._gateway: Optional[ChzzkGateway] = None
+        self._gateway: dict[str, ChzzkGateway] = dict()
         self._gateway_ready = asyncio.Event()
-        self._gateway_id: Optional[str] = None
 
     def __variable_access_token(self, channel_id: str) -> Optional[AccessToken]:
         user_client = self.get_user_client_cached(channel_id)
@@ -243,6 +237,7 @@ class Client(BaseEventManager):
         self.http = ChzzkOpenAPISession(
             loop=loop, client_id=self.client_id, client_secret=self.client_secret
         )
+        self._connection.http = self.http
 
     @staticmethod
     def initial_async_setup(func):
@@ -337,29 +332,42 @@ class Client(BaseEventManager):
         data._next_method_key_argument = {"size": size}
         return data
 
-    async def connect(self, addition_connect: bool = False):
-        session_key = await self.http.generate_user_session(token=self.access_token)
-        self._gateway = await ChzzkGateway.connect(
+    async def wait_until_connect(self):
+        await self._gateway_ready.wait()
+        return
+
+    @initial_async_setup
+    async def connect(self, addition_connect: bool = False) -> str:
+        if len(self._gateway.keys()) > 10:
+            raise ChatConnectFailed.max_connection()
+        
+        session_key = await self.http.generate_client_session()
+        gateway_cls = await ChzzkGateway.connect(
             url=session_key.content.url,
             state=self._connection,
             loop=self.loop,
             session=aiohttp.ClientSession(loop=self.loop),
         )
-        task = self._gateway.read_in_background()
+        task = gateway_cls.read_in_background()
         await self._gateway_ready.wait()
-        self._gateway_id = self._gateway.session_id
+        self._gateway[gateway_cls.session_id] = gateway_cls
+        self._gateway_ready.clear()
         if not addition_connect:
             await task
-        return
+        return gateway_cls.session_id
 
-    async def disconnect(self):
-        if self._gateway is None:
+    async def disconnect(self, session_id: Optional[str] = None):
+        if len(self._gateway) <= 0:
             return
-        await self._gateway.disconnect()
+        
+        if session_id is not None:
+            await self._gateway.disconnect()
+            self._gateway.pop(session_id)
+            return
 
-        self._gateway = None
-        self._gateway_id = None
-        self._gateway_ready.clear()
+        for gateway in self._gateway.values():
+            await gateway.disconnect()
+        self._gateway = dict()
 
 
 class UserClient:
@@ -501,12 +509,13 @@ class UserClient:
         self, permission: UserPermission, session_id: Optional[str] = None
     ):
         session_id = session_id or self._session_id
+        if session_id is None:
+            raise TypeError("A session_id is not filled. Connect to session using UserClient.connect() method or Client.connect().")
+        
         for permission_name, condition in permission:
             if not condition:
                 continue
-            await self.http.subcribe_event(
-                event=permission_name, session_key=session_id, token=self.access_token
-            )
+            await self.http.subcribe_event(event=permission_name, session_key=session_id, token=self.access_token)
             _log.debug(f"Subscribe {permission_name.upper()} Event")
         return
 
@@ -515,6 +524,9 @@ class UserClient:
         self, permission: UserPermission, session_id: Optional[str] = None
     ):
         session_id = session_id or self._gateway_id
+        if session_id is None:
+            raise TypeError("A session_id is not filled. Connect to session using UserClient.connect() method or Client.connect().")
+    
         for permission_name, condition in permission:
             if not condition:
                 continue

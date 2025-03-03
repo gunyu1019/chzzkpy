@@ -44,6 +44,10 @@ class ChatConnectFailed(ChzzkpyException):
     @classmethod
     def polling_connect_failed(cls, status: int):
         return cls(f"Unexpected status code {status} in connect polling")
+    
+    @classmethod
+    def max_connection(cls):
+        return cls("Maximum number of sessions allowed to connect has been exceeded.")
 
 
 class ReceiveErrorPacket(ChzzkpyException):
