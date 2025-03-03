@@ -36,6 +36,7 @@ from .message import (
     DonationMessage,
     NoticeMessage,
     SubscriptionMessage,
+    SubscriptionGiftMessage,
     SystemMessage,
 )
 from .recent_chat import RecentChat
@@ -129,6 +130,11 @@ class ConnectionState:
                     message, client=self.client
                 )
                 self.dispatch("subscription", validated_data)
+            elif message_type == ChatType.SUBSCRIPTION_GIFT:
+                validated_data = SubscriptionGiftMessage.model_validate_with_client(
+                    message, client=self.client
+                )
+                self.dispatch("subscription_gift", validated_data)
 
     @parsable(ChatCmd.CHAT)
     @catch_exception
