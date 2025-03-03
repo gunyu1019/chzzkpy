@@ -216,7 +216,9 @@ class ChzzkManageSession(ChzzkSession):
     @put("/manage/v1/channels/{channel_id}/chat-rules", directly_response=True)
     @ChzzkSession.configuration(login_able=True, login_required=True)
     async def set_chat_rule(
-        self, channel_id: Annotated[str, Path], rule: Annotated[str, BodyJson.to_camel()]
+        self,
+        channel_id: Annotated[str, Path],
+        rule: Annotated[str, BodyJson.to_camel()],
     ) -> Content[None]:
         pass
 
