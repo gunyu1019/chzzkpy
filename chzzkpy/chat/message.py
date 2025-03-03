@@ -25,8 +25,8 @@ from __future__ import annotations
 
 import datetime
 import functools
-from typing import Optional, Literal, TypeVar, Generic, TYPE_CHECKING, Any
-from pydantic import AliasChoices, Field, Json, ConfigDict, PrivateAttr
+from typing import Any, Optional, Literal, TypeVar, Generic, TYPE_CHECKING
+from pydantic import AliasChoices, Field, Json, ConfigDict, PrivateAttr, computed_field
 
 from .donation import (
     BaseDonation,
@@ -38,6 +38,7 @@ from .donation import (
 from .enums import ChatType
 from .profile import Profile
 from ..base_model import ChzzkModel
+from ..user import PartialUser
 
 if TYPE_CHECKING:
     from .chat_client import ChatClient
@@ -121,7 +122,8 @@ class Message(ChzzkModel, Generic[E]):
 class MessageDetail(Message[E], Generic[E]):
     member_count: int = Field(validation_alias=AliasChoices("mbrCnt", "memberCount"))
     message_status: Optional[str] = Field(
-        validation_alias=AliasChoices("msgStatusType", "messageStatusType")
+        validation_alias=AliasChoices("msgStatusType", "messageStatusType"),
+        default=None
     )
 
     # message_tid: ???
@@ -196,6 +198,33 @@ class SubscriptionExtra(ExtraBase):
 
 
 class SubscriptionMessage(MessageDetail[SubscriptionExtra]):
+    pass
+
+
+class SubscriptionGiftExtra(ExtraBase):
+    gift_id: str
+    gift_tier_no: int
+    gift_tier_name: str
+    gift_type: Optional[str] = None  # SUBSCRIPTION_GIFT_RECEIVER
+
+    sender_user_id: Optional[str] = Field(alias="userIdHash", default=None)
+    receiver_user_id: Optional[str] = Field(alias="receiverUserIdHash", default=None)
+    receiver_user: Optional[str] = Field(alias="receiverNickname", default=None)
+    receiver_user_verified_mark: bool = Field(alias="receiverVerifiedMark", default=False)
+    selection_type: Optional[str] = None  # "MANUAL"
+
+    @computed_field
+    @property
+    def receiver(self) -> PartialUser:
+        return PartialUser(
+            userIdHash=self.receiver_user_id,
+            nickname=self.receiver_user,
+            profileImageUrl=None,
+            verifiedMark=self.receiver_user_verified_mark
+        )
+
+
+class SubscriptionGiftMessage(Message[SubscriptionGiftExtra]):
     pass
 
 
