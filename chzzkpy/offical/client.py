@@ -195,6 +195,7 @@ class BaseEventManager:
 
 
 class Client(BaseEventManager):
+    """Represents a client to connect Chzzk (Naver Live Streaming)."""
     def __init__(
         self,
         client_id: str,
@@ -250,6 +251,15 @@ class Client(BaseEventManager):
         return wrapper
 
     def generate_authorization_token_url(self, redirect_url: str, state: str) -> str:
+        """Get an url to generate chzzk access token.
+
+        Parameters
+        ----------
+        redirect_url : str
+            Redirect URL after login.
+        state : str
+            A state code to use in `state` parameter of :meth:`generate_access_token` method.
+        """
         default_url = URL.build(
             scheme="https", authority="chzzk.naver.com", path="/account-interlock"
         )
@@ -260,6 +270,22 @@ class Client(BaseEventManager):
 
     @initial_async_setup
     async def generate_access_token(self, code: str, state: str) -> AccessToken:
+        """Generate an Access Token.
+        An access token is used by features that require user authentication. (example. creating chat, receiving chat)
+
+        Parameters
+        ----------
+        code : str
+            A code received from :meth:`generate_authorization_token_url`.
+        state : str
+            A state code. 
+            This value must be the same as the state of :meth:`generate_authorization_token_url`.
+        
+        Returns
+        -------
+        AccessToken
+            A instance that contain user authentic.
+        """
         result = await self.http.generate_access_token(
             grant_type="authorization_code",
             client_id=self.client_id,
@@ -270,6 +296,16 @@ class Client(BaseEventManager):
         return result.content
 
     async def generate_user_client(self, code: str, state: str) -> UserClient:
+        """Generate user client instance.
+
+        Parameters
+        ----------
+        code : str
+            A code received from :meth:`generate_authorization_token_url`.
+        state : str
+            A state code. 
+            This value must be the same as the state of :meth:`generate_authorization_token_url`.
+        """
         access_token = await self.generate_access_token(code, state)
         user_cls = UserClient(self, access_token)
         try:
@@ -281,6 +317,13 @@ class Client(BaseEventManager):
 
     @initial_async_setup
     async def refresh_user_client(self, refresh_token: str) -> UserClient:
+        """Get :class:`UserClient` instance with refresh_token.
+
+        Parameters
+        ----------
+        refresh_token : str
+            A refresh token to re-generated access token.
+        """
         refresh_token = await self.http.generate_access_token(
             grant_type="refresh_token",
             client_id=self.client_id,
@@ -297,6 +340,13 @@ class Client(BaseEventManager):
 
     @initial_async_setup
     async def get_user_client(self, access_token: AccessToken) -> UserClient:
+        """Generate :class:`UserClient` with prepared access token.
+
+        Parameters
+        ----------
+        access_token : AccessToken
+            Pre-prepared access token.
+        """
         user_cls = UserClient(self, access_token)
         try:
             await user_cls.fetch_self()
@@ -306,6 +356,17 @@ class Client(BaseEventManager):
         return user_cls
     
     def get_user_client_cached(self, channel_id: str) -> Optional[UserClient]:
+        """Get :class:`UserClient` as channel_id.
+        The channel id of :class:`UserClient` can be obtained via the subscription event of session
+        or when the client has the `유저 정보 조회` scope.
+
+        If the channel Id of :class:`UserClient` is not filled, it can't found client.
+
+        Parameters
+        ----------
+        channel_id : str
+            A channel ID to get :class:`UserClient`
+        """
         for user_client in self.user_client:
             if user_client.channel_id != channel_id:
                 continue
@@ -314,6 +375,13 @@ class Client(BaseEventManager):
 
     @initial_async_setup
     async def get_channel(self, channel_ids: list[str]) -> list[Channel]:
+        """Get channel information.
+
+        Parameters
+        ----------
+        channel_ids : list[str]
+            An unique ID of the channel to lookup.
+        """
         result = await self.http.get_channel(channel_ids=",".join(channel_ids))
         return result.content.data
 
@@ -321,11 +389,27 @@ class Client(BaseEventManager):
     async def get_category(
         self, query: str, size: Optional[int] = 20
     ) -> list[Category]:
+        """Get category information
+
+        Parameters
+        ----------
+        query : str
+            A name of category.
+        size : Optional[int], optional
+            A number of categories to load at once, by default 20
+        """
         result = await self.http.get_category(query=query, size=size)
         return result.content.data
 
     @initial_async_setup
     async def get_live(self, size: int = 20) -> SearchResult[Live]:
+        """Get live information
+
+        Parameters
+        ----------
+        size : Optional[int], optional
+            A number of lives to load at once, by default 20
+        """
         result = await self.http.get_lives(size=size)
         data = result.content
         data._next_method = self.http.get_lives
@@ -333,6 +417,7 @@ class Client(BaseEventManager):
         return data
 
     async def wait_until_connect(self):
+        """Waits until the session connected."""
         await self._gateway_ready.wait()
         return
 
