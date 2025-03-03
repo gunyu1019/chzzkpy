@@ -10,7 +10,7 @@
    * pydub (`pip install pydub`)
    * ffmpeg 또는 pyAudio, simpleaudio 중 하나 (`pip install pyAudio`, `pip install simpleaudio`)
 
-### [Discord Webhook](discord_webhook.py)
+### [(비공식API) Discord Webhook](discord_webhook.py)
 사용자가 입력한 채팅을 디스코드 채팅방에 실시간으로 반영됩니다.
 
 <table>

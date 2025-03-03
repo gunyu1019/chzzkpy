@@ -10,13 +10,14 @@ import gtts
 import pydub
 import pydub.playback
 
-from chzzkpy.chat import ChatClient, ChatMessage
+from chzzkpy.offical import Client, Message, UserPermission
 
 # Configuration
-channel_id = "channel_id"
+client_id = "client_id"
+client_secret = "client_secret"
 
 loop = asyncio.get_event_loop()
-client = ChatClient(channel_id, loop=loop)
+client = Client(client_id, client_secret, loop=loop)
 queue = collections.deque()
 
 
@@ -51,10 +52,19 @@ async def on_connect():
 
 
 @client.event
-async def on_chat(message: ChatMessage):
+async def on_chat(message: Message):
     queue.append(message.content)
     if not thread.is_alive():
         thread.start()
 
 
-client.run()
+async def main():
+    authorization_url = client.generate_authorization_token_url(redirect_url="https://localhost", state="abcd12345")
+    print(f"Please login with this url: {authorization_url}")
+    code = input("Please input response code: ")
+
+    user_client = await client.generate_user_client(code, "abcd12345")
+    await user_client.connect(UserPermission(chat=True))
+
+
+asyncio.run(main())
