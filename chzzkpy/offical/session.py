@@ -21,47 +21,14 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from typing import NamedTuple, Literal, Optional
-
-from .client import Client
-from .error import *
-from .manage import *
-from .live import LiveStatus, LiveDetail, LivePollingStatus
-from .user import User, UserRole
-
-# Extension Package
-try:
-    from .chat import *
-except ModuleNotFoundError:
-    pass
-
-try:
-    from .offical import *
-except ModuleNotFoundError:
-    pass
+from typing import Literal
+from .base_model import ChzzkModel
 
 
-__title__ = "chzzkpy"
-__author__ = "gunyu1019"
-__license__ = "MIT"
-__copyright__ = "Copyright 2024-present gunyu1019"
-__version__ = "2.0.0-beta01"  # version_info.to_string()
+class SessionKey(ChzzkModel):
+    url: str
 
 
-class VersionInfo(NamedTuple):
-    major: int
-    minor: int
-    micro: int
-    release_level: Optional[Literal["alpha", "beta", "candidate", "final"]]
-    serial: int
-
-    def to_string(self) -> str:
-        _version_info = f"{self.major}.{self.minor}.{self.micro}"
-        if self.release_level is not None:
-            _version_info += "-{}".format(self.release_level) + str(self.serial)
-        return _version_info
-
-
-version_info: VersionInfo = VersionInfo(
-    major=2, minor=0, micro=0, release_level="beta", serial=1
-)
+class EventSubscribeMessage(ChzzkModel):
+    event_type: Literal["CHAT", "DONATION"]
+    channel_id: str
