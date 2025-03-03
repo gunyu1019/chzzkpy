@@ -10,23 +10,6 @@ An unofficial python library for [Chzzk(Naver Live Streaming Service)](https://c
 * [공식 문서(한국어)](https://gunyu1019.github.io/chzzkpy/ko/)
 * [Offical Documentation(English)](https://gunyu1019.github.io/chzzkpy/en/)
 
-#### Available Features
-
-* 채팅
-    * 사용자 상호 채팅
-    * 사용자 후원
-    * 메시지 상단 고정하기
-    * 시스템 메시지
-    * 메시지 관리
-* 채널 관리
-    * 금칙어 설정
-    * 활동 제한
-    * 채널 규칙 설정
-    * 영상/팔로워/구독자 관리
-* 로그인 (쿠키 값 `NID_AUT`, `NID_SES` 사용)
-* 검색 (채널, 영상, 라이브, 자동완성)
-* 방송 상태 조회
-
 ## Installation
 
 **Python 3.10 or higher is required.**
@@ -51,30 +34,37 @@ $ python3 -m pip install -U .
 `chzzkpy`를 사용한 예제는 [Examples](examples)에서 확인하실 수 있습니다.<br/>
 아래는 간단한 예제입니다.
 
-#### 방송인 검색
-
+#### 챗봇 (Chat-Bot)
 ```py
-import asyncio
-import chzzkpy
+from chzzkpy.offical import Client, Donation, Message, UserPermission
+
+client_id = "Prepared Client ID"
+client_secret = "Prepared Client Secret"
+client = Client(client_id, client_secret)
+
+@client.event
+async def on_chat(message: Message):
+    if message.content == "!안녕":
+        await message.send("%s님, 안녕하세요!" % message.profile.nickname)
+
+
+@client.event
+async def on_donation(donation: Donation):
+    await donation.send("%s님, %d원 후원 감사합니다." % (donation.profile.nickname, donation.pay_amount))
 
 
 async def main():
-    client = chzzkpy.Client()
-    result = await client.search_channel("건유1019")
-    if len(result) == 0:
-        print("검색 결과가 없습니다 :(")
-        await client.close()
-        return
-    
-    print(result[0].name)
-    print(result[0].id)
-    print(result[0].image)
-    await client.close()
+    authorization_url = client.generate_authorization_token_url(redirect_url="https://localhost", state="abcd12345")
+    print(f"Please login with this url: {authorization_url}")
+    code = input("Please input response code: ")
+
+    user_client = await client.generate_user_client(code, "abcd12345")
+    await user_client.connect(UserPermission.all())
 
 asyncio.run(main())
 ```
 
-#### 챗봇 (Chat-Bot)
+#### 챗봇 (Chat-Bot / 비공식 API)
 
 ```py
 from chzzkpy.chat import ChatClient, ChatMessage, DonationMessage
@@ -96,6 +86,30 @@ async def on_donation(message: DonationMessage):
 # 챗봇 기능을 이용하기 위해서는 네이버 사용자 인증이 필요합니다.
 # 웹브라우저의 쿠키 값에 있는 NID_AUT와 NID_SES 값으로 로그인을 대체할 수 있습니다.
 client.run("NID_AUT", "NID_SES")
+```
+
+
+#### 방송인 검색
+
+```py
+import asyncio
+import chzzkpy
+
+
+async def main():
+    client = chzzkpy.Client()
+    result = await client.search_channel("건유1019")
+    if len(result) == 0:
+        print("검색 결과가 없습니다 :(")
+        await client.close()
+        return
+    
+    print(result[0].name)
+    print(result[0].id)
+    print(result[0].image)
+    await client.close()
+
+asyncio.run(main())
 ```
 
 #### 팔로워 불러오기 (Get followers)
