@@ -48,14 +48,6 @@ class ChzzkManageSession(ChzzkSession):
     def __init__(self, loop: Optional[asyncio.AbstractEventLoop] = None):
         super().__init__(base_url="https://api.chzzk.naver.com", loop=loop)
 
-        self.add_restrict.before_hook(self.query_to_json)
-        self.add_role.before_hook(self.query_to_json)
-        self.add_prohibit_word.before_hook(self.query_to_json)
-        self.edit_restrict.before_hook(self.query_to_json)
-        self.edit_prohibit_word.before_hook(self.query_to_json)
-        self.set_chat_rule.before_hook(self.query_to_json)
-        self.reject_unrestrict_request.before_hook(self.query_to_json)
-
     @get_pydantic_response_model()
     @get(
         "/manage/v1/channels/{channel_id}/restrict-users/{target_id}/validate",
@@ -73,10 +65,10 @@ class ChzzkManageSession(ChzzkSession):
     async def add_restrict(
         self,
         channel_id: Annotated[str, Path],
-        target_id: Annotated[str, Query.to_camel()],
-        memo: Annotated[str, Query] = "",
+        target_id: Annotated[str, BodyJson.to_camel()],
+        memo: Annotated[str, BodyJson] = "",
         restrict_days: Annotated[
-            Literal[1, 3, 7, 15, 30, 90] | None, Query.to_camel()
+            Literal[1, 3, 7, 15, 30, 90] | None, BodyJson.to_camel()
         ] = 7,
     ) -> Content[RestrictUser]:
         pass
@@ -92,9 +84,9 @@ class ChzzkManageSession(ChzzkSession):
         self,
         channel_id: Annotated[str, Path],
         target_id: Annotated[str, Path],
-        memo: Annotated[str, Query] = "",
+        memo: Annotated[str, BodyJson] = "",
         restrict_days: Annotated[
-            Literal[1, 3, 7, 15, 30, 90] | None, Query.to_camel()
+            Literal[1, 3, 7, 15, 30, 90] | None, BodyJson.to_camel()
         ] = 7,
     ) -> Content[RestrictUser]:
         pass
@@ -116,14 +108,14 @@ class ChzzkManageSession(ChzzkSession):
     async def add_role(
         self,
         channel_id: Annotated[str, Path],
-        target_id: Annotated[str, Query.to_camel()],
+        target_id: Annotated[str, BodyJson.to_camel()],
         user_role_type: Annotated[
             Literal[
                 "STREAMING_CHAT_MANAGER",
                 "STREAMING_CHANNEL_MANAGER",
                 "STREAMING_STATTLE_MANAGER",
             ],
-            Query.to_camel(),
+            BodyJson.to_camel(),
         ],
     ) -> Content[PartialUser]:
         pass
@@ -160,7 +152,7 @@ class ChzzkManageSession(ChzzkSession):
     async def add_prohibit_word(
         self,
         channel_id: Annotated[str, Path],
-        prohibit_word: Annotated[str, Query.to_camel()],
+        prohibit_word: Annotated[str, BodyJson.to_camel()],
     ) -> Content[None]:
         pass
 
@@ -198,7 +190,7 @@ class ChzzkManageSession(ChzzkSession):
         self,
         channel_id: Annotated[str, Path],
         prohibit_word_number: Annotated[str, Path],
-        prohibit_word: Annotated[str, Query.to_camel()],
+        prohibit_word: Annotated[str, BodyJson.to_camel()],
     ) -> Content[None]:
         pass
 
@@ -224,7 +216,7 @@ class ChzzkManageSession(ChzzkSession):
     @put("/manage/v1/channels/{channel_id}/chat-rules", directly_response=True)
     @ChzzkSession.configuration(login_able=True, login_required=True)
     async def set_chat_rule(
-        self, channel_id: Annotated[str, Path], rule: Annotated[str, Query.to_camel()]
+        self, channel_id: Annotated[str, Path], rule: Annotated[str, BodyJson.to_camel()]
     ) -> Content[None]:
         pass
 
@@ -321,6 +313,6 @@ class ChzzkManageSession(ChzzkSession):
         self,
         channel_id: Annotated[str, Path],
         request_number: Annotated[int, Path],
-        judgment: Annotated[str, Query.to_camel()],
+        judgment: Annotated[str, BodyJson.to_camel()],
     ) -> Content[UnrestrictRequest]:
         pass
