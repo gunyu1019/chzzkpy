@@ -1,8 +1,8 @@
 import asyncio
 
-from ahttp_client import get, post, delete, Query, Path
+from ahttp_client import get, post, put, delete, Query, Path, BodyJson
 from ahttp_client.extension import get_pydantic_response_model
-from typing import Annotated, Optional
+from typing import Annotated, Any, Optional
 
 from .access_token import AccessToken
 from .profile import Profile
@@ -29,6 +29,30 @@ class ChzzkAPIChatSession(ChzzkAPISession):
         chat_channel_id: Annotated[str, Query.to_camel()],
         target_id: Annotated[str, Query.to_camel()],
     ) -> Content[PartialUser]:
+        pass
+
+    @put(
+        "/manage/v1/channels/{channel_id}/donations/mission/reject",
+        directly_response=True,
+    )
+    @ChzzkSession.configuration(login_able=True, login_required=True)
+    async def mission_request_reject(
+        self,
+        channel_id: Annotated[str, Path],
+        mission_donation_id: Annotated[str, BodyJson.to_camel()],
+    ) -> Content[dict[str, Any]]:
+        pass
+
+    @put(
+        "/manage/v1/channels/{channel_id}/donations/mission/approve",
+        directly_response=True,
+    )
+    @ChzzkSession.configuration(login_able=True, login_required=True)
+    async def mission_request_approve(
+        self,
+        channel_id: Annotated[str, Path],
+        mission_donation_id: Annotated[str, BodyJson.to_camel()],
+    ) -> Content[dict[str, Any]]:
         pass
 
 
