@@ -163,6 +163,7 @@ class BaseFlags:
 
 @fill_with_flags()
 class UserPermission(BaseFlags):
+    """The UserPermission Flag is used by session for event subscriptions."""
     def __init__(self, value: int = 0, **kwargs: bool) -> None:
         self.value: int = value
         for key, value in kwargs.items():
@@ -172,7 +173,7 @@ class UserPermission(BaseFlags):
 
     @classmethod
     def all(cls: Type[UserPermission]) -> UserPermission:
-        """A factory method that creates a :class:`Intents` with everything enabled."""
+        """A factory method that creates a :class:`UserPermission` with everything enabled."""
         value = reduce(lambda a, b: a | b, cls.VALID_FLAGS.values())
         self = cls.__new__(cls)
         self.value = value
@@ -180,8 +181,10 @@ class UserPermission(BaseFlags):
 
     @flag_value
     def chat(self):
+        """:class:`bool`: Whether chat event are enabled."""
         return 1 << 0
 
     @flag_value
     def donation(self):
+        """:class:`bool`: Whether donation event are enabled."""
         return 1 << 1
