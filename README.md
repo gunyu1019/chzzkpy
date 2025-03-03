@@ -28,7 +28,6 @@ $ git clone https://github.com/gunyu1019/chzzkpy.git -b develop
 $ cd chzzkpy
 $ python3 -m pip install -U .
 ```
-
 ## Quick Example
 
 `chzzkpy`를 사용한 예제는 [Examples](examples)에서 확인하실 수 있습니다.<br/>
@@ -139,6 +138,84 @@ async def main():
 
 asyncio.run(main())
 ```
+
+
+## Migration from v1 to v2
+`chzzkpy`는 `v2`부터 [치지직 개발자센터](https://developers.chzzk.naver.com/)에서 제공하는 API를 지원합니다.
+비공식 API를 더 이상 이용하지 못하는 것은 아닙니다. <br/>
+비공식 API를 사용하여 돌아오는 네이버계정 보호조치 또는 법적 책임을 패키지 개발자에게 책임을 요구할 수 없습니다.<br/>
+따라서 개인용 채팅봇이 아닌 이상 공식 API를 사용하는 것을 권장하고 싶습니다.<br/>
+공식 API와 비공식 API는 완전히 다른 패키지지만, 최대한 개발 환경을 고려하여 비슷하게 만들도록 노력하였습니다.
+
+* **클라이언트 인증** ([Reference](https://chzzk.gitbook.io/chzzk/chzzk-api/authorization))<br/>
+    `v1`는 네이버 송.수신 중에 입력되는 `NID_AUT`와 `NID_SES` 쿠키로 인증을 합니다. <br/>
+    반면에 `v2 (공식API)`는 [치지직 개발자센터](https://developers.chzzk.naver.com/)에서 발급받은 `client_id`와 `client_secret`으로 인증을 합니다.
+    ```py
+    # Before
+    client = ChatClient()
+    client.login("NID_AUT", "NID_SES")
+
+    # After
+    client = Client(client_id, client_secret)
+    ```
+
+    채팅을 수신받거나, 방송 정보를 설정하는 등의 사용자와 관련된 기능을 이용할 경우에는 사용자 인증 과정이 필요합니다.<br/>
+    이때는 `client.generate_authorization_token_url`와 `client.generate_user_client` 메소드를 이용하여 사용자 인증을 진행해야합니다.
+
+    ```py
+    async def authentic_user():
+        authorization_url = client.generate_authorization_token_url(redirect_url="https://localhost", state="abcd12345")
+        print(f"Please login with this url: {authorization_url}")
+        code = input("Please input response code: ")
+
+        user_client = await client.generate_user_client(code, "abcd12345")
+    ```
+
+    인증을 성공하였다면, `UserClient` 형태의 유저 정보를 담고 있는 클라이언트를 반환받습니다. <br/>
+    클라이언트를 이용하여 채널에 필요한 기능을 API Scope에 따라 이용할 수 있습니다.<br/>
+
+* **이벤트 수신**<br/>
+    공식 API에서는 후원(텍스트, 영상)과 채팅을 수신받을 수 있지만, 이들을 수신하기 위한 이벤트 구독 과정이 필요합니다.<br/>
+    `v2`에서는 `connect()` 메소드에서 `UserPermission`을 입력받아 이벤트를 구독할 수 있습니다.<br/>
+    
+    ```py
+    permission_type1 = UserPermission.all()  # 채팅, 후원 이벤트를 모두 수신받습니다.
+    permission_type2 = UserPermission(chat=True)  # 채팅 이벤트만 수신받습니다.
+    permission_type3 = UserPermission(donation=True)  # 후원 이벤트만 수신받습니다.
+
+    await client.connect(permission=permission_type1)
+    # 또는 await UserClient.subscription(permission=permission_type1, ...) 메소드를 이용하여 수신받도록 설정할 수 잇습니다.
+    ```
+
+* **다중 채널 연결 지원**<br/>
+    `chzzkpy` v2에서는 다중 채널 연결을 지원합니다. 따라서, 하나의 클라이언트로 여러 채널을 수신받거나 메시지를 보낼 수 있습니다.<br/>
+    만약에 다중 채널을 연결할 경우, `connect` 메소드의 `addition_connect` 매개변수를 아래와 같이 사용하여 다중 연결을 할 수 있습니다.<br/>
+
+    ```py
+    @client.event
+    async def on_chat(message):
+        ...
+
+    async def main():
+        authorization_url = client.generate_authorization_token_url(redirect_url="https://localhost", state="abcd12345")
+        print(f"Please login with this url: {authorization_url}")
+        code1 = input("Please input response code1: ")
+        code2 = input("Please input response code2: ")
+
+        user_client1 = await client.generate_user_client(code1, "abcd12345")
+        user_client2 = await client.generate_user_client(code2, "abcd12345")
+
+        await user_client1.connect(UserPermission.all(), addition_connect=True)
+        await user_client2.connect(UserPermission.all()) 
+    ```
+
+    `addition_connect` 매개변수를 활성화하면 이벤트 수신을 백그라운드에서 진행하게 됩니다.<br/>
+    `user_client1`의 이벤트는 백그라운드에서 수신받고, `user_client2`의 이벤트는 메인에서 블록되어 수신받을 수 있습니다.
+
+    필요에 따라 `addition_connect` 매개변수를 이용하여 메인 블록을 다른 곳에 활용할 수도 있습니다.<br/>
+    다만, 메인 블록이 종료되면 백그라운드도 모두 종료되어 메인 블록이 대기할 수 있도록 설정해야 합니다.
+
+궁금하시거나, 문의사항이 있으시면 [Developer Space(디스코드)](https://discord.gg/YWUvFQ69us) 또는 [이슈(Issue)](https://github.com/gunyu1019/chzzkpy/issues)를 이용하시면 적극 도와드리도록 하겠습니다.
 
 ## Contributions 
 `chzzkpy`의 기여는 언제든지 환영합니다!<br/>
