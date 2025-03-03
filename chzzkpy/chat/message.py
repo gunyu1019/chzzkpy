@@ -123,7 +123,7 @@ class MessageDetail(Message[E], Generic[E]):
     member_count: int = Field(validation_alias=AliasChoices("mbrCnt", "memberCount"))
     message_status: Optional[str] = Field(
         validation_alias=AliasChoices("msgStatusType", "messageStatusType"),
-        default=None
+        default=None,
     )
 
     # message_tid: ???
@@ -189,29 +189,33 @@ class DonationMessage(
 ):
     @Message._based_client
     async def approve(self):
-        if self.type != ChatType.DONATION or not isinstance(self.extras, (MissionDonationExtra, MissionParticipationDonation)):
+        if self.type != ChatType.DONATION or not isinstance(
+            self.extras, (MissionDonationExtra, MissionParticipationDonation)
+        ):
             raise TypeError("approve method allow in Mission Donation Message.")
-        
+
         if self.extras.status != "PENDING":
             raise TypeError("This mission is not pending status.")
-    
+
         await self._client._api_session.mission_request_approve(
             channel_id=self._client.channel_id,
-            mission_donation_id=self.extras.mission_donation_id
+            mission_donation_id=self.extras.mission_donation_id,
         )
         return
-    
+
     @Message._based_client
     async def reject(self):
-        if self.type != ChatType.DONATION or not isinstance(self.extras, (MissionDonationExtra, MissionParticipationDonation)):
+        if self.type != ChatType.DONATION or not isinstance(
+            self.extras, (MissionDonationExtra, MissionParticipationDonation)
+        ):
             raise TypeError("approve method allow in Mission Donation Message.")
-        
+
         if self.extras.status != "PENDING":
             raise TypeError("This mission is not pending status.")
-    
+
         await self._client._api_session.mission_request_reject(
             channel_id=self._client.channel_id,
-            mission_donation_id=self.extras.mission_donation_id
+            mission_donation_id=self.extras.mission_donation_id,
         )
         return
 
@@ -236,7 +240,9 @@ class SubscriptionGiftExtra(ExtraBase):
     sender_user_id: Optional[str] = Field(alias="userIdHash", default=None)
     receiver_user_id: Optional[str] = Field(alias="receiverUserIdHash", default=None)
     receiver_user: Optional[str] = Field(alias="receiverNickname", default=None)
-    receiver_user_verified_mark: bool = Field(alias="receiverVerifiedMark", default=False)
+    receiver_user_verified_mark: bool = Field(
+        alias="receiverVerifiedMark", default=False
+    )
     selection_type: Optional[str] = None  # "MANUAL"
 
     @computed_field
@@ -246,7 +252,7 @@ class SubscriptionGiftExtra(ExtraBase):
             userIdHash=self.receiver_user_id,
             nickname=self.receiver_user,
             profileImageUrl=None,
-            verifiedMark=self.receiver_user_verified_mark
+            verifiedMark=self.receiver_user_verified_mark,
         )
 
 
