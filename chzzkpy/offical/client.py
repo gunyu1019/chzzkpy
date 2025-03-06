@@ -631,6 +631,30 @@ class UserClient:
 
     @refreshable
     async def connect(self, permission: UserPermission, addition_connect: bool = False):
+        """Connect to user session to handle donation or chatting
+
+        Parameters
+        ----------
+        permission: UserPermission
+            The permissions to receive, such as chat or donation.
+            After connecting, permission is granted via subscription method.
+        addition_connect : Optional[bool]
+            This parameter used for multiple connections, by default False
+            If addition_connect is False, the connection is completed and a main task is blocked to wait for a response.
+            However addition_connect is True, a task waiting for a response is processed in the background.
+
+        Returns
+        -------
+        str
+            Returns an unique session ID, if the gateway connects succeeds.
+            A session ID used by subscribe, unsubscribe method.
+
+        Warning
+        -------
+        If the main task is empty,
+        as if addition_connect parameter used for all connections is true,
+        all connections are aborted.
+        """
         session_key = await self.http.generate_user_session(token=self.access_token)
         self._gateway = await ChzzkGateway.connect(
             url=session_key.content.url,
@@ -644,9 +668,10 @@ class UserClient:
         await self.subscribe(permission, self._session_id)
         if not addition_connect:
             await task
-        return
+        return self._session_id
 
     async def disconnect(self):
+        """Disconnect from session."""
         if self._gateway is None:
             return
         await self._gateway.disconnect()
