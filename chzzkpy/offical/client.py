@@ -423,6 +423,34 @@ class Client(BaseEventManager):
 
     @initial_async_setup
     async def connect(self, addition_connect: bool = False) -> str:
+        """Connect to session to handle donation or chatting
+        A Client session can have more than one connection. (Maximum Connection: 10)
+
+        Parameters
+        ----------
+        addition_connect : Optional[bool]
+            This parameter used for multiple connections, by default False
+            If addition_connect is False, the connection is completed and a main task is blocked to wait for a response.
+            However addition_connect is True, a task waiting for a response is processed in the background.
+
+        Returns
+        -------
+        str
+            Returns an unique session ID, if the gateway connects succeeds.
+            A session ID used by subscribe, unsubscribe method.
+
+        Warning
+        -------
+        If the main task is empty,
+        as if addition_connect parameter used for all connections is true,
+        all connections are aborted.
+
+        Raises
+        ------
+        ChatConnectFailed.max_connection
+            A Client Session can connect up to 10 sessions.
+            When connection request more than 10 sessions, ChatConnectFailed exception raised.
+        """
         if len(self._gateway.keys()) > 10:
             raise ChatConnectFailed.max_connection()
         
@@ -442,6 +470,14 @@ class Client(BaseEventManager):
         return gateway_cls.session_id
 
     async def disconnect(self, session_id: Optional[str] = None):
+        """Disconnect from session.
+
+        Parameters
+        ----------
+        session_id : Optional[str]
+            A session ID to disconnect from session.
+            When session parameter is empty, all client sessions are disconnected.
+        """
         if len(self._gateway) <= 0:
             return
         
@@ -456,6 +492,7 @@ class Client(BaseEventManager):
 
 
 class UserClient:
+    """Represents a user client to provide feature that requires user authentication."""
     def __init__(self, parent: Client, access_token: AccessToken):
         self.parent_client = parent
         self.dispatch = self.parent_client.dispatch
@@ -494,6 +531,8 @@ class UserClient:
 
     @property
     def is_expired(self) -> bool:
+        """An access token for user expires after a certain amount of time.
+        Returns status that an access token had been expired."""
         return (
             datetime.datetime.now() - self._token_generated_at
         ).hours > self.access_token.expires_in
@@ -510,6 +549,7 @@ class UserClient:
         return wrapper
 
     async def refresh(self):
+        """Refresh the access token."""
         refresh_token = await self.http.generate_access_token(
             grant_type="refresh_token",
             client_id=self.client_id,
@@ -521,6 +561,7 @@ class UserClient:
         return
 
     async def revoke(self):
+        """Revoke the access token."""
         await self.http.revoke_access_token(
             client_id=self.client_id,
             client_secret=self.client_secret,
@@ -530,6 +571,14 @@ class UserClient:
 
     @refreshable
     async def fetch_self(self) -> Channel:
+        """Get channel based on access token.
+        This method required "유저 정보 조회" API Scope on the access token.
+
+        Returns
+        -------
+        Channel
+            A channel based on the access token.
+        """
         raw_user_self = await self.http.get_user_self(token=self.access_token)
         user_self = raw_user_self.content
         self.channel_id = user_self.id
@@ -538,6 +587,14 @@ class UserClient:
 
     @refreshable
     async def send_message(self, content: str) -> SentMessage:
+        """Send the message to channel
+        This method required "채팅 메시지 전송" API Scope on the access token.
+
+        Parameters
+        ----------
+        content : str
+            A content of message.
+        """
         response = await self.http.create_message(
             token=self.access_token, message=content
         )
@@ -549,16 +606,26 @@ class UserClient:
 
     @refreshable
     async def send_announcement(self, content: str):
+        """Send the announcement to channel
+        This method required "채팅 공지 등록" API Scope on the access token.
+
+        Parameters
+        ----------
+        content : str
+            A content of announcement.
+        """
         await self.http.create_notice(token=self.access_token, message=content)
         return
 
     @property
     def is_connected(self) -> bool:
+        """Returns the gateway had been connected."""
         if self._gateway is None:
             return False
         return self._gateway.is_connected
 
     async def wait_until_connect(self):
+        """Waits until the session connected."""
         await self._gateway_ready.wait()
         return
 
