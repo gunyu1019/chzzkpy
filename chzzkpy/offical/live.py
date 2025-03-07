@@ -23,11 +23,11 @@ SOFTWARE.
 
 import datetime
 
-from typing import Optional, Literal
+from typing import Optional
 from pydantic import Field, PrivateAttr, computed_field
 
 from .base_model import ChzzkModel
-from .category import Category
+from .category import CATEGORY_TYPE, Category
 from .channel import Channel
 
 
@@ -42,7 +42,7 @@ class Live(ChzzkModel):
 
     _category_id: Optional[str] = PrivateAttr(default=None)
     _category_name: Optional[str] = PrivateAttr(default=None)
-    _category_type: Optional[Literal["GAME", "SPORT", "ETC"]] = PrivateAttr(
+    _category_type: Optional[CATEGORY_TYPE] = PrivateAttr(
         default=None
     )
 
@@ -63,7 +63,9 @@ class Live(ChzzkModel):
 
     @computed_field
     @property
-    def category(self) -> Category:
+    def category(self) -> Optional[Category]:
+        if self._category_id is None:
+            return 
         return Category(
             categoryId=self._category_id,
             categoryValue=self._category_name,
