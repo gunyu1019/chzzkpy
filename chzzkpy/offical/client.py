@@ -116,7 +116,20 @@ class BaseEventManager:
         self, coro: Callable[..., Coroutine[Any, Any, Any]]
     ) -> Callable[..., Coroutine[Any, Any, Any]]:
         """A decorator that registers an event to listen to.
-        The function must be corutine. Else client cause TypeError
+        The function must be coroutine. Else client cause TypeError.
+
+        A list of events that the client can listen to.
+        * `on_chat`: Called when a Message is created and sent.
+        * `on_connect`: Called when the client is done preparing the data received from Chzzk.
+        * `on_donation`: Called when a listener donates
+        * `on_error`: Called when event raise exception
+
+        Example
+        -------
+        >>> @client.event
+        ... async def on_chat(message: Message):
+        ...     print(message.content)
+        ...     await message.send("Reply Mesage")
         """
         if not asyncio.iscoroutinefunction(coro):
             raise TypeError("function must be a coroutine.")
