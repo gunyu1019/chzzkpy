@@ -164,6 +164,7 @@ class BaseFlags:
 @fill_with_flags()
 class UserPermission(BaseFlags):
     """The UserPermission Flag is used by session for event subscriptions."""
+
     def __init__(self, value: int = 0, **kwargs: bool) -> None:
         self.value: int = value
         for key, value in kwargs.items():

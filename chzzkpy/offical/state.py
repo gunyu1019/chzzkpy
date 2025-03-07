@@ -74,7 +74,7 @@ class ConnectionState:
         for _, func in inspect.getmembers(self):
             if hasattr(func, "__event_parsing__"):
                 self.event_parsers[func.__event_parsing__] = func
-    
+
     @staticmethod
     def __dummy_method(payload):
         return payload
@@ -176,7 +176,9 @@ class ConnectionState:
         data = self.json_serializer(raw_data)
         message = Message.model_validate(data)
         message._state = self
-        message._access_token = self.access_token or self.variable_access_token(message.channel)
+        message._access_token = self.access_token or self.variable_access_token(
+            message.channel
+        )
         self.dispatch("chat", message)
         return
 
@@ -185,6 +187,8 @@ class ConnectionState:
         data = self.json_serializer(raw_data)
         message = Donation.model_validate(data)
         message._state = self
-        message._access_token = self.access_token or self.variable_access_token(message.channel)
+        message._access_token = self.access_token or self.variable_access_token(
+            message.channel
+        )
         self.dispatch("donation", message)
         return

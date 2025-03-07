@@ -196,6 +196,7 @@ class BaseEventManager:
 
 class Client(BaseEventManager):
     """Represents a client to connect Chzzk (Naver Live Streaming)."""
+
     def __init__(
         self,
         client_id: str,
@@ -210,14 +211,12 @@ class Client(BaseEventManager):
         self.http: Optional[ChzzkOpenAPISession] = None
         self.user_client: list[UserClient] = []
 
-        handler = {
-            "connect": lambda _ : self._gateway_ready.set()
-        }
+        handler = {"connect": lambda _: self._gateway_ready.set()}
         self._connection = ConnectionState(
-            dispatch=self.dispatch, 
-            handler=handler, 
+            dispatch=self.dispatch,
+            handler=handler,
             http=self.http,
-            variable_access_token=self.__variable_access_token
+            variable_access_token=self.__variable_access_token,
         )
 
         self._gateway: dict[str, ChzzkGateway] = dict()
@@ -278,9 +277,9 @@ class Client(BaseEventManager):
         code : str
             A code received from :meth:`generate_authorization_token_url`.
         state : str
-            A state code. 
+            A state code.
             This value must be the same as the state of :meth:`generate_authorization_token_url`.
-        
+
         Returns
         -------
         AccessToken
@@ -303,7 +302,7 @@ class Client(BaseEventManager):
         code : str
             A code received from :meth:`generate_authorization_token_url`.
         state : str
-            A state code. 
+            A state code.
             This value must be the same as the state of :meth:`generate_authorization_token_url`.
         """
         access_token = await self.generate_access_token(code, state)
@@ -354,7 +353,7 @@ class Client(BaseEventManager):
             pass
         self.user_client.append(user_cls)
         return user_cls
-    
+
     def get_user_client_cached(self, channel_id: str) -> Optional[UserClient]:
         """Get :class:`UserClient` as channel_id.
         The channel id of :class:`UserClient` can be obtained via the subscription event of session
@@ -453,7 +452,7 @@ class Client(BaseEventManager):
         """
         if len(self._gateway.keys()) > 10:
             raise ChatConnectFailed.max_connection()
-        
+
         session_key = await self.http.generate_client_session()
         gateway_cls = await ChzzkGateway.connect(
             url=session_key.content.url,
@@ -480,7 +479,7 @@ class Client(BaseEventManager):
         """
         if len(self._gateway) <= 0:
             return
-        
+
         if session_id is not None:
             await self._gateway.disconnect()
             self._gateway.pop(session_id)
@@ -493,6 +492,7 @@ class Client(BaseEventManager):
 
 class UserClient:
     """Represents a user client to provide feature that requires user authentication."""
+
     def __init__(self, parent: Client, access_token: AccessToken):
         self.parent_client = parent
         self.dispatch = self.parent_client.dispatch
@@ -698,12 +698,16 @@ class UserClient:
         """
         session_id = session_id or self._session_id
         if session_id is None:
-            raise TypeError("A session_id is not filled. Connect to session using UserClient.connect() method or Client.connect().")
-        
+            raise TypeError(
+                "A session_id is not filled. Connect to session using UserClient.connect() method or Client.connect()."
+            )
+
         for permission_name, condition in permission:
             if not condition:
                 continue
-            await self.http.subcribe_event(event=permission_name, session_key=session_id, token=self.access_token)
+            await self.http.subcribe_event(
+                event=permission_name, session_key=session_id, token=self.access_token
+            )
             _log.debug(f"Subscribe {permission_name.upper()} Event")
         return
 
@@ -723,8 +727,10 @@ class UserClient:
         """
         session_id = session_id or self._gateway_id
         if session_id is None:
-            raise TypeError("A session_id is not filled. Connect to session using UserClient.connect() method or Client.connect().")
-    
+            raise TypeError(
+                "A session_id is not filled. Connect to session using UserClient.connect() method or Client.connect()."
+            )
+
         for permission_name, condition in permission:
             if not condition:
                 continue
@@ -742,7 +748,7 @@ class UserClient:
         return raw_chat_setting.content
 
     @overload
-    async def set_chat_setting(self, instance: ChatSetting) -> None: 
+    async def set_chat_setting(self, instance: ChatSetting) -> None:
         """Set the chat settings.
 
         Parameters
@@ -759,7 +765,7 @@ class UserClient:
         chat_available_group: Literal["ALL", "FOLLOWER", "MANAGER", "SUBSCRIBER"],
         min_follower_minute: FollowingPeriod,
         allow_subscriber_in_follower_mode: bool,
-    ) -> None: 
+    ) -> None:
         """Set the chat settings.
 
         Parameters
@@ -811,7 +817,7 @@ class UserClient:
         return raw_live_setting.content
 
     @overload
-    async def set_live_setting(self, instance: BrodecastSetting) -> None: 
+    async def set_live_setting(self, instance: BrodecastSetting) -> None:
         """Set the live settings.
 
         Parameters
