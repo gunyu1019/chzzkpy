@@ -142,10 +142,28 @@ asyncio.run(main())
 
 ## Migration from v1 to v2
 `chzzkpy`는 `v2`부터 [치지직 개발자센터](https://developers.chzzk.naver.com/)에서 제공하는 API를 지원합니다.
-비공식 API를 더 이상 이용하지 못하는 것은 아닙니다. <br/>
-비공식 API를 사용하여 돌아오는 네이버계정 보호조치 또는 법적 책임을 패키지 개발자에게 책임을 요구할 수 없습니다.<br/>
-따라서 개인용 채팅봇이 아닌 이상 공식 API를 사용하는 것을 권장하고 싶습니다.<br/>
-공식 API와 비공식 API는 완전히 다른 패키지지만, 최대한 개발 환경을 고려하여 비슷하게 만들도록 노력하였습니다.
+비공식 API를 더 이상 이용하지 못하는 것은 아닙니다.<br/> 
+치지직 개발자센터에서 제공하는 API 중에는 미션 후원을 수신 받을 수 없는 등의 부족한 부분이 상당히 많습니다.<br/>
+네이버 측에서는 공식으로 비공식 API 사용하는 것을 허락하지 않았으며, 그렇다고 비공식 API를 사용한다고 제지한다고 하지않는다고 공식 회신을 받았습니다..<br/>
+어느 정도 네이버 측의 답변이며 비공식 API 이용과정에서 비정상적인 요청이 있을 경우 네이버 계정 보호조치가 이루어질 수 있습니다.<br/>
+이 부분에 대해서 패키지 개발자는 어떠한 책임도 져드릴 수 없습니다.<br/><br/>
+개인용 채팅봇이 아닌 이상 최대한 공식 API를 사용하는 것을 권장하고 싶습니다.<br/>
+공식 API와 비공식 API는 완전히 다른 패키지지만, 최대한 개발 환경을 고려하여 비슷하게 만들도록 노력하였습니다.<br/><br/>
+아래에 기재된 내용은 v1(비공식 API)에서 v2(공식 API)로 주요 마이그레이션 과정을 서술하였습니다.<br/>
+
+* **패키지 추가**
+    공식 API는 비공식 API와 달리 별도의 패키지로 구성되어있습니다.
+    따라서 공식 API를 이용하기 위해서는 아래와 같이 호출하셔야 합니다.
+    ```py
+    # Before
+    from chzzkpy.chat import ChatClient
+
+    # After
+    from chzzkpy.offical import Client
+    ```
+    
+    이전에 이슈에서 공지사항으로 게재했던 것([내용](https://github.com/gunyu1019/chzzkpy/issues/42#issuecomment-2661430481))과 같이 `chzzkpy.offical` 패키지가 `chzzkpy`로 대체될 예정이긴 합니다.
+    반대로 `chzzkpy`는 더 이상 지원하지 않거나, `chzzkpy.unoffical`로 대체될 예정입니다.
 
 * **클라이언트 인증** ([Reference](https://chzzk.gitbook.io/chzzk/chzzk-api/authorization))<br/>
     `v1`는 네이버 송.수신 중에 입력되는 `NID_AUT`와 `NID_SES` 쿠키로 인증을 합니다. <br/>
@@ -159,16 +177,21 @@ asyncio.run(main())
     client = Client(client_id, client_secret)
     ```
 
-    채팅을 수신받거나, 방송 정보를 설정하는 등의 사용자와 관련된 기능을 이용할 경우에는 사용자 인증 과정이 필요합니다.<br/>
+    채팅을 수신받거나, 방송 정보를 설정하는 등의 채널 권한이 필요한 기능은 사용자 인증 과정이 필요합니다.<br/>
     이때는 `client.generate_authorization_token_url`와 `client.generate_user_client` 메소드를 이용하여 사용자 인증을 진행해야합니다.
 
     ```py
     async def authentic_user():
+        # OAuth2 로그인 방식과 동일하게 진행됩니다.
         authorization_url = client.generate_authorization_token_url(redirect_url="https://localhost", state="abcd12345")
         print(f"Please login with this url: {authorization_url}")
         code = input("Please input response code: ")
 
         user_client = await client.generate_user_client(code, "abcd12345")
+
+        # API Scope에 "유저 정보 조회"가 있다면 로그인한 사용자의 채널을 조회할 수 있습니다.
+        # await user_client.fetch_self()
+        print(user_client.channel_id)
     ```
 
     인증을 성공하였다면, `UserClient` 형태의 유저 정보를 담고 있는 클라이언트를 반환받습니다. <br/>
@@ -194,7 +217,9 @@ asyncio.run(main())
     ```py
     @client.event
     async def on_chat(message):
-        ...
+        # user_client1 에서 수신받은 채팅, user_client2 에서 수신받은 채팅 모두 수신이 가능합니다.
+        # 채널을 보낸 곳을 기준으로 "응답" 메시지를 회신합니다.
+        await message.send("응답")
 
     async def main():
         authorization_url = client.generate_authorization_token_url(redirect_url="https://localhost", state="abcd12345")
