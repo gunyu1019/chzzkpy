@@ -42,9 +42,7 @@ class Live(ChzzkModel):
 
     _category_id: Optional[str] = PrivateAttr(default=None)
     _category_name: Optional[str] = PrivateAttr(default=None)
-    _category_type: Optional[CATEGORY_TYPE] = PrivateAttr(
-        default=None
-    )
+    _category_type: Optional[CATEGORY_TYPE] = PrivateAttr(default=None)
 
     _channel_id: Optional[str] = PrivateAttr(default=None)
     _channel_name: Optional[str] = PrivateAttr(default=None)
@@ -65,7 +63,7 @@ class Live(ChzzkModel):
     @property
     def category(self) -> Optional[Category]:
         if self._category_id is None:
-            return 
+            return
         return Category(
             categoryId=self._category_id,
             categoryValue=self._category_name,

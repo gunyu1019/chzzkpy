@@ -298,9 +298,7 @@ class ChzzkOpenAPISession(Session):
         self,
         token: Annotated[AccessToken, Header],
         default_live_title: Annotated[Optional[str], BodyJson.to_camel()] = None,
-        category_type: Annotated[
-            Optional[CATEGORY_TYPE], BodyJson.to_camel()
-        ] = None,
+        category_type: Annotated[Optional[CATEGORY_TYPE], BodyJson.to_camel()] = None,
         category_id: Annotated[Optional[str], BodyJson.to_camel()] = None,
         tags: Annotated[Optional[list[str]], BodyJson.to_camel()] = None,
     ) -> None:

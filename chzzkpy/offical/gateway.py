@@ -359,7 +359,8 @@ class ChzzkGateway:
 
     async def received_message(self, data: Packet):
         _log.debug(
-            f"Received Packet (Engine Packet Type: {data.engine_packet_type}, Socket Packet Type: {data.socket_packet_type}, Data: {data.data})"
+            f"Received Packet (Engine Packet Type: {data.engine_packet_type}, "
+            f"Socket Packet Type: {data.socket_packet_type}, Data: {data.data})"
         )
         if data.is_socket_packet:
             if (
