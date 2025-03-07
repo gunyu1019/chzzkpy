@@ -61,14 +61,14 @@ async def on_chat(message: Message):
         return
     item = items[0]
     spotify_client.add_to_queue(item.uri)
-    await message.send(
-        "%s - %s 노래가 추가되었습니다." % (item.name, item.artists)
-    )
+    await message.send("%s - %s 노래가 추가되었습니다." % (item.name, item.artists))
     return
 
 
 async def main():
-    authorization_url = chzzk_client.generate_authorization_token_url(redirect_url="https://localhost", state="abcd12345")
+    authorization_url = chzzk_client.generate_authorization_token_url(
+        redirect_url="https://localhost", state="abcd12345"
+    )
     print(f"Please login with this url: {authorization_url}")
     code = input("Please input response code: ")
 

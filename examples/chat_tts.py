@@ -59,7 +59,9 @@ async def on_chat(message: Message):
 
 
 async def main():
-    authorization_url = client.generate_authorization_token_url(redirect_url="https://localhost", state="abcd12345")
+    authorization_url = client.generate_authorization_token_url(
+        redirect_url="https://localhost", state="abcd12345"
+    )
     print(f"Please login with this url: {authorization_url}")
     code = input("Please input response code: ")
 
