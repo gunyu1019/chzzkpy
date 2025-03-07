@@ -44,13 +44,7 @@ class flag_value:
         self.flag: int = func(None)
         self.__doc__: Optional[str] = func.__doc__
 
-    @overload
-    def __get__(self, instance: None, owner: Type[BF]) -> Self: ...
-
-    @overload
-    def __get__(self, instance: BF, owner: Type[BF]) -> bool: ...
-
-    def __get__(self, instance: Optional[BF], owner: Type[BF]) -> Any:
+    def __get__(self, instance: Optional[BF], owner: Type[BF]) -> Any | bool:
         if instance is None:
             return self
         return instance._has_flag(self.flag)
