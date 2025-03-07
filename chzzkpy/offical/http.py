@@ -32,7 +32,7 @@ from ahttp_client.request import RequestCore
 
 from .authorization import AccessToken
 from .base_model import Content, SearchResult
-from .category import Category
+from .category import CATEGORY_TYPE, Category
 from .channel import Channel
 from .chat import ChatSetting
 from .error import (
@@ -299,7 +299,7 @@ class ChzzkOpenAPISession(Session):
         token: Annotated[AccessToken, Header],
         default_live_title: Annotated[Optional[str], BodyJson.to_camel()] = None,
         category_type: Annotated[
-            Optional[Literal["GAME", "SPORT", "ETC"]], BodyJson.to_camel()
+            Optional[CATEGORY_TYPE], BodyJson.to_camel()
         ] = None,
         category_id: Annotated[Optional[str], BodyJson.to_camel()] = None,
         tags: Annotated[Optional[list[str]], BodyJson.to_camel()] = None,
