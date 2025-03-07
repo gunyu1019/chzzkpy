@@ -24,7 +24,7 @@ SOFTWARE.
 from __future__ import annotations
 
 from pydantic import PrivateAttr
-from typing import Generic, TypeVar, TYPE_CHECKING
+from typing import Generic, Optional, TypeVar, TYPE_CHECKING
 
 from ..base_model import ChzzkModel
 from ..base_model import Content
@@ -50,7 +50,7 @@ class SearchResult(ChzzkModel, Generic[T]):
         if "page" in kwargs.keys():
             self._page = kwargs.pop("page")
 
-    async def next(self) -> None:
+    async def next(self) -> Optional[SearchResult]:
         if self._page is None or self._next_method is None:
             raise RuntimeError(f"This search result has only one result.")
         next_id = self._page["next"]
