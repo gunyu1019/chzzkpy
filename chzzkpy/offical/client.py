@@ -685,6 +685,17 @@ class UserClient:
     async def subscribe(
         self, permission: UserPermission, session_id: Optional[str] = None
     ):
+        """Subcribe to events based on UserPermission.
+        Subsribed events are recived in the session.
+
+        Parameters
+        ----------
+        permission : UserPermission
+            The session subscribed evnet.
+        session_id : Optional[str]
+            ID of the session to receive event, by default None
+            The session ID is provided as a parameter in `on_connect` event
+        """
         session_id = session_id or self._session_id
         if session_id is None:
             raise TypeError("A session_id is not filled. Connect to session using UserClient.connect() method or Client.connect().")
@@ -700,6 +711,16 @@ class UserClient:
     async def unsubscribe(
         self, permission: UserPermission, session_id: Optional[str] = None
     ):
+        """Unsubcribe to events based on UserPermission.
+        The events specified by UserPermission are no longer received.
+
+        Parameters
+        ----------
+        permission : UserPermission
+            The session unsubscribed evnet.
+        session_id : Optional[str]
+            ID of the session to block event, by default None
+        """
         session_id = session_id or self._gateway_id
         if session_id is None:
             raise TypeError("A session_id is not filled. Connect to session using UserClient.connect() method or Client.connect().")
@@ -716,11 +737,20 @@ class UserClient:
 
     @refreshable
     async def get_chat_setting(self) -> ChatSetting:
+        """Get the chat settings."""
         raw_chat_setting = await self.http.get_chat_setting(token=self.access_token)
         return raw_chat_setting.content
 
     @overload
-    async def set_chat_setting(self, instance: ChatSetting) -> None: ...
+    async def set_chat_setting(self, instance: ChatSetting) -> None: 
+        """Set the chat settings.
+
+        Parameters
+        ----------
+        instance : ChatSetting
+            A instance of chat setting.
+        """
+        ...
 
     @overload
     async def set_chat_setting(
@@ -729,7 +759,21 @@ class UserClient:
         chat_available_group: Literal["ALL", "FOLLOWER", "MANAGER", "SUBSCRIBER"],
         min_follower_minute: FollowingPeriod,
         allow_subscriber_in_follower_mode: bool,
-    ) -> None: ...
+    ) -> None: 
+        """Set the chat settings.
+
+        Parameters
+        ----------
+        chat_available_condition : Literal['NONE', 'REAL_NAME']
+            Allow only users who have been authenticated.
+        chat_available_group : Literal['ALL', 'FOLLOWER', 'MANAGER', 'SUBSCRIBER']
+             Set the types of chat that are allowed.
+        min_follower_minute : FollowingPeriod
+            Allow users who follow channel to make chat available after a specified amount of time.
+        allow_subscriber_in_follower_mode : bool
+            Set whether subscriber will follow the minimum follow time.
+        """
+        ...
 
     @refreshable
     async def set_chat_setting(
@@ -762,11 +806,20 @@ class UserClient:
 
     @refreshable
     async def get_live_setting(self) -> BrodecastSetting:
+        """Get the live settings."""
         raw_live_setting = await self.http.get_live_setting(token=self.access_token)
         return raw_live_setting.content
 
     @overload
-    async def set_live_setting(self, instance: BrodecastSetting) -> None: ...
+    async def set_live_setting(self, instance: BrodecastSetting) -> None: 
+        """Set the live settings.
+
+        Parameters
+        ----------
+        instance : BrodecastSetting
+            A instance of live setting.
+        """
+        ...
 
     @overload
     async def set_live_setting(
@@ -774,7 +827,19 @@ class UserClient:
         title: Optional[str] = None,
         category: Optional[Category] = None,
         tags: Optional[list[str]] = None,
-    ) -> None: ...
+    ) -> None:
+        """Set the live settings.
+
+        Parameters
+        ----------
+        title : Optional[str]
+            The name of brodecast.
+        category : Optional[Category]
+            The category of brodecast.
+        tags : Optional[list[str]]
+            The tags of brodecast.
+        """
+        ...
 
     @refreshable
     async def set_live_setting(
@@ -804,5 +869,6 @@ class UserClient:
 
     @refreshable
     async def get_stream_key(self) -> str:
+        """Get the stream key to brodecast"""
         stream_key = await self.http.get_stream_key(token=self.access_token)
         return stream_key.content["streamKey"]
