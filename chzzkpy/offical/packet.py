@@ -63,7 +63,7 @@ class Packet:
         if attachment_separator > 0 and data[0:attachment_separator].isdigit():
             # Unused attachment feature in chzzk Session API.
             # attachment_count = data[0:attachment_separator]
-            data = data[attachment_separator + 1 :]
+            data = data[attachment_separator + 1:]
 
         # Decode Namespace
         namespace = None
@@ -74,7 +74,7 @@ class Packet:
                 data = str()
             else:
                 namespace = data[0:namespace_separtor]
-                data = data[namespace_separtor + 1 :]
+                data = data[namespace_separtor + 1:]
 
             query = namespace.find("?")
             if query >= 0:
