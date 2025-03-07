@@ -27,8 +27,11 @@ from typing import Literal, Optional
 from .base_model import ChzzkModel
 
 
+CATEGORY_TYPE = Literal["GAME", "SPORTS", "ETC"]
+
+
 class Category(ChzzkModel):
     id: str = Field(alias="categoryId")
     name: str = Field(alias="categoryValue")
-    type: Literal["GAME", "SPORT", "ETC"] = Field(alias="categoryType")
+    type: Optional[CATEGORY_TYPE] = Field(alias="categoryType")
     image: Optional[str] = Field(alias="posterImageUrl", default=None)
