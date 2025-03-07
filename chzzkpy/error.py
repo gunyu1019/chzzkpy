@@ -38,13 +38,49 @@ class LoginRequired(ChzzkpyException):
         )
 
 
-class NotFound(ChzzkpyException):
+class BadRequestException(ChzzkpyException):
+    """Exception that’s raised for when status code 400 occurs."""
+
+    def __init__(self, message: Optional[str] = None):
+        if message is None:
+            message = "Invaild input value"
+        super(BadRequestException, self).__init__(message)
+
+
+class UnauthorizedException(ChzzkpyException):
+    """Exception that’s raised for when status code 401 occurs."""
+
+    def __init__(self, message: Optional[str] = None):
+        if message is None:
+            message = "Not Found"
+        super(UnauthorizedException, self).__init__(message)
+
+
+class ForbiddenException(ChzzkpyException):
+    """Exception that’s raised for when status code 403 occurs."""
+
+    def __init__(self, message: Optional[str] = None):
+        if message is None:
+            message = "Invaild permission"
+        super(ForbiddenException, self).__init__(message)
+
+
+class NotFoundException(ChzzkpyException):
     """Exception that’s raised for when status code 404 occurs."""
 
     def __init__(self, message: Optional[str] = None):
         if message is None:
             message = "Not Found"
-        super(NotFound, self).__init__(message)
+        super(NotFoundException, self).__init__(message)
+
+
+class TooManyRequestsException(ChzzkpyException):
+    """Exception that’s raised for when status code 429 occurs."""
+
+    def __init__(self, message: Optional[str] = None):
+        if message is None:
+            message = "Too many requests, try later."
+        super(TooManyRequestsException, self).__init__(message)
 
 
 class HTTPException(ChzzkpyException):
