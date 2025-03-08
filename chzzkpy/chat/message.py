@@ -243,11 +243,15 @@ class SubscriptionGiftExtra(ExtraBase):
     receiver_user_verified_mark: bool = Field(
         alias="receiverVerifiedMark", default=False
     )
-    selection_type: Optional[str] = None  # "MANUAL"
+    selection_type: Optional[str] = None  # "MANUAL : 지정 / RANDOM : 무작위 선물"
+    quantity: Optional[int] = None  # 선물한 개수 (N개 이상 선물한 경우)
+    partial_refunded_quantity: Optional[int] = None
 
     @computed_field
     @property
-    def receiver(self) -> PartialUser:
+    def receiver(self) -> Optional[PartialUser]:
+        if self.receiver_user_id is None:
+            return
         return PartialUser(
             userIdHash=self.receiver_user_id,
             nickname=self.receiver_user,

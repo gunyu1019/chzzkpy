@@ -32,6 +32,7 @@ from functools import wraps
 from typing import Any, overload, TYPE_CHECKING
 from yarl import URL
 
+from .authorization import AccessToken
 from .chat import ChatSetting
 from .error import ChatConnectFailed, ForbiddenException
 from .gateway import ChzzkGateway
@@ -44,7 +45,6 @@ from .state import ConnectionState
 if TYPE_CHECKING:
     from typing import Self, Literal, Optional, Callable, Coroutine
 
-    from .authorization import AccessToken
     from .base_model import SearchResult
     from .channel import Channel
     from .category import Category
@@ -278,7 +278,7 @@ class Client(BaseEventManager):
         default_url = default_url.with_query(
             {"clientId": self.client_id, "redirectUri": redirect_url, "state": state}
         )
-        return default_url.geturl()
+        return default_url.__str__()
 
     @initial_async_setup
     async def generate_access_token(self, code: str, state: str) -> AccessToken:
@@ -357,7 +357,7 @@ class Client(BaseEventManager):
         Parameters
         ----------
         access_token : AccessToken
-            Pre-prepared access token.
+            A prepared instance of access token.
         """
         user_cls = UserClient(self, access_token)
         try:
@@ -514,6 +514,12 @@ class UserClient:
 
         self.access_token = access_token
         self._token_generated_at = datetime.datetime.now()
+
+        # Resolved issue in https://github.com/gunyu1019/chzzkpy/issues/66
+        if not isinstance(self.access_token, AccessToken):
+            raise TypeError(
+                "An invalid type of parameter was entered. The access_token parameter must be AccessToken type."
+            )
 
         self._gateway: Optional[ChzzkGateway] = None
         self._gateway_ready = asyncio.Event()
