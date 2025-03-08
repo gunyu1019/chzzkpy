@@ -45,7 +45,7 @@ __title__ = "chzzkpy"
 __author__ = "gunyu1019"
 __license__ = "MIT"
 __copyright__ = "Copyright 2024-present gunyu1019"
-__version__ = "2.0.0"  # version_info.to_string()
+__version__ = "2.0.1"  # version_info.to_string()
 
 
 class VersionInfo(NamedTuple):
@@ -63,5 +63,5 @@ class VersionInfo(NamedTuple):
 
 
 version_info: VersionInfo = VersionInfo(
-    major=2, minor=0, micro=0, release_level="", serial=0
+    major=2, minor=0, micro=1, release_level="", serial=0
 )
