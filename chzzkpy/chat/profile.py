@@ -33,9 +33,31 @@ class Badge(ChzzkModel):
     image_url: Optional[str] = None
 
 
+class SubscriptionInfo(ChzzkModel):
+    _badge: Optional[dict[str, str]] = PrivateAttr(default=None)
+    accumulative_month: int
+    tier: int
+
+    def __init__(self, **kwargs):
+        super(ChzzkModel, self).__init__(**kwargs)
+        self._badge = kwargs.pop("badge", None)
+
+    @computed_field
+    @property
+    def badge(self) -> Optional[Badge]:
+        _badge = self._badge or dict()
+        if "imageUrl" not in self._badge.keys():
+            return
+        return Badge(
+            image_url=_badge["imageUrl"]
+        )
+
+
 class StreamingProperty(ChzzkModel):
     _following_dt: Optional[dict[str, str]] = PrivateAttr(default=None)
     _real_time_donation_ranking_dt: Optional[dict[str, str]] = PrivateAttr(default=None)
+    _nickname_color: Optional[dict[str, str]] = PrivateAttr(default=None)
+    _subscription: Optional[dict[str, str]] = PrivateAttr(default=None)
 
     def __init__(self, **kwargs):
         super(ChzzkModel, self).__init__(**kwargs)
@@ -43,6 +65,8 @@ class StreamingProperty(ChzzkModel):
         self._real_time_donation_ranking_dt = kwargs.pop(
             "realTimeDonationRanking", None
         )
+        self._nickname_color = kwargs.pop("nicknameColor", None)
+        self._subscription = kwargs.pop("subscription", None)
 
     @computed_field
     @property
@@ -60,6 +84,23 @@ class StreamingProperty(ChzzkModel):
         ):
             return
         return Badge.model_validate_json(self._real_time_donation_ranking_dt["badge"])
+
+    @computed_field
+    @property
+    def nickname_color(self) -> Optional[str]:
+        if (
+            self._nickname_color is None
+            or "colorCode" not in self._nickname_color.keys()
+        ):
+            return
+        return self._nickname_color["colorCode"]
+    
+    @computed_field
+    @property
+    def subscription(self) -> Optional[SubscriptionInfo]:
+        if self._subscription is None:
+            return
+        return SubscriptionInfo.model_validate(self._subscription)
 
 
 class ActivityBadge(Badge):
