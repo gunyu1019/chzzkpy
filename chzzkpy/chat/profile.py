@@ -39,8 +39,9 @@ class SubscriptionInfo(ChzzkModel):
     tier: int
 
     def __init__(self, **kwargs):
+        badge = kwargs.pop("badge", None)
         super(ChzzkModel, self).__init__(**kwargs)
-        self._badge = kwargs.pop("badge", None)
+        self._badge = badge
 
     @computed_field
     @property
@@ -60,13 +61,17 @@ class StreamingProperty(ChzzkModel):
     _subscription: Optional[dict[str, str]] = PrivateAttr(default=None)
 
     def __init__(self, **kwargs):
-        super(ChzzkModel, self).__init__(**kwargs)
-        self._following_dt = kwargs.pop("following", None)
-        self._real_time_donation_ranking_dt = kwargs.pop(
+        following_dt = kwargs.pop("following", None)
+        real_time_donation_ranking_dt = kwargs.pop(
             "realTimeDonationRanking", None
         )
-        self._nickname_color = kwargs.pop("nicknameColor", None)
-        self._subscription = kwargs.pop("subscription", None)
+        nickname_color = kwargs.pop("nicknameColor", None)
+        subscription = kwargs.pop("subscription", None)
+        super(ChzzkModel, self).__init__(**kwargs)
+        self._following_dt = following_dt
+        self._real_time_donation_ranking_dt = real_time_donation_ranking_dt
+        self._nickname_color = nickname_color
+        self._subscription = subscription
 
     @computed_field
     @property
@@ -110,17 +115,54 @@ class ActivityBadge(Badge):
     activated: bool
 
 
+class ViewerBadge(ChzzkModel):
+    type: Optional[str] = None
+    _badge_data: dict[str, str] = PrivateAttr(default=None)
+
+    def __init__(self, **kwargs):
+        badge_data = kwargs.pop("badge", None) or dict()
+        super(ChzzkModel, self).__init__(**kwargs)
+        self._badge_data = badge_data
+    
+    @computed_field
+    @property
+    def image_url(self) -> Optional[str]:
+        badge_data = self._badge_data
+        if "imageUrl" not in badge_data.keys():
+            return
+        return badge_data["imageUrl"]
+    
+    @computed_field
+    @property
+    def scope(self) -> Optional[str]:
+        badge_data = self._badge_data
+        if "scope" not in badge_data.keys():
+            return
+        return badge_data["scope"]
+    
+    @computed_field
+    @property
+    def badge_id(self) -> Optional[str]:
+        badge_data = self._badge_data
+        if "badge_id" not in badge_data.keys():
+            return
+        return badge_data["badge_id"]
+
+
 class Profile(PartialUser):
     activity_badges: list[ActivityBadge] = Field(default_factory=list)
     user_role: Optional[UserRole] = Field(alias="userRoleCode", default=None)
     _badge: Optional[dict[str, str]] = PrivateAttr(default=None)
     _title: Optional[dict[str, str]] = PrivateAttr(default=None)
+    viewer_badges: list[ViewerBadge] = Field(default_factory=list)
     streaming_property: Optional[StreamingProperty] = None
 
     def __init__(self, **kwargs):
+        bagde_data = kwargs.pop("badge", None)
+        title_data = kwargs.pop("title", None)
         super(ChzzkModel, self).__init__(**kwargs)
-        self._badge = kwargs.pop("badge", None)
-        self._title = kwargs.pop("title", None)
+        self._badge = bagde_data
+        self._title = title_data
 
     @computed_field
     @property
