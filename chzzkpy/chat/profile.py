@@ -49,9 +49,7 @@ class SubscriptionInfo(ChzzkModel):
         _badge = self._badge or dict()
         if "imageUrl" not in self._badge.keys():
             return
-        return Badge(
-            image_url=_badge["imageUrl"]
-        )
+        return Badge(image_url=_badge["imageUrl"])
 
 
 class StreamingProperty(ChzzkModel):
@@ -62,9 +60,7 @@ class StreamingProperty(ChzzkModel):
 
     def __init__(self, **kwargs):
         following_dt = kwargs.pop("following", None)
-        real_time_donation_ranking_dt = kwargs.pop(
-            "realTimeDonationRanking", None
-        )
+        real_time_donation_ranking_dt = kwargs.pop("realTimeDonationRanking", None)
         nickname_color = kwargs.pop("nicknameColor", None)
         subscription = kwargs.pop("subscription", None)
         super(ChzzkModel, self).__init__(**kwargs)
@@ -99,7 +95,7 @@ class StreamingProperty(ChzzkModel):
         ):
             return
         return self._nickname_color["colorCode"]
-    
+
     @computed_field
     @property
     def subscription(self) -> Optional[SubscriptionInfo]:
@@ -123,7 +119,7 @@ class ViewerBadge(ChzzkModel):
         badge_data = kwargs.pop("badge", None) or dict()
         super(ChzzkModel, self).__init__(**kwargs)
         self._badge_data = badge_data
-    
+
     @computed_field
     @property
     def image_url(self) -> Optional[str]:
@@ -131,7 +127,7 @@ class ViewerBadge(ChzzkModel):
         if "imageUrl" not in badge_data.keys():
             return
         return badge_data["imageUrl"]
-    
+
     @computed_field
     @property
     def scope(self) -> Optional[str]:
@@ -139,7 +135,7 @@ class ViewerBadge(ChzzkModel):
         if "scope" not in badge_data.keys():
             return
         return badge_data["scope"]
-    
+
     @computed_field
     @property
     def badge_id(self) -> Optional[str]:
