@@ -278,7 +278,7 @@ class Client(BaseEventManager):
         default_url = default_url.with_query(
             {"clientId": self.client_id, "redirectUri": redirect_url, "state": state}
         )
-        return default_url.geturl()
+        return default_url.__str__()
 
     @initial_async_setup
     async def generate_access_token(self, code: str, state: str) -> AccessToken:
