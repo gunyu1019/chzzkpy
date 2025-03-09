@@ -326,7 +326,7 @@ class Client(BaseEventManager):
             pass
         self.user_client.append(user_cls)
         return user_cls
-    
+
     @initial_async_setup
     async def refresh_access_token(self, refresh_token: str) -> AccessToken:
         """Regenerate an Access Token.
