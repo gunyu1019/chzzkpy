@@ -585,19 +585,19 @@ class UserClient:
         """Refresh the access token."""
         refresh_token = await self.http.generate_access_token(
             grant_type="refresh_token",
-            client_id=self.client_id,
-            client_secret=self.client_secret,
+            client_id=self.parent_client.client_id,
+            client_secret=self.parent_client.client_secret,
             refresh_token=self.access_token.refresh_token,
         )
-        self._connection.access_token = self.access_token = refresh_token.data
+        self._connection.access_token = self.access_token = refresh_token.content
         self._token_generated_at = datetime.datetime.now()
         return
 
     async def revoke(self):
         """Revoke the access token."""
         await self.http.revoke_access_token(
-            client_id=self.client_id,
-            client_secret=self.client_secret,
+            client_id=self.parent_client.client_id,
+            client_secret=self.parent_client.client_secret,
             token=self.access_token.access_token,
         )
         return
