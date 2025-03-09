@@ -326,10 +326,12 @@ class Client(BaseEventManager):
             pass
         self.user_client.append(user_cls)
         return user_cls
-
+    
     @initial_async_setup
-    async def refresh_user_client(self, refresh_token: str) -> UserClient:
-        """Get :class:`UserClient` instance with refresh_token.
+    async def refresh_access_token(self, refresh_token: str) -> AccessToken:
+        """Regenerate an Access Token.
+        The Access Token in chzzk follows Open Authorization 2.0 protocol,
+         which means that access tokens expire after a certain amount of time.
 
         Parameters
         ----------
@@ -340,9 +342,21 @@ class Client(BaseEventManager):
             grant_type="refresh_token",
             client_id=self.client_id,
             client_secret=self.client_secret,
-            refresh_token=self.access_token.refresh_token,
+            refresh_token=refresh_token,
         )
-        user_cls = UserClient(self, refresh_token)
+        return refresh_token.content
+
+    @initial_async_setup
+    async def refresh_user_client(self, refresh_token: str) -> UserClient:
+        """Get :class:`UserClient` instance with refresh_token.
+
+        Parameters
+        ----------
+        refresh_token : str
+            A refresh token to re-generated access token.
+        """
+        refreshed_access_token = await self.refresh_access_token(refresh_token)
+        user_cls = UserClient(self, refreshed_access_token)
         try:
             await user_cls.fetch_self()
         except ForbiddenException:
