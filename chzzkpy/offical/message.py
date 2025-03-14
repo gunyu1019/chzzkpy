@@ -87,7 +87,7 @@ class Donation(Messageable):
     type: Literal["CHAT", "VIDEO"] = Field(alias="donationType")
     channel: str = Field(alias="channelId")
     donator_id: str = Field(alias="donatorChannelId")
-    donator_name: str = Field(alias="donatorChannelId")
+    donator_name: str = Field(alias="donatorNickname")
 
     pay_amount: int
     donation_text: str
