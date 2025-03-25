@@ -61,25 +61,26 @@ class NaverGameChatSession(NaverGameAPISession):
     @get_pydantic_response_model()
     @get("/nng_main/v1/chats/access-token", directly_response=True)
     @ChzzkSession.configuration(login_able=True)
-    @Query.default_query("chatType", "STREAMING")
     async def chat_access_token(
-        self, channel_id: Annotated[str, Query.to_camel()]
+        self,
+        channel_id: Annotated[str, Query.to_camel()],
+        chat_type: Annotated[str, BodyJson.to_camel()] = "STREAMING",
     ) -> Content[AccessToken]:
         pass
 
     @get_pydantic_response_model()
     @delete("/nng_main/v1/chats/notices", directly_response=True)
     @ChzzkSession.configuration(login_able=True, login_required=True)
-    @Query.default_query("chatType", "STREAMING")
     async def delete_notice_message(
-        self, channel_id: Annotated[str, BodyJson.to_camel()]
+        self,
+        channel_id: Annotated[str, BodyJson.to_camel()],
+        chat_type: Annotated[str, BodyJson.to_camel()] = "STREAMING",
     ) -> Content[None]:
         pass
 
     @get_pydantic_response_model()
     @post("/nng_main/v1/chats/notices", directly_response=True)
     @ChzzkSession.configuration(login_able=True, login_required=True)
-    @Query.default_query("chatType", "STREAMING")
     async def set_notice_message(
         self,
         channel_id: Annotated[str, BodyJson.to_camel()],
@@ -88,13 +89,13 @@ class NaverGameChatSession(NaverGameAPISession):
         message_time: Annotated[int, BodyJson.to_camel()],
         message_user_id_hash: Annotated[int, BodyJson.to_camel()],
         streaming_channel_id: Annotated[int, BodyJson.to_camel()],
+        chat_type: Annotated[str, BodyJson.to_camel()] = "STREAMING",
     ) -> Content[None]:
         return
 
     @get_pydantic_response_model()
     @post("/nng_main/v1/chats/blind-message", directly_response=True)
     @ChzzkSession.configuration(login_able=True, login_required=True)
-    @Query.default_query("chatType", "STREAMING")
     async def blind_message(
         self,
         channel_id: Annotated[str, BodyJson.to_camel()],
@@ -102,6 +103,7 @@ class NaverGameChatSession(NaverGameAPISession):
         message_time: Annotated[int, BodyJson.to_camel()],
         message_user_id_hash: Annotated[int, BodyJson.to_camel()],
         streaming_channel_id: Annotated[int, BodyJson.to_camel()],
+        chat_type: Annotated[str, BodyJson.to_camel()] = "STREAMING",
     ) -> Content[None]:
         pass
 
@@ -111,10 +113,10 @@ class NaverGameChatSession(NaverGameAPISession):
         directly_response=True,
     )
     @ChzzkSession.configuration(login_able=True, login_required=True)
-    @Query.default_query("chatType", "STREAMING")
     async def profile_card(
         self,
         chat_channel_id: Annotated[str, Path],
         user_id: Annotated[str, Path],
+        chat_type: Annotated[str, BodyJson.to_camel()] = "STREAMING",
     ) -> Content[Profile]:
         pass
