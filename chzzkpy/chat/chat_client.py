@@ -167,7 +167,7 @@ class ChatClient(Client):
     async def _confirm_live_status(self):
         live_status = await self.live_status(channel_id=self.channel_id)
         if live_status is None:
-            return
+            raise ChatConnectFailed.channel_is_null(self.channel_id)
 
         if self._status != live_status.status:
             self._status = live_status.status
@@ -179,6 +179,15 @@ class ChatClient(Client):
         if live_status.chat_channel_id == self.chat_channel_id:
             return
 
+        if (
+            live_status.adult
+            and live_status.user_adult_status != "ADULT"
+            and live_status.chat_channel_id is None
+        ):
+            raise ChatConnectFailed.adult_channel(self.channel_id)
+        elif live_status.chat_channel_id is None:
+            raise ChatConnectFailed.chat_channel_is_null()
+
         _log.debug("A chat_channel_id has been updated. Reconnect websocket.")
         await self._gateway.close()
 
@@ -186,22 +195,17 @@ class ChatClient(Client):
         raise ReconnectWebsocket()
 
     async def polling(self) -> None:
-        session_id: Optional[str] = None
         while not self.is_closed:
             try:
-                self._gateway = await ChzzkWebSocket.from_client(
-                    self, self._connection, session_id=session_id
-                )
+                self._gateway = await ChzzkWebSocket.from_client(self, self._connection)
 
                 # Initial Connection
-                if session_id is None:
-                    await self._gateway.send_open(
-                        access_token=self.access_token.access_token,
-                        chat_channel_id=self.chat_channel_id,
-                        mode="READ" if self.user_id is None else "SEND",
-                        user_id=self.user_id,
-                    )
-                    session_id = self._gateway.session_id
+                await self._gateway.send_open(
+                    access_token=self.access_token.access_token,
+                    chat_channel_id=self.chat_channel_id,
+                    mode="READ" if self.user_id is None else "SEND",
+                    user_id=self.user_id,
+                )
 
                 last_check_time = datetime.datetime.now()
 
@@ -218,7 +222,6 @@ class ChatClient(Client):
                         await self._confirm_live_status()
             except ReconnectWebsocket:
                 self.dispatch("disconnect")
-                session_id = None
                 continue
 
     # Event Handler
