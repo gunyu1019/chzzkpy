@@ -167,7 +167,7 @@ class ChatClient(Client):
     async def _confirm_live_status(self):
         live_status = await self.live_status(channel_id=self.channel_id)
         if live_status is None:
-            return
+            raise ChatConnectFailed.channel_is_null(self.channel_id)
 
         if self._status != live_status.status:
             self._status = live_status.status
@@ -178,6 +178,15 @@ class ChatClient(Client):
 
         if live_status.chat_channel_id == self.chat_channel_id:
             return
+
+        if (
+            live_status.adult
+            and live_status.user_adult_status != "ADULT"
+            and live_status.chat_channel_id is None
+        ):
+            raise ChatConnectFailed.adult_channel(self.channel_id)
+        elif live_status.chat_channel_id is None:
+            raise ChatConnectFailed.chat_channel_is_null()
 
         _log.debug("A chat_channel_id has been updated. Reconnect websocket.")
         await self._gateway.close()
