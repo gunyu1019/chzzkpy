@@ -50,6 +50,16 @@ class ChatConnectFailed(ChzzkpyException):
             f"Adult verification is required to connect to chat on this channel({channel_id})."
             f"Please use login(), or proceed to adult verification."
         )
+    
+    @classmethod
+    def conenct_failed(cls, ret_code: int, ret_message: str):
+        return cls(
+            f"Chat Initial Connect Failed (Code: {ret_code}, Message: {ret_message})"
+        )
+    
+    @classmethod
+    def session_id_missing(cls):
+        return cls("Missing Session ID to keep gateway.")
 
 
 class ConnectionClosed(Exception):
