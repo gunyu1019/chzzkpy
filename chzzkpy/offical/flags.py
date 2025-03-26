@@ -33,7 +33,6 @@ from typing import (
     TypeVar,
     Optional,
     overload,
-    Self,
 )
 
 BF = TypeVar("BF", bound="BaseFlags")
@@ -90,33 +89,33 @@ class BaseFlags:
             setattr(self, key, value)
 
     @classmethod
-    def _from_value(cls, value: int) -> Self:
+    def _from_value(cls, value: int):
         self = cls.__new__(cls)
         self.value = value
         return self
 
-    def __or__(self, other: Self) -> Self:
+    def __or__(self, other):
         return self._from_value(self.value | other.value)
 
-    def __and__(self, other: Self) -> Self:
+    def __and__(self, other):
         return self._from_value(self.value & other.value)
 
-    def __xor__(self, other: Self) -> Self:
+    def __xor__(self, other):
         return self._from_value(self.value ^ other.value)
 
-    def __ior__(self, other: Self) -> Self:
+    def __ior__(self, other):
         self.value |= other.value
         return self
 
-    def __iand__(self, other: Self) -> Self:
+    def __iand__(self, other):
         self.value &= other.value
         return self
 
-    def __ixor__(self, other: Self) -> Self:
+    def __ixor__(self, other):
         self.value ^= other.value
         return self
 
-    def __invert__(self) -> Self:
+    def __invert__(self):
         max_bits = max(self.VALID_FLAGS.values()).bit_length()
         max_value = -1 + (2**max_bits)
         return self._from_value(self.value ^ max_value)
