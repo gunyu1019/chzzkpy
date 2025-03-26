@@ -186,22 +186,19 @@ class ChatClient(Client):
         raise ReconnectWebsocket()
 
     async def polling(self) -> None:
-        session_id: Optional[str] = None
         while not self.is_closed:
             try:
                 self._gateway = await ChzzkWebSocket.from_client(
-                    self, self._connection, session_id=session_id
+                    self, self._connection
                 )
 
                 # Initial Connection
-                if session_id is None:
-                    await self._gateway.send_open(
-                        access_token=self.access_token.access_token,
-                        chat_channel_id=self.chat_channel_id,
-                        mode="READ" if self.user_id is None else "SEND",
-                        user_id=self.user_id,
-                    )
-                    session_id = self._gateway.session_id
+                await self._gateway.send_open(
+                    access_token=self.access_token.access_token,
+                    chat_channel_id=self.chat_channel_id,
+                    mode="READ" if self.user_id is None else "SEND",
+                    user_id=self.user_id,
+                )
 
                 last_check_time = datetime.datetime.now()
 
@@ -218,7 +215,6 @@ class ChatClient(Client):
                         await self._confirm_live_status()
             except ReconnectWebsocket:
                 self.dispatch("disconnect")
-                session_id = None
                 continue
 
     # Event Handler
