@@ -197,9 +197,7 @@ class ChatClient(Client):
     async def polling(self) -> None:
         while not self.is_closed:
             try:
-                self._gateway = await ChzzkWebSocket.from_client(
-                    self, self._connection
-                )
+                self._gateway = await ChzzkWebSocket.from_client(self, self._connection)
 
                 # Initial Connection
                 await self._gateway.send_open(

@@ -32,7 +32,12 @@ from typing import Any, Callable, Optional, Literal, TYPE_CHECKING
 import aiohttp
 
 from .enums import ChatCmd, get_enum, ChatType
-from .error import ChatConnectFailed, ConnectionClosed, WebSocketClosure, ReconnectWebsocket
+from .error import (
+    ChatConnectFailed,
+    ConnectionClosed,
+    WebSocketClosure,
+    ReconnectWebsocket,
+)
 
 if TYPE_CHECKING:
     from typing_extensions import Self
@@ -154,10 +159,9 @@ class ChzzkWebSocket:
         if cmd_type == ChatCmd.CONNECTED:
             if "retCode" in data.keys() or "retMsg" in data.keys():
                 raise ChatConnectFailed.conenct_failed(
-                    ret_code=data.get("retCode"),
-                    ret_message=data.get("retMsg")
+                    ret_code=data.get("retCode"), ret_message=data.get("retMsg")
                 )
-        
+
             if body is None or "sid" not in body.keys():
                 raise ChatConnectFailed.session_id_missing()
             self.session_id = body["sid"]
