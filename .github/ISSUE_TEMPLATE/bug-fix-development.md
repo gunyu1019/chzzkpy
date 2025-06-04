@@ -7,14 +7,15 @@ assignees: ''
 
 ---
 
-## Describe the bug<br/>
-A clear and concise description of what the bug is.
+## Summary<br/>
+무슨 문제를 겪고 있고, 무엇을 고쳐야하는지 서술합니다.
 
-## Original Issue<br/>
-If available original issue, please explain the original issue number.
+## Related Issue<br/>
+관련 이슈가 한다면 아래의 양식과 같이 작성합니다.<br/>
+`- close #00`
 
 ## TODO<br/>
 - [ ] TODO 1
 
 ## Addition Context<br/>
-Add any other context or screenshots about the bug here.
+개발에 참고해야할 내용이 있다면 서술합니다.
