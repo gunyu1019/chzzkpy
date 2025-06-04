@@ -1,79 +1,76 @@
-Basic Feature
-=============
+Manage Feature
+==============
 
-Client
-------
+Manage Client
+-------------
 
-.. autoclass:: chzzkpy.client.Client
+.. autoclass:: chzzkpy.manage.ManageClient
    :members:
 
 Enumerations
 ------------
 
-.. autoclass:: chzzkpy.user.UserRole()
+.. autoclass:: chzzkpy.manage.SortType()
    :members:
    :undoc-members:
 
-Channel
--------
-
-.. autoclass:: chzzkpy.channel.PartialChannel()
+.. autoclass:: chzzkpy.manage.SubscriberTier()
    :members:
-   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
 
-.. autoclass:: chzzkpy.channel.Channel()
-   :members:
-   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
-   :undoc-members:
-   :show-inheritance:
+Chat Activity Count
+-------------------
 
-.. autoclass:: chzzkpy.channel.ChannelPersonalData()
+.. autoclass:: chzzkpy.manage.ChatActivityCount()
    :members:
    :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
 
-Search
+Search Result
+-------------
+
+.. autoclass:: chzzkpy.manage.ManageResult()
+   :members:
+   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
+   :undoc-members:
+
+.. autoclass:: chzzkpy.manage.ManageSubcriber()
+   :members:
+   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
+   :undoc-members:
+
+.. autoclass:: chzzkpy.manage.ManageFollower()
+   :members:
+   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
+   :undoc-members:
+
+.. autoclass:: chzzkpy.manage.RestrictUser()
+   :members:
+   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
+   :undoc-members:
+
+.. autoclass:: chzzkpy.manage.ManageVideo()
+   :members:
+   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
+   :undoc-members:
+
+.. autoclass:: chzzkpy.manage.FollowingInfo()
+   :members:
+   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
+   :undoc-members:
+
+Prohibit Word
+-------------
+
+.. autoclass:: chzzkpy.manage.ProhibitWord()
+   :members:
+   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
+   :undoc-members:
+
+Stream
 ------
-.. autoclass:: chzzkpy.search.SearchResult()
+
+.. autoclass:: chzzkpy.manage.Stream()
    :members:
    :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
-   :show-inheritance:
-
-.. autoclass:: chzzkpy.search.TopSearchResult()
-   :members:
-   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
-   :undoc-members:
-
-User
-----
-.. autoclass:: chzzkpy.user.PartialUser()
-   :members:
-   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
-   :undoc-members:
-
-.. autoclass:: chzzkpy.user.User()
-   :members:
-   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
-   :undoc-members:
-
-Video
------
-.. autoclass:: chzzkpy.video.PartialVideo()
-   :members:
-   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
-   :undoc-members:
-
-.. autoclass:: chzzkpy.video.Video()
-   :members:
-   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
-   :undoc-members:
-
-Exceptions
-----------
-.. autoexception:: chzzkpy.error.LoginRequired()
-
-.. autoexception:: chzzkpy.error.HTTPException()
-
-.. autoexception:: chzzkpy.error.NotFound()

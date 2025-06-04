@@ -7,7 +7,6 @@ assignees: ''
 
 ---
 
-
 ## Summary<br/>
 무슨 문제를 겪고있는지 서술해주세요.<br/>
 Please explain what the issue is.

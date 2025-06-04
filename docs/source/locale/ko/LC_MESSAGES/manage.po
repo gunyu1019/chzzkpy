@@ -1,0 +1,378 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2024-2025, gunyu1019
+# This file is distributed under the same license as the chzzkpy package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: chzzkpy \n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2025-01-01 07:26+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: 건유1019 <gunyu1019@gmail.com>\n"
+"Language: ko\n"
+"Language-Team: ko <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.16.0\n"
+
+#: ../../source/manage.rst:2
+msgid "Manage Feature"
+msgstr "채널 관리 기능"
+
+#: ../../source/manage.rst:5
+msgid "Manage Client"
+msgstr "Manage Client(클라이언트)"
+
+#: chzzkpy.manage.manage_client.ManageClient:1 of
+msgid "Represent a client that provides broadcast management functionality."
+msgstr "치지직(네이버 스트리밍 서비스)의 채널 관리 기능을 제공하는 객체입니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.add_prohibit_word:1 of
+msgid "Add a prohibit word at chat."
+msgstr "채팅 금칙어를 추가합니다."
+
+#: ../../source/manage.rst
+msgid "Parameters"
+msgstr "Parameters"
+
+#: chzzkpy.manage.manage_client.ManageClient.add_prohibit_word:3 of
+msgid "A word to prohibit."
+msgstr "금지할 단어입니다."
+
+#: ../../source/manage.rst
+msgid "Returns"
+msgstr "Retruns"
+
+#: chzzkpy.manage.manage_client.ManageClient.add_prohibit_word:6 of
+msgid "Returns the generated prohibit word."
+msgstr "생성된 금칙어 단어를 반환합니다."
+
+#: ../../source/manage.rst
+msgid "Return type"
+msgstr "Return type"
+
+#: chzzkpy.manage.manage_client.ManageClient.add_restrict:1 of
+msgid "Add an user to restrict activity."
+msgstr "사용자를 채널에서 활동을 하지못하도록 제한합니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.add_restrict:3 of
+msgid ""
+"A user object to add restrict activity. Instead, it can be user id or "
+"nickname."
+msgstr "활동 제한할 사용자를 입력합니다. 대신에 사용자의 ID 또는 닉네임을 사용할 수 있습니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.add_restrict:7 of
+msgid "Returns an object containning activity-restricted users."
+msgstr "활동이 제한된 사용자의 정보가 담긴 객체입니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.add_role:1 of
+msgid "Add a broadcast permission to user."
+msgstr "사용자에게 채널에서 특정 권한을 부여합니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.add_role:3 of
+msgid "A user object to add role. Instead, it can be user id or nickname."
+msgstr "권한을 부여할 사용자를 입력합니다. 대신에 사용자 ID 또는 닉네임을 사용할 수 있습니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.add_role:6 of
+msgid ""
+"A enumeration class containing broadcast role. It can only set the role "
+"to :attr:`UserRole.chat_manager`, :attr:`UserRole.settlement_manager`, or"
+" :attr:`UserRole.channel_manager`. Giving any other role will cause a "
+":exc:`TypeError` exception."
+msgstr ""
+"사용자에게 부여할 채널 권한입니다. 권한은 :attr:`UserRole.chat_manager` , "
+":attr:`UserRole.settlement_manager` ,  :attr:`UserRole.channel_manager` 만"
+" 부여할 수 습니다. 다른 권한을 인수로 넣으면, :exc:`TypeError` 예외가 발생합니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.add_role:12 of
+msgid "Returns an user with added role."
+msgstr "권한이 추가된 사용자의 정보가 담긴 객체를 반환받습니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.chat_activity_count:1 of
+msgid "Get chat activity count of user."
+msgstr "사용자의 활동 정보를 가져옵니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.chat_activity_count:3 of
+msgid "A user object to get chat activity count. Instead, it can be user id."
+msgstr "활동 정보를 가져올 사용자의 객체입니다. 대신에 사용자 ID 또는 닉네임을 사용할 수 있습니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.chat_activity_count:7 of
+msgid ""
+"* *ChatActivityCount* -- Returns a chat activity count object contains "
+"the count of temporary activity restrictions, * *the count of activity "
+"restrictions, and the count of chats.*"
+msgstr ""
+"* *ChatActivityCount* -- 사용자 활동 정보가 담긴 Chat Activitiy Count 객체를 "
+"반환합니다.객체에는 사용자가 임시 제한 조치를 당한 횟수, 활동 제한을 당한 횟수와 사용자가 보낸 메시지의개수를 담고 있습니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.chat_activity_count:7 of
+msgid ""
+"*ChatActivityCount* -- Returns a chat activity count object contains the "
+"count of temporary activity restrictions,"
+msgstr ""
+"*ChatActivityCount* -- 사용자 활동 정보가 담긴 Chat Activitiy Count 객체를 반환합니다.객체에는 "
+"사용자가 임시 제한 조치를 당한 횟수, "
+
+#: chzzkpy.manage.manage_client.ManageClient.chat_activity_count:8 of
+msgid "*the count of activity restrictions, and the count of chats.*"
+msgstr "활동 제한을 당한 횟수와 사용자가 보낸 메시지의 개수를 담고 있습니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.close:1 of
+msgid "Closes the connection to chzzk."
+msgstr "치지직과 연결을 종료합니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.edit_prohibit_word:1 of
+msgid "Modify a prohibit word."
+msgstr "금칙어를 수정합니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.edit_prohibit_word:3 of
+msgid "The prohibit word object to modify. Instead, it can be prohibit word id."
+msgstr "수정할 금칙어의 객체입니다. 대신에 금칙어 ID를 입력할 수 있습니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.edit_prohibit_word:6
+#: chzzkpy.manage.prohibit_word.ProhibitWord.edit:3 of
+msgid "A new word to prohibit."
+msgstr "새롭게 수정할 금칙어입니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.edit_prohibit_word:9 of
+msgid "Returns the modified prohibit word."
+msgstr "수정된 금칙어가 담긴 객체를 반환받습니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.followers:1 of
+msgid "Get followers of channel."
+msgstr "채널의 팔로워 정보를 가져옵니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.followers:3
+#: chzzkpy.manage.manage_client.ManageClient.live_replay:3
+#: chzzkpy.manage.manage_client.ManageClient.restrict:3
+#: chzzkpy.manage.manage_client.ManageClient.subcribers:3
+#: chzzkpy.manage.manage_client.ManageClient.unrestrict_requests:3
+#: chzzkpy.manage.manage_client.ManageClient.videos:3 of
+msgid "The number of page, by default 0"
+msgstr "페이지 번호입니다. 기본 값은 0 입니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.followers:5 of
+msgid "The number of followers to import at once, by default 50"
+msgstr "한 번에 불러올 팔로우 수입니다. 기본 값은 50 입니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.followers:7
+#: chzzkpy.manage.manage_client.ManageClient.subcribers:7 of
+msgid "A sort order, by default SortType.recent"
+msgstr "불러올 순서를 정의합니다. 기본 값은 :attr:`SortType.recent`입니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.followers:10 of
+msgid "Returns a :class:`ManageResult` containing the follower info."
+msgstr "팔로워 정보가 담긴 :class:`ManageResult` 객체를 반환받습니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.get_chat_rule:1 of
+msgid "Get chat rule of broadcast."
+msgstr "채팅 규칙을 불러옵니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.get_chat_rule:3 of
+msgid "Returns a chat rule."
+msgstr "채팅 규칙을 반환받습니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.get_prohbit_word:1 of
+msgid ""
+"Get prohibit word with word. When word does not contain prohibit word, "
+"returns None."
+msgstr "단어로 금칙어를 불러옵니다. 검색된 결과가 없을 경우 None을 반환합니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.get_prohbit_word:4 of
+msgid "A word to find prohibit word."
+msgstr "금칙어를 찾을 단어입니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.get_prohbit_word:7 of
+msgid "When word contains prohibit words, return :class:`ProhibitWord` object."
+msgstr "설정된 금칙어 중에 단어가 포함되어 있으면, 금칙어 정보가 담긴 :class:`ProhibitWord` 객체를 반환합니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.get_prohibit_words:1 of
+msgid "Get prohibit words in chat."
+msgstr "모든 금칙어를 불러옵니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.get_prohibit_words:3 of
+msgid "Returns the prohibit words."
+msgstr "모든 금칙어 정보가 담긴 객체를 반환합니다."
+
+#: chzzkpy.manage.ManageClient.is_closed:1 of
+msgid "Indicates if the session is closed."
+msgstr "치지직 연결을 종료한 유/무를 불러옵니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.live_replay:1 of
+msgid "Get streamming replay video of channel."
+msgstr "채널의 라이브(다시보기)를 불러옵니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.live_replay:5 of
+msgid "The number of streamming replay video to import at once, by default 50"
+msgstr "한 번에 불러올 다시보기 영상의 수입니다. 기본 값은 50 입니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.live_replay:8 of
+msgid "Returns a :class:`ManageResult` containing the streamming replay video."
+msgstr "다시보기 정보가 담긴 :class:`ManageResult` 객체를 반환받습니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.remove_prohibit_word:1 of
+msgid "Remove a prohibit word."
+msgstr "금칙어를 삭제합니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.remove_prohibit_word:3 of
+msgid "The prohibit word object to remove. Instead, it can be prohibit word id."
+msgstr "삭제할 금칙어의 객체입니다. 대신에 금칙어 ID를 입력할 수 있습니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.remove_prohibit_words:1 of
+msgid "Remove all prohibit words."
+msgstr "모든 금칙어를 삭제합니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.remove_restrict:1 of
+msgid "Remove an user to restrict activity."
+msgstr "활동제한에 등록된 사용자를 제거합니다. / 채널에서 활동할 수 있도록 활동제한을 해제해줍니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.remove_restrict:3 of
+msgid ""
+"A user object to remove restrict activity. Instead, it can be user id or "
+"nickname."
+msgstr ""
+"활동 제한을 해제할 사용자 객체를 입력합니다. 대신에 사용자 ID 또는 닉네임을 사용할 수 "
+"있습니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.remove_restrict:7 of
+msgid "Returns an user whose activity is unrestricted."
+msgstr "활동 제한이 해제된 사용자의 정보가 담긴 객체를 반환합니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.remove_role:1 of
+msgid "Remove a broadcast permission to user."
+msgstr "사용자의 모든 채널 관리 권한을 제거합니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.remove_role:3 of
+msgid "A user object to remove role. Instead, it can be user id or nickname."
+msgstr ""
+"관리 권한을 해제할 사용자 객체를 입력합니다. 대신에 사용자 ID 또는 닉네임을 사용할 수 "
+"있습니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.restrict:1 of
+msgid "Get activitiy restricted user of channel."
+msgstr "채널의 활동 제한된 사용자를 불러옵니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.restrict:5 of
+msgid "The number of activity restricted user to import at once, by default 50"
+msgstr "한 번에 불러올 활동제한된 사용자의 수입니다. 기본 값은 50 입니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.restrict:7 of
+msgid "Lookup by the activity restricted user's nickname, by default None"
+msgstr "닉네임으로 활동제한된 사용자를 불러옵니다. 기본 값은 `None` 입니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.restrict:10 of
+msgid "Returns a :class:`ManageResult` containing the restricted user info."
+msgstr "활동제한 정보가 담긴 :class:`ManageResult` 객체를 반환받습니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.set_chat_rule:1 of
+msgid "Set chat rule of broadcast."
+msgstr "채팅 규칙을 설정합니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.set_chat_rule:3 of
+msgid "A new chat rule to set up."
+msgstr "설정할 채팅 규칙입니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.stream:1 of
+msgid "Get a stream key required for streamming."
+msgstr "스트리밍 방송을 위한 스트림 키를 불러옵니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.stream:3 of
+msgid "Return a stream key for streamming."
+msgstr "스트림 키를 반환받습니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.subcribers:1 of
+msgid "Get subcribers of channel."
+msgstr "채널의 구독자를 불러옵니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.subcribers:5 of
+msgid "The number of subscribers to import at once, by default 50"
+msgstr "한 번에 불러올 구독한 사용자의 수입니다. 기본 값은 50 입니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.subcribers:9 of
+msgid "Lookup by the subscriber's publish period, by default None"
+msgstr "구독 기간으로 구독한 사용자를 필터하여 불러옵니다. 기본 값은 `None` 입니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.subcribers:11 of
+msgid "Lookup by the subscriber's tier, by default None."
+msgstr "티어로 구독한 사용자를 필터하여 불러옵니다. 기본 값은 `None` 입니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.subcribers:13 of
+msgid "Lookup by the subscriber's nickname, by default None"
+msgstr "닉네임으로 구독한 사용자를 불러옵니다. 기본 값은 `None` 입니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.subcribers:16 of
+msgid "Returns a :class:`ManageResult` containing the subscriber info."
+msgstr "채널의 구독자 정보가 담긴 :class:`ManageResult` 객체를 반환받습니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.unrestrict_requests:1 of
+#, fuzzy
+msgid "Get unrestrict activity requests of channel."
+msgstr "채널의 활동 제한해제 요청을 가져옵니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.unrestrict_requests:5 of
+msgid ""
+"The number of unrestrict activity requests to import at once, by default "
+"50"
+msgstr "한 번에 불러올 활동제한 해제 요청의 수입니다. 기본 값은 50 입니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.unrestrict_requests:7 of
+msgid ""
+"Lookup by the unrestrict activity requests with user's nickname, by "
+"default None"
+msgstr "활동제한 요청을 닉네임으로 필터링합니다. 기본 값은 `None` 입니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.unrestrict_requests:10 of
+#, fuzzy
+msgid "Returns a :class:`ManageResult` containing the unrestrict requests."
+msgstr "채널의 구독자 정보가 담긴 :class:`ManageResult` 객체를 반환받습니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.videos:1 of
+msgid "Get uploaded video of channel."
+msgstr "채널에 업로드된 영상을 불러옵니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.videos:5 of
+msgid "The number of video to import at once, by default 50"
+msgstr "한 번에 불러올 영상의 수입니다. 기본 값은 50 입니다."
+
+#: chzzkpy.manage.manage_client.ManageClient.videos:8 of
+msgid "Returns a :class:`ManageResult` containing the video."
+msgstr "영상 정보가 담긴 :class:`ManageResult` 객체를 반환받습니다."
+
+#: ../../source/manage.rst:11
+msgid "Enumerations"
+msgstr "Enumerations"
+
+#: ../../source/manage.rst:22
+msgid "Chat Activity Count"
+msgstr "Chat Activity Count"
+
+#: ../../source/manage.rst:30
+msgid "Search Result"
+msgstr "Search Result"
+
+#: chzzkpy.manage.manage_search.RestrictUser.remove_restrict:1 of
+msgid "Remove this user to restrict activity."
+msgstr ""
+"활동제한에 등록된 사용자를 제거합니다. "
+"채널에서 활동할 수 있도록 활동제한을 해제해줍니다."
+
+#: ../../source/manage.rst:63
+msgid "Prohibit Word"
+msgstr "Prohibit Word"
+
+#: chzzkpy.manage.prohibit_word.ProhibitWord.edit:1 of
+msgid "Modify this prohibit word."
+msgstr "금칙된 단어를 수정합니다."
+
+#: chzzkpy.manage.prohibit_word.ProhibitWord.remove:1 of
+msgid "Remove this prohibit word."
+msgstr "금칙된 단어를 제거합니다."
+
+#: ../../source/manage.rst:71
+msgid "Stream"
+msgstr "Stream"
+
