@@ -42,7 +42,7 @@ class Payload:
             while content_length > 0:
                 encoded_content_length = (
                     content_length % 10
-                ).to_bytes() + encoded_content_length
+                ).to_bytes(1, "big") + encoded_content_length
                 content_length //= 10
 
             encoded_payload += (
