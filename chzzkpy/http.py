@@ -282,6 +282,10 @@ class ChzzkOpenAPISession(Session):
         ],
         min_follower_minute: Annotated[int, BodyJson.to_camel()],
         allow_subscriber_in_follower_mode: Annotated[bool, BodyJson.to_camel()],
+        chat_slow_mode_sec: Annotated[
+            Literal[0, 3, 5, 10, 30, 60, 120, 300], BodyJson.to_camel()
+        ],
+        chat_emoji_mode: Annotated[bool, BodyJson.to_camel()]
     ) -> None:
         pass
 
