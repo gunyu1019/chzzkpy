@@ -23,14 +23,74 @@ SOFTWARE.
 
 from typing import Any, Literal
 
-from ..error import ChzzkpyException
-from ..error import LoginRequired
-from ..error import BadRequestException
-from ..error import UnauthorizedException
-from ..error import ForbiddenException
-from ..error import NotFoundException
-from ..error import TooManyRequestsException
-from ..error import HTTPException
+
+class ChzzkpyException(Exception):
+    pass
+
+
+class LoginRequired(ChzzkpyException):
+    """Exception that’s raised when a method need login."""
+
+    def __init__(self):
+        super(LoginRequired, self).__init__(
+            "This method(feature) needs to login. Please use `login()` method."
+        )
+
+
+class BadRequestException(ChzzkpyException):
+    """Exception that’s raised for when status code 400 occurs."""
+
+    def __init__(self, message: Optional[str] = None):
+        if message is None:
+            message = "Invaild input value"
+        super(BadRequestException, self).__init__(message)
+
+
+class UnauthorizedException(ChzzkpyException):
+    """Exception that’s raised for when status code 401 occurs."""
+
+    def __init__(self, message: Optional[str] = None):
+        if message is None:
+            message = "Not Found"
+        super(UnauthorizedException, self).__init__(message)
+
+
+class ForbiddenException(ChzzkpyException):
+    """Exception that’s raised for when status code 403 occurs."""
+
+    def __init__(self, message: Optional[str] = None):
+        if message is None:
+            message = "Invaild permission"
+        super(ForbiddenException, self).__init__(message)
+
+
+class NotFoundException(ChzzkpyException):
+    """Exception that’s raised for when status code 404 occurs."""
+
+    def __init__(self, message: Optional[str] = None):
+        if message is None:
+            message = "Not Found"
+        super(NotFoundException, self).__init__(message)
+
+
+class TooManyRequestsException(ChzzkpyException):
+    """Exception that’s raised for when status code 429 occurs."""
+
+    def __init__(self, message: Optional[str] = None):
+        if message is None:
+            message = "Too many requests, try later."
+        super(TooManyRequestsException, self).__init__(message)
+
+
+class HTTPException(ChzzkpyException):
+    """Exception that’s raised when an HTTP request operation fails."""
+
+    def __init__(self, code: int, message: Optional[str] = None):
+        if message is None:
+            message = f"Reponsed error code ({code})"
+        else:
+            message += f" ({code})"
+        super(HTTPException, self).__init__(message)
 
 
 class ChatConnectFailed(ChzzkpyException):
