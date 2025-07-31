@@ -182,3 +182,8 @@ class UserPermission(BaseFlags):
     def donation(self):
         """:class:`bool`: Whether donation event are enabled."""
         return 1 << 1
+
+    @flag_value
+    def subscription(self):
+        """:class:`bool`: Whether subscription event are enabled."""
+        return 1 << 2
