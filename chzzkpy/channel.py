@@ -33,3 +33,4 @@ class Channel(ChzzkModel):
     image: Optional[str] = Field(alias="channelImageUrl", default=None)
 
     follower_count: Optional[int] = 0
+    verified_mark: bool = False
