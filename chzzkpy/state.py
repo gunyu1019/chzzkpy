@@ -29,7 +29,7 @@ import json
 from typing import Callable, Any, TYPE_CHECKING, Optional
 
 from .enums import EnginePacketType, SocketPacketType
-from .message import Donation, Message
+from .message import Donation, Subscription, Message
 from .session import EventSubscribeMessage
 
 if TYPE_CHECKING:
@@ -182,13 +182,13 @@ class ConnectionState:
         self.dispatch("chat", message)
         return
 
-    @event_parsable("donation")
-    async def _handle_donation(self, raw_data):
+    @event_parsable("subscription")
+    async def _handle_subscription(self, raw_data):
         data = self.json_serializer(raw_data)
-        message = Donation.model_validate(data)
+        message = Subscription.model_validate(data)
         message._state = self
         message._access_token = self.access_token or self.variable_access_token(
             message.channel
         )
-        self.dispatch("donation", message)
+        self.dispatch("subscription", message)
         return
