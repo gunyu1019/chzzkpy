@@ -21,8 +21,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
+import datetime
 from pydantic import Field
-from typing import Optional
+from typing import Optional, Literal
 
 from .base_model import ChzzkModel
 
@@ -34,3 +35,15 @@ class Channel(ChzzkModel):
 
     follower_count: Optional[int] = 0
     verified_mark: bool = False
+
+
+class ChannelPermission(ChzzkModel):
+    user_id: str = Field(alias="managerChannelId")
+    user_name: str = Field(alias="managerChannelName")
+    role: Literal[
+        "STREAMING_CHANNEL_OWNER",
+        "STREAMING_CHANNEL_MANAGER",
+        "STREAMING_CHAT_MANAGER",
+        "STREAMING_SETTLEMENT_MANAGER",
+    ] = Field(alias="userRole")
+    created_date: datetime.date
