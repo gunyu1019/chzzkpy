@@ -81,3 +81,8 @@ class SearchResult(ChzzkModel, Generic[T]):
         data._next_method_arguments = self._next_method_arguments
         data._next_method_key_argument = self._next_method_key_argument
         return data
+
+    def __getitem__(self, index):
+        if isinstance(index, (slice, int)):
+            return self.data[index]
+        raise TypeError("'SearchResult' object is not subscriptable.")
