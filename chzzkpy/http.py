@@ -227,7 +227,7 @@ class ChzzkOpenAPISession(Session):
         token: Annotated[Optional[AccessToken], Header] = None,
         page: Annotated[int, Query] = 0,
         size: Annotated[int, Query] = 30,
-        sort: Annotated[Literal['RECENT', 'LONGER'], Query] = "RECENT"
+        sort: Annotated[Literal["RECENT", "LONGER"], Query] = "RECENT",
     ) -> Content[SearchResult[SubscriberInfo]]:
         pass
 

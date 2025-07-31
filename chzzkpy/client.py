@@ -981,7 +981,9 @@ class UserClient:
         size : Optional[int]
             A number of followers to load at once, by default 30
         """
-        result = await self.http.get_channel_administrator(token=self.access_token, size=size)
+        result = await self.http.get_channel_administrator(
+            token=self.access_token, size=size
+        )
         data = result.content
         data._next_method = self.http.get_channel_followers
         data._next_method_key_argument = {"size": size}
@@ -989,9 +991,7 @@ class UserClient:
 
     @refreshable
     async def get_subscribers(
-        self, 
-        size: int = 30,
-        sort: Literal['RECENT', 'LONGER'] = 'RECENT'
+        self, size: int = 30, sort: Literal["RECENT", "LONGER"] = "RECENT"
     ) -> SearchResult[SubscriberInfo]:
         """Get subscribers for this channel.
 
@@ -1003,9 +1003,7 @@ class UserClient:
             A method of sorting subscribers.
         """
         result = await self.http.get_channel_subscribers(
-            token=self.access_token,
-            size=size,
-            sort=sort
+            token=self.access_token, size=size, sort=sort
         )
         data = result.content
         data._next_method = self.http.get_channel_subscribers
