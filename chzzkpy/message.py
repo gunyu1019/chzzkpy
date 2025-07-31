@@ -79,6 +79,19 @@ class Messageable(ChzzkModel):
         return message
 
 
+class Subscription(Messageable):
+    """A subscription instance received form the live.
+    Subscription can be received via the `on_subscription` event.
+    """
+    channel: str = Field(alias="channelId")
+    subscriber_id: str = Field(alias="subscriberChannelId")
+    subscriber_name: str = Field(alias="subscriberNickname")
+
+    tier_no: int
+    tier_name: str
+    month: int
+
+
 class Donation(Messageable):
     """A donation instance received form the live.
     Donations can be received via the `on_donation` event.
