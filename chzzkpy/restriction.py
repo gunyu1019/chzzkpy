@@ -21,14 +21,14 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from typing import Literal
+import datetime
+from pydantic import Field
 
 from .base_model import ChzzkModel
-from .enums import FollowingPeriod
 
 
-class ChatSetting(ChzzkModel):
-    chat_available_condition: Literal["NONE", "REAL_NAME"]
-    chat_available_group: Literal["ALL", "FOLLOWER", "MANAGER", "SUBSCRIBER"]
-    min_follower_minute: FollowingPeriod
-    allow_subscriber_in_follower_mode: bool
+class RestrictUser(ChzzkModel):
+    channel_id: str = Field(alias="restrictedChannelId")
+    channel_name: str = Field(alias="restrictedChannelName")
+    created_date: datetime.date = Field(alias="createdDate")
+    release_date: datetime.date = Field(alias="releaseDate")
