@@ -968,11 +968,19 @@ class UserClient:
 
     @refreshable
     async def get_channel_administrator(self) -> list[ChannelPermission]:
+        """Get users who have channel management permission."""
         result = await self.http.get_channel_administrator(token=self.access_token)
         return result.content
 
     @refreshable
     async def get_followers(self, size: int = 30) -> SearchResult[FollowerInfo]:
+        """Get followers for this channel.
+
+        Parameters
+        ----------
+        size : Optional[int]
+            A number of followers to load at once, by default 30
+        """
         result = await self.http.get_channel_administrator(token=self.access_token, size=size)
         data = result.content
         data._next_method = self.http.get_channel_followers
@@ -985,6 +993,15 @@ class UserClient:
         size: int = 30,
         sort: Literal['RECENT', 'LONGER'] = 'RECENT'
     ) -> SearchResult[SubscriberInfo]:
+        """Get subscribers for this channel.
+
+        Parameters
+        ----------
+        size : Optional[int]
+            A number of subscribers to load at once, by default 30
+        sort : Optional[Literal['RECENT', 'LONGER']]
+            A method of sorting subscribers.
+        """
         result = await self.http.get_channel_subscribers(
             token=self.access_token,
             size=size,
