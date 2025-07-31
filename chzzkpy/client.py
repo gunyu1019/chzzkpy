@@ -981,7 +981,7 @@ class UserClient:
         size : Optional[int]
             A number of followers to load at once, by default 30
         """
-        result = await self.http.get_channel_administrator(
+        result = await self.http.get_channel_followers(
             token=self.access_token, size=size
         )
         data = result.content
