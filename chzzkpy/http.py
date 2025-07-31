@@ -26,7 +26,7 @@ import aiohttp
 import logging
 from typing import Annotated, Optional, Literal, overload
 
-from ahttp_client import Session, request, get, post, put, BodyJson, Query, Header, Path
+from ahttp_client import Session, request, get, post, put, delete, BodyJson, Query, Header, Path
 from ahttp_client.extension import pydantic_response_model
 from ahttp_client.request import RequestCore
 
@@ -45,6 +45,7 @@ from .error import (
     HTTPException,
 )
 from .live import BrodecastSetting, Live
+from .restriction import RestrictUser
 from .session import SessionKey
 
 _log = logging.getLogger(__name__)
@@ -320,4 +321,33 @@ class ChzzkOpenAPISession(Session):
         size: Annotated[Optional[int], Query] = 20,
         next: Annotated[Optional[str], Query] = None,
     ) -> Content[SearchResult[Live]]:
+        pass
+
+    @post("/open/v1/restrict-channels", directly_response=True)
+    @authorization_configuration(is_client=False, is_user=True)
+    async def add_restrcit_user(
+        self,
+        token: Annotated[AccessToken, Header],
+        target_channel_id: Annotated[str, BodyJson.to_camel()]
+    ) -> None:
+        pass
+
+    @delete("/open/v1/restrict-channels", directly_response=True)
+    @authorization_configuration(is_client=False, is_user=True)
+    async def remove_restrcit_user(
+        self,
+        token: Annotated[AccessToken, Header],
+        target_channel_id: Annotated[str, BodyJson.to_camel()]
+    ) -> None:
+        pass
+    
+    @pydantic_response_model()
+    @get("/open/v1/restrict-channels", directly_response=True)
+    @authorization_configuration(is_client=False, is_user=True)
+    async def get_restrcit_users(
+        self,
+        token: Annotated[AccessToken, Header],
+        size: Annotated[Optional[int], Query] = 20,
+        next: Annotated[Optional[str], Query] = None,
+    ) -> Content[SearchResult[RestrictUser]]:
         pass
