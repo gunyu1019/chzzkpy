@@ -933,7 +933,7 @@ class UserClient:
             A channel id of user to add restrict activity.
         """
         await self.http.add_restrcit_user(
-            token=self.access_token, target_chnnel_id=user_id
+            token=self.access_token, target_channel_id=user_id
         )
         return
 
@@ -947,7 +947,7 @@ class UserClient:
             A channel id of user to remove restrict activity.
         """
         await self.http.remove_restrcit_user(
-            token=self.access_token, target_chnnel_id=user_id
+            token=self.access_token, target_channel_id=user_id
         )
         return
 
