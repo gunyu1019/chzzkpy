@@ -182,6 +182,17 @@ class ConnectionState:
         self.dispatch("chat", message)
         return
 
+    @event_parsable("donation")
+    async def _handle_donation(self, raw_data):
+        data = self.json_serializer(raw_data)
+        message = Donation.model_validate(data)
+        message._state = self
+        message._access_token = self.access_token or self.variable_access_token(
+            message.channel
+        )
+        self.dispatch("donation", message)
+        return
+
     @event_parsable("subscription")
     async def _handle_subscription(self, raw_data):
         data = self.json_serializer(raw_data)
