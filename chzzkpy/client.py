@@ -46,7 +46,7 @@ if TYPE_CHECKING:
     from typing import Self, Literal, Optional, Callable, Coroutine
 
     from .base_model import SearchResult
-    from .channel import Channel
+    from .channel import Channel, ChannelPermission, FollowerInfo, SubscriberInfo
     from .category import Category
     from .enums import FollowingPeriod
     from .flags import UserPermission
@@ -960,8 +960,37 @@ class UserClient:
         size : Optional[int], optional
             A number of lives to load at once, by default 20
         """
-        result = await self.http.get_restrcit_users(token=self.access_token)
+        result = await self.http.get_restrcit_users(token=self.access_token, size=size)
         data = result.content
         data._next_method = self.http.get_restrcit_users
         data._next_method_key_argument = {"size": size}
         return data
+
+    @refreshable
+    async def get_channel_administrator(self) -> list[ChannelPermission]:
+        result = await self.http.get_channel_administrator(token=self.access_token)
+        return result.content
+
+    @refreshable
+    async def get_followers(self, size: int = 30) -> SearchResult[FollowerInfo]:
+        result = await self.http.get_channel_administrator(token=self.access_token, size=size)
+        data = result.content
+        data._next_method = self.http.get_channel_followers
+        data._next_method_key_argument = {"size": size}
+        return result.content
+
+    @refreshable
+    async def get_subscribers(
+        self, 
+        size: int = 30,
+        sort: Literal['RECENT', 'LONGER'] = 'RECENT'
+    ) -> SearchResult[SubscriberInfo]:
+        result = await self.http.get_channel_subscribers(
+            token=self.access_token,
+            size=size,
+            sort=sort
+        )
+        data = result.content
+        data._next_method = self.http.get_channel_subscribers
+        data._next_method_key_argument = {"size": size, "sort": sort}
+        return result.content
