@@ -26,7 +26,18 @@ import aiohttp
 import logging
 from typing import Annotated, Optional, Literal, overload
 
-from ahttp_client import Session, request, get, post, put, delete, BodyJson, Query, Header, Path
+from ahttp_client import (
+    Session,
+    request,
+    get,
+    post,
+    put,
+    delete,
+    BodyJson,
+    Query,
+    Header,
+    Path,
+)
 from ahttp_client.extension import pydantic_response_model
 from ahttp_client.request import RequestCore
 
@@ -285,7 +296,7 @@ class ChzzkOpenAPISession(Session):
         chat_slow_mode_sec: Annotated[
             Literal[0, 3, 5, 10, 30, 60, 120, 300], BodyJson.to_camel()
         ],
-        chat_emoji_mode: Annotated[bool, BodyJson.to_camel()]
+        chat_emoji_mode: Annotated[bool, BodyJson.to_camel()],
     ) -> None:
         pass
 
@@ -332,7 +343,7 @@ class ChzzkOpenAPISession(Session):
     async def add_restrcit_user(
         self,
         token: Annotated[AccessToken, Header],
-        target_channel_id: Annotated[str, BodyJson.to_camel()]
+        target_channel_id: Annotated[str, BodyJson.to_camel()],
     ) -> None:
         pass
 
@@ -341,10 +352,10 @@ class ChzzkOpenAPISession(Session):
     async def remove_restrcit_user(
         self,
         token: Annotated[AccessToken, Header],
-        target_channel_id: Annotated[str, BodyJson.to_camel()]
+        target_channel_id: Annotated[str, BodyJson.to_camel()],
     ) -> None:
         pass
-    
+
     @pydantic_response_model()
     @get("/open/v1/restrict-channels", directly_response=True)
     @authorization_configuration(is_client=False, is_user=True)

@@ -83,6 +83,7 @@ class Subscription(Messageable):
     """A subscription instance received form the live.
     Subscription can be received via the `on_subscription` event.
     """
+
     channel: str = Field(alias="channelId")
     subscriber_id: str = Field(alias="subscriberChannelId")
     subscriber_name: str = Field(alias="subscriberNickname")

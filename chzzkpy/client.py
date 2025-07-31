@@ -800,7 +800,7 @@ class UserClient:
         min_follower_minute: FollowingPeriod,
         allow_subscriber_in_follower_mode: bool,
         slow_mode: Literal[0, 3, 5, 10, 30, 60, 120, 300] = 0,
-        emoji_mode: bool = False
+        emoji_mode: bool = False,
     ) -> None:
         """Set the chat settings.
 
@@ -832,7 +832,7 @@ class UserClient:
         min_follower_minute: FollowingPeriod = None,
         allow_subscriber_in_follower_mode: bool = None,
         slow_mode: Literal[0, 3, 5, 10, 30, 60, 120, 300] = 0,
-        emoji_mode: bool = False
+        emoji_mode: bool = False,
     ) -> None:
         if instance is not None:
             await self.http.set_chat_setting(
@@ -932,7 +932,9 @@ class UserClient:
         user_id : str
             A channel id of user to add restrict activity.
         """
-        await self.http.add_restrcit_user(token=self.access_token, target_chnnel_id=user_id)
+        await self.http.add_restrcit_user(
+            token=self.access_token, target_chnnel_id=user_id
+        )
         return
 
     @refreshable
@@ -944,7 +946,9 @@ class UserClient:
         user_id : str
             A channel id of user to remove restrict activity.
         """
-        await self.http.remove_restrcit_user(token=self.access_token, target_chnnel_id=user_id)
+        await self.http.remove_restrcit_user(
+            token=self.access_token, target_chnnel_id=user_id
+        )
         return
 
     @refreshable
