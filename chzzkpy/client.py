@@ -50,6 +50,7 @@ if TYPE_CHECKING:
     from .category import Category
     from .enums import FollowingPeriod
     from .flags import UserPermission
+    from .restriction import RestrictUser
 
 
 class _LoopSentinel:
@@ -911,3 +912,42 @@ class UserClient:
         """Get the stream key to brodecast"""
         stream_key = await self.http.get_stream_key(token=self.access_token)
         return stream_key.content["streamKey"]
+
+    @refreshable
+    async def add_restrict_channel(self, user_id: str) -> None:
+        """Add an user to restrict activity.
+
+        Parameters
+        ----------
+        user_id : str
+            A channel id of user to add restrict activity.
+        """
+        await self.http.add_restrcit_user(token=self.access_token, target_chnnel_id=user_id)
+        return
+
+    @refreshable
+    async def remove_restrict_channel(self, user_id: str) -> None:
+        """Remove an user to restrict activity.
+
+        Parameters
+        ----------
+        user_id : str
+            A channel id of user to remove restrict activity.
+        """
+        await self.http.remove_restrcit_user(token=self.access_token, target_chnnel_id=user_id)
+        return
+
+    @refreshable
+    async def get_restriction(self, size: int = 20) -> SearchResult[RestrictUser]:
+        """Get users with restricted activities.
+
+        Parameters
+        ----------
+        size : Optional[int], optional
+            A number of lives to load at once, by default 20
+        """
+        result = await self.http.get_restrcit_users(token=self.access_token)
+        data = result.content
+        data._next_method = self.http.get_restrcit_users
+        data._next_method_key_argument = {"size": size}
+        return data
