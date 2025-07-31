@@ -44,7 +44,7 @@ from ahttp_client.request import RequestCore
 from .authorization import AccessToken
 from .base_model import Content, SearchResult
 from .category import CATEGORY_TYPE, Category
-from .channel import Channel
+from .channel import Channel, ChannelPermission, FollowerInfo, SubscriberInfo
 from .chat import ChatSetting
 from .error import (
     LoginRequired,
@@ -198,6 +198,37 @@ class ChzzkOpenAPISession(Session):
     async def get_channel(
         self, channel_ids: Annotated[str, Query.to_camel()]
     ) -> Content[SearchResult[Channel]]:
+        pass
+
+    @pydantic_response_model()
+    @post("/open/v1/channels/streaming-roles", directly_response=True)
+    @authorization_configuration(is_client=False, is_user=True)
+    async def get_channel_administrator(
+        self, token: Annotated[Optional[AccessToken], Header] = None
+    ) -> Content[list[ChannelPermission]]:
+        pass
+
+    @pydantic_response_model()
+    @post("/open/v1/channels/followers", directly_response=True)
+    @authorization_configuration(is_client=False, is_user=True)
+    async def get_channel_followers(
+        self,
+        token: Annotated[Optional[AccessToken], Header] = None,
+        page: Annotated[int, Query] = 0,
+        size: Annotated[int, Query] = 30,
+    ) -> Content[SearchResult[FollowerInfo]]:
+        pass
+
+    @pydantic_response_model()
+    @post("/open/v1/channels/subscribers", directly_response=True)
+    @authorization_configuration(is_client=False, is_user=True)
+    async def get_channel_subscribers(
+        self,
+        token: Annotated[Optional[AccessToken], Header] = None,
+        page: Annotated[int, Query] = 0,
+        size: Annotated[int, Query] = 30,
+        sort: Annotated[Literal['RECENT', 'LONGER'], Query] = "RECENT"
+    ) -> Content[SearchResult[SubscriberInfo]]:
         pass
 
     @pydantic_response_model()
