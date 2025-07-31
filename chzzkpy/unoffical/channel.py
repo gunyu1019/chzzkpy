@@ -23,7 +23,7 @@ SOFTWARE.
 
 from typing import Optional
 
-from pydantic import BeforeValidator, Field
+from pydantic import Field
 
 from .base_model import ChzzkModel
 

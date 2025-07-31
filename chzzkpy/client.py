@@ -799,6 +799,8 @@ class UserClient:
         chat_available_group: Literal["ALL", "FOLLOWER", "MANAGER", "SUBSCRIBER"],
         min_follower_minute: FollowingPeriod,
         allow_subscriber_in_follower_mode: bool,
+        slow_mode: Literal[0, 3, 5, 10, 30, 60, 120, 300] = 0,
+        emoji_mode: bool = False
     ) -> None:
         """Set the chat settings.
 
@@ -807,11 +809,15 @@ class UserClient:
         chat_available_condition : Literal['NONE', 'REAL_NAME']
             Allow only users who have been authenticated.
         chat_available_group : Literal['ALL', 'FOLLOWER', 'MANAGER', 'SUBSCRIBER']
-             Set the types of chat that are allowed.
+            Set the types of chat that are allowed.
         min_follower_minute : FollowingPeriod
             Allow users who follow channel to make chat available after a specified amount of time.
         allow_subscriber_in_follower_mode : bool
             Set whether subscriber will follow the minimum follow time.
+        slow_mode : Literal[0, 3, 5, 10, 30, 60, 120, 300]
+            Set user chat interval (seconds)
+        emoji_mode : bool
+            Apply emoji mode
         """
         ...
 
@@ -825,6 +831,8 @@ class UserClient:
         ] = None,
         min_follower_minute: FollowingPeriod = None,
         allow_subscriber_in_follower_mode: bool = None,
+        slow_mode: Literal[0, 3, 5, 10, 30, 60, 120, 300] = 0,
+        emoji_mode: bool = False
     ) -> None:
         if instance is not None:
             await self.http.set_chat_setting(
@@ -841,6 +849,8 @@ class UserClient:
             chat_available_group=chat_available_group,
             min_follower_minute=min_follower_minute,
             allow_subscriber_in_follower_mode=allow_subscriber_in_follower_mode,
+            chat_slow_mode_sec=slow_mode,
+            chat_emoji_mode=emoji_mode,
         )
         return
 
