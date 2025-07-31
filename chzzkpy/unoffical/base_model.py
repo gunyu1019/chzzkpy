@@ -29,28 +29,13 @@ from typing import Generic, TypeVar, Optional, TYPE_CHECKING
 from pydantic import BaseModel, ConfigDict, Extra, PrivateAttr
 from pydantic.alias_generators import to_camel
 
+from ..base_model import ChzzkModel
+from ..base_model import Content
+
 if TYPE_CHECKING:
     from .manage.manage_client import ManageClient
 
 T = TypeVar("T")
-
-
-class ChzzkModel(BaseModel):
-    model_config = ConfigDict(
-        alias_generator=to_camel, frozen=True, extra=Extra.allow  # prevent exception.
-    )
-
-    @staticmethod
-    def special_date_parsing_validator(value: T) -> T:
-        if not isinstance(value, str):
-            return value
-        return value.replace("+09", "")
-
-
-class Content(ChzzkModel, Generic[T]):
-    code: int
-    message: Optional[str]
-    content: Optional[T]
 
 
 class ManagerClientAccessable(BaseModel):
