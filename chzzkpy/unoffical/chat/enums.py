@@ -21,42 +21,45 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from .authorization import AccessToken
-from .category import Category
-from .channel import Channel
-from .client import Client, UserClient
-from .error import *
-from .flags import UserPermission
-from .message import Donation, Profile, Message
+from enum import IntEnum, Enum
+from typing import TypeVar, Any
+
+E = TypeVar("E", bound="Enum")
 
 
-try:
-    from .unoffical import *
-except ModuleNotFoundError:
-    pass
+class ChatCmd(IntEnum):
+    PING = 0
+    PONG = 10000
+    CONNECT = 100
+    CONNECTED = 10100
+    REQUEST_RECENT_CHAT = 5101
+    RECENT_CHAT = 15101
+    EVENT = 93006
+    CHAT = 93101
+    SPECIAL_CHAT = 93102  # Donation / System Message
+    KICK = 94005
+    BLOCK = 94006
+    BLIND = 94008
+    NOTICE = 94010
+    PENALTY = 94015
+    SEND_CHAT = 3101
 
 
-__title__ = "chzzkpy"
-__author__ = "gunyu1019"
-__license__ = "MIT"
-__copyright__ = "Copyright 2024-present gunyu1019"
-__version__ = "2.1.0-beta1"  # version_info.to_string()
+class ChatType(IntEnum):
+    TEXT = 1
+    IMAGE = 2
+    STICKER = 3
+    VIDEO = 4
+    RICH = 5
+    DONATION = 10
+    SUBSCRIPTION = 11
+    SUBSCRIPTION_GIFT = 12
+    SYSTEM_MESSAGE = 30
+    OPEN = 121
 
 
-class VersionInfo(NamedTuple):
-    major: int
-    minor: int
-    micro: int
-    release_level: Optional[Literal["alpha", "beta", "candidate", "final"]]
-    serial: int
-
-    def to_string(self) -> str:
-        _version_info = f"{self.major}.{self.minor}.{self.micro}"
-        if self.release_level is not None:
-            _version_info += "-{}".format(self.release_level) + str(self.serial)
-        return _version_info
-
-
-version_info: VersionInfo = VersionInfo(
-    major=2, minor=1, micro=0, release_level="beta", serial=1
-)
+def get_enum(cls: type[E], val: Any) -> E:
+    enum_val = [i for i in cls if i.value == val]
+    if len(enum_val) == 0:
+        return val
+    return enum_val[0]

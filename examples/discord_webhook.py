@@ -2,7 +2,7 @@
 import discord
 
 import aiohttp
-from chzzkpy.chat import ChatClient, ChatMessage
+from chzzkpy.unoffical.chat import ChatClient, ChatMessage
 
 
 # Configuration

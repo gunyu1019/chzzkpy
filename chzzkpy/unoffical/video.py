@@ -21,42 +21,36 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from .authorization import AccessToken
-from .category import Category
-from .channel import Channel
-from .client import Client, UserClient
-from .error import *
-from .flags import UserPermission
-from .message import Donation, Profile, Message
+import datetime
+from typing import Annotated, Any, Optional
+
+from pydantic import BeforeValidator, ConfigDict, Field
+
+from .base_model import ChzzkModel
+from .channel import PartialChannel
 
 
-try:
-    from .unoffical import *
-except ModuleNotFoundError:
-    pass
+class PartialVideo(ChzzkModel):
+    id: Optional[str] = Field(alias="videoId")
+    number: int = Field(alias="videoNo")
+    title: str = Field(alias="videoTitle")
+    type: str = Field(alias="videoType")
+    duration: int
+    publish_date: Annotated[
+        Optional[datetime.datetime],
+        BeforeValidator(ChzzkModel.special_date_parsing_validator),
+    ] = None
+    thumbnail_image_url: Optional[str]
 
 
-__title__ = "chzzkpy"
-__author__ = "gunyu1019"
-__license__ = "MIT"
-__copyright__ = "Copyright 2024-present gunyu1019"
-__version__ = "2.1.0-beta1"  # version_info.to_string()
+class Video(PartialVideo):
+    model_config = ConfigDict(frozen=False)
 
-
-class VersionInfo(NamedTuple):
-    major: int
-    minor: int
-    micro: int
-    release_level: Optional[Literal["alpha", "beta", "candidate", "final"]]
-    serial: int
-
-    def to_string(self) -> str:
-        _version_info = f"{self.major}.{self.minor}.{self.micro}"
-        if self.release_level is not None:
-            _version_info += "-{}".format(self.release_level) + str(self.serial)
-        return _version_info
-
-
-version_info: VersionInfo = VersionInfo(
-    major=2, minor=1, micro=0, release_level="beta", serial=1
-)
+    adult: bool
+    category_type: Optional[str]
+    channel: Optional[PartialChannel] = None
+    channel_id: str
+    # publish_date_at: int # div/1000
+    read_count: int
+    video_category: Optional[str]
+    video_category_value: str

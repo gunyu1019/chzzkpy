@@ -21,7 +21,7 @@ extras_require = {
 setup(
     name="chzzkpy",
     version=version,
-    packages=["chzzkpy", "chzzkpy.chat", "chzzkpy.manage", "chzzkpy.offical"],
+    packages=["chzzkpy", "chzzkpy.unoffical", "chzzkpy.unoffical.chat", "chzzkpy.unoffical.manage"],
     url="https://github.com/gunyu1019/chzzkpy",
     project_urls={
         "Documentation (한국어)": "https://gunyu1019.github.io/chzzkpy/ko/",

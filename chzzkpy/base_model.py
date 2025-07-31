@@ -1,6 +1,6 @@
 """MIT License
 
-Copyright (c) 2024 gunyu1019
+Copyright (c) 2024-2025 gunyu1019
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -23,14 +23,12 @@ SOFTWARE.
 
 from __future__ import annotations
 
-from functools import wraps
-from typing import Generic, TypeVar, Optional, TYPE_CHECKING
-
+from typing import Generic, Optional, TypeVar, TYPE_CHECKING
 from pydantic import BaseModel, ConfigDict, Extra, PrivateAttr
 from pydantic.alias_generators import to_camel
 
 if TYPE_CHECKING:
-    from .manage.manage_client import ManageClient
+    from typing import Any, Callable, Coroutine, Optional
 
 T = TypeVar("T")
 
@@ -53,36 +51,38 @@ class Content(ChzzkModel, Generic[T]):
     content: Optional[T]
 
 
-class ManagerClientAccessable(BaseModel):
-    _manage_client: Optional[ManageClient] = PrivateAttr(default=None)
+class SearchResult(ChzzkModel, Generic[T]):
+    data: list[T]
 
-    @staticmethod
-    def based_manage_client(func):
-        @wraps(func)
-        async def wrapper(self, *args, **kwargs):
-            if not self.is_interactable:
-                raise RuntimeError(
-                    f"This {self.__class__.__name__} is intended to store data only."
-                )
-            return await func(self, *args, **kwargs)
+    _page: Optional[dict[str]] = PrivateAttr(default=None)
+    _next_method: Optional[Callable[..., Coroutine[Any, Any, Content[T]]]] = (
+        PrivateAttr(default=None)
+    )
+    _next_method_arguments: Optional[tuple[Any]] = PrivateAttr(default=None)
+    _next_method_key_argument: Optional[dict[str, Any]] = PrivateAttr(default=None)
 
-        return wrapper
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if "page" in kwargs.keys():
+            self._page = kwargs.pop("page")
 
-    @property
-    def channel_id(self) -> str:
-        if not self.is_interactable:
-            raise RuntimeError(
-                f"This {self.__class__.__name__} is intended to store data only."
-            )
-        return self._manage_client.channel_id
+    async def next(self) -> Optional[SearchResult]:
+        if self._page is None or self._next_method is None:
+            raise RuntimeError(f"This search result has only one result.")
+        next_id = self._page["next"]
+        next_method_arguments = self._next_method_arguments or tuple()
+        next_method_key_argument = self._next_method_key_argument or dict()
 
-    @property
-    def is_interactable(self):
-        """Ensure this model has access to interact with manage client."""
-        return self._manage_client is not None
+        result = await self._next_method(
+            *next_method_arguments, next=next_id, **next_method_key_argument
+        )
+        data = result.content
+        data._next_method = self._next_method
+        data._next_method_arguments = self._next_method_arguments
+        data._next_method_key_argument = self._next_method_key_argument
+        return data
 
-    def _set_manage_client(self, client: ManageClient):
-        if self.is_interactable:
-            raise ValueError("Manage Client already set.")
-        self._manage_client = client
-        return self
+    def __getitem__(self, index):
+        if isinstance(index, (slice, int)):
+            return self.data[index]
+        raise TypeError("'SearchResult' object is not subscriptable.")

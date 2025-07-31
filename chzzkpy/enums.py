@@ -21,42 +21,45 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from .authorization import AccessToken
-from .category import Category
-from .channel import Channel
-from .client import Client, UserClient
-from .error import *
-from .flags import UserPermission
-from .message import Donation, Profile, Message
+from enum import IntEnum, Enum
+from typing import TypeVar, Any
+
+E = TypeVar("E", bound="Enum")
 
 
-try:
-    from .unoffical import *
-except ModuleNotFoundError:
-    pass
+class EnginePacketType(Enum):
+    OPEN = 0
+    CLOSE = 1
+    PING = 2
+    PONG = 3
+    MESSAGE = 4
+    UPGRADE = 5
+    NOOP = 6
 
 
-__title__ = "chzzkpy"
-__author__ = "gunyu1019"
-__license__ = "MIT"
-__copyright__ = "Copyright 2024-present gunyu1019"
-__version__ = "2.1.0-beta1"  # version_info.to_string()
+class SocketPacketType(Enum):
+    CONNECT = 0
+    DISCONNECT = 1
+    EVENT = 2
+    ACK = 3
+    CONNECT_ERROR = 4
+    BINARY_EVENT = 5
+    BINARY_ACK = 6
 
 
-class VersionInfo(NamedTuple):
-    major: int
-    minor: int
-    micro: int
-    release_level: Optional[Literal["alpha", "beta", "candidate", "final"]]
-    serial: int
-
-    def to_string(self) -> str:
-        _version_info = f"{self.major}.{self.minor}.{self.micro}"
-        if self.release_level is not None:
-            _version_info += "-{}".format(self.release_level) + str(self.serial)
-        return _version_info
+class FollowingPeriod(IntEnum):
+    NONE = 0
+    FIVE_MINUTE = 5
+    TEN_MINUTE = 10
+    HALF_HOUR = 30
+    HOUR = 60
+    DAY = 1440
+    WEEK = 10080
+    MONTH = 43200
 
 
-version_info: VersionInfo = VersionInfo(
-    major=2, minor=1, micro=0, release_level="beta", serial=1
-)
+def get_enum(cls: type[E], val: Any) -> E:
+    enum_val = [i for i in cls if i.value == val]
+    if len(enum_val) == 0:
+        return val
+    return enum_val[0]

@@ -21,42 +21,34 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from .authorization import AccessToken
-from .category import Category
-from .channel import Channel
-from .client import Client, UserClient
-from .error import *
-from .flags import UserPermission
-from .message import Donation, Profile, Message
+import datetime
+
+from ..base_model import ChzzkModel, ManagerClientAccessable
 
 
-try:
-    from .unoffical import *
-except ModuleNotFoundError:
-    pass
+class ProhibitWord(ChzzkModel, ManagerClientAccessable):
+    created_date: datetime.datetime
+    nickname: str
+    prohibit_word: str
+    prohibit_word_no: int
+
+    @ManagerClientAccessable.based_manage_client
+    async def remove(self):
+        """Remove this prohibit word."""
+        await self._manage_client.remove_prohibit_word(self)
+
+    @ManagerClientAccessable.based_manage_client
+    async def edit(self, word: str):
+        """Modify this prohibit word.
+
+        Parameters
+        ----------
+        word : str
+            A new word to prohibit.
+        """
+        data = await self._manage_client.edit_prohibit_word(self, word)
+        return data
 
 
-__title__ = "chzzkpy"
-__author__ = "gunyu1019"
-__license__ = "MIT"
-__copyright__ = "Copyright 2024-present gunyu1019"
-__version__ = "2.1.0-beta1"  # version_info.to_string()
-
-
-class VersionInfo(NamedTuple):
-    major: int
-    minor: int
-    micro: int
-    release_level: Optional[Literal["alpha", "beta", "candidate", "final"]]
-    serial: int
-
-    def to_string(self) -> str:
-        _version_info = f"{self.major}.{self.minor}.{self.micro}"
-        if self.release_level is not None:
-            _version_info += "-{}".format(self.release_level) + str(self.serial)
-        return _version_info
-
-
-version_info: VersionInfo = VersionInfo(
-    major=2, minor=1, micro=0, release_level="beta", serial=1
-)
+class ProhibitWordResponse(ChzzkModel):
+    prohibit_word_list: list[ProhibitWord]
