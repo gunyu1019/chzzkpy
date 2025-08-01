@@ -43,7 +43,7 @@ class ChzzkOAuth2Client:
         remote_host: str = "localhost",
         remote_port: int = 8080,
         remote_path: Optional[str] = "/",
-        success_response: Optional[aiohttp.web.Resource] = None
+        success_response: Optional[aiohttp.web.Resource] = None,
     ):
         self.client = client
 
@@ -52,14 +52,16 @@ class ChzzkOAuth2Client:
         self.remote_path = remote_path
         self.remote_port = remote_port
 
-        self.success_response = success_response or aiohttp.web.Response(text="Success to login!")
+        self.success_response = success_response or aiohttp.web.Response(
+            text="Success to login!"
+        )
 
         self._application = aiohttp.web.Application()
         self._runner = aiohttp.web.AppRunner(self._application)
         self._site: Optional[aiohttp.web.TCPSite] = None
 
         self._application.router.add_get(self.remote_path, handler=self.handle)
-        
+
         self._authorize_state: Optional[str] = None
         self._response: Optional[AccessToken] = None
         self._stop_event = asyncio.Event()
@@ -69,54 +71,70 @@ class ChzzkOAuth2Client:
         state = request.query.get("state")
 
         if state is None or code is None:
-            return aiohttp.web.Response(text="Missing requirement parameter. Please try again!")
-        
+            return aiohttp.web.Response(
+                text="Missing requirement parameter. Please try again!"
+            )
+
         if state != self._authorize_state:
             return aiohttp.web.Response(text="Invaild state code. Please try again!")
 
-        self._response = await self.client.generate_access_token(code, state=self._authorize_state)
+        self._response = await self.client.generate_access_token(
+            code, state=self._authorize_state
+        )
         self._stop_event.set()
         return self.success_response
 
     def _open_webbrowser(self, url: str) -> bool:
         return webbrowser.open(url)
-    
+
     @property
     def is_server_run(self) -> bool:
         return self._site is not None
-    
+
     async def close(self):
         if not self.is_server_run:
             raise RuntimeError("A local web server is not enabled.")
-        
+
         await self._site.stop()
         await self._runner.cleanup()
 
         self._stop_event.clear()
 
-    async def process_oauth2(self, state: str, redirect_url: Optional[str] = None) -> AccessToken:
+    async def process_oauth2(
+        self, state: str, redirect_url: Optional[str] = None
+    ) -> AccessToken:
         if self.is_server_run:
             raise RuntimeError("The OAuth2 login process is already in progress.")
 
-        self._authorize_state = state 
+        self._authorize_state = state
 
-        redirect_url = redirect_url or URL.build(
-            scheme=self.remote_scheme, host=self.remote_host, path=self.remote_path, port=self.remote_port
-        ).__str__()
+        redirect_url = (
+            redirect_url
+            or URL.build(
+                scheme=self.remote_scheme,
+                host=self.remote_host,
+                path=self.remote_path,
+                port=self.remote_port,
+            ).__str__()
+        )
         url = self.client.generate_authorization_token_url(
             redirect_url=redirect_url, state=state
         )
 
         await self._runner.setup()
 
-        self._site = aiohttp.web.TCPSite(self._runner, self.remote_host, self.remote_port)
+        self._site = aiohttp.web.TCPSite(
+            self._runner, self.remote_host, self.remote_port
+        )
         await self._site.start()
 
         open_result = self._open_webbrowser(url)
         if not open_result:
             print("Failed to open the browser. Please join this url and process login.")
         else:
-            print("If you haven't opened your browser, please join this url and process login.")
+            print(
+                "If you haven't opened your browser, please join this url and process login."
+            )
         print(url)
         await self._stop_event.wait()
 

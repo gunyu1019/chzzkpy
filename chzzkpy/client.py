@@ -332,14 +332,14 @@ class Client(BaseEventManager):
 
     @initial_async_setup
     async def login(
-        self, 
+        self,
         state: Optional[str] = None,
         redirect_url: Optional[str] = None,
-        remote_host: str = "localhost", 
-        remote_port: int = 8080, 
+        remote_host: str = "localhost",
+        remote_port: int = 8080,
         remote_path: str = "/",
         success_response: Optional[webResponse] = None,
-        ssl: bool = False
+        ssl: bool = False,
     ) -> UserClient:
         """Get :class:`UserClient` instance with oauth2 login process.
         This :meth:`login` provides a convenient login method using the aiohttp web server.
@@ -364,12 +364,12 @@ class Client(BaseEventManager):
         """
         remote_scheme = "https" if ssl else "http"
         oauth2_client = ChzzkOAuth2Client(
-            self, 
-            remote_scheme=remote_scheme, 
-            remote_host=remote_host, 
-            remote_port=remote_port, 
-            remote_path=remote_path, 
-            success_response=success_response
+            self,
+            remote_scheme=remote_scheme,
+            remote_host=remote_host,
+            remote_port=remote_port,
+            remote_path=remote_path,
+            success_response=success_response,
         )
 
         state = state or "chzzkpy_authorization"  # Temporatry Code
