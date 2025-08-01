@@ -21,43 +21,22 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-import datetime
-from pydantic import Field
-from typing import Optional, Literal
+from typing import Optional, Union
+from pydantic import BeforeValidator, Field
 
 from .base_model import ChzzkModel
+from .channel import Channel, PartialChannel
+from .live import Live
+from .video import Video
 
 
-class Channel(ChzzkModel):
-    id: str = Field(alias="channelId")
-    name: str = Field(alias="channelName")
-    image: Optional[str] = Field(alias="channelImageUrl", default=None)
-
-    follower_count: Optional[int] = 0
-    verified_mark: bool = False
+class SearchResult(ChzzkModel):
+    channel: Optional[Channel | PartialChannel] = Field(union_mode="left_to_right")
+    live: Optional[Live] = None
+    video: Optional[Video] = None
 
 
-class ChannelPermission(ChzzkModel):
-    user_id: str = Field(alias="managerChannelId")
-    user_name: str = Field(alias="managerChannelName")
-    role: Literal[
-        "STREAMING_CHANNEL_OWNER",
-        "STREAMING_CHANNEL_MANAGER",
-        "STREAMING_CHAT_MANAGER",
-        "STREAMING_SETTLEMENT_MANAGER",
-    ] = Field(alias="userRole")
-    created_date: datetime.datetime
-
-
-class FollowerInfo(ChzzkModel):
-    user_id: str = Field(alias="channelId")
-    user_name: str = Field(alias="channelName")
-    created_date: datetime.datetime
-
-
-class SubscriberInfo(ChzzkModel):
-    user_id: str = Field(alias="channelId")
-    user_name: str = Field(alias="channelName")
-    month: int
-    tier_no: int
-    created_date: datetime.datetime
+class TopSearchResult(ChzzkModel):
+    data: list[str | SearchResult]
+    size: int
+    # offset: int

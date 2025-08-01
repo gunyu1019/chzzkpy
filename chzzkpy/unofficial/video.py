@@ -22,42 +22,35 @@ SOFTWARE.
 """
 
 import datetime
-from pydantic import Field
-from typing import Optional, Literal
+from typing import Annotated, Any, Optional
+
+from pydantic import BeforeValidator, ConfigDict, Field
 
 from .base_model import ChzzkModel
+from .channel import PartialChannel
 
 
-class Channel(ChzzkModel):
-    id: str = Field(alias="channelId")
-    name: str = Field(alias="channelName")
-    image: Optional[str] = Field(alias="channelImageUrl", default=None)
-
-    follower_count: Optional[int] = 0
-    verified_mark: bool = False
-
-
-class ChannelPermission(ChzzkModel):
-    user_id: str = Field(alias="managerChannelId")
-    user_name: str = Field(alias="managerChannelName")
-    role: Literal[
-        "STREAMING_CHANNEL_OWNER",
-        "STREAMING_CHANNEL_MANAGER",
-        "STREAMING_CHAT_MANAGER",
-        "STREAMING_SETTLEMENT_MANAGER",
-    ] = Field(alias="userRole")
-    created_date: datetime.datetime
+class PartialVideo(ChzzkModel):
+    id: Optional[str] = Field(alias="videoId")
+    number: int = Field(alias="videoNo")
+    title: str = Field(alias="videoTitle")
+    type: str = Field(alias="videoType")
+    duration: int
+    publish_date: Annotated[
+        Optional[datetime.datetime],
+        BeforeValidator(ChzzkModel.special_date_parsing_validator),
+    ] = None
+    thumbnail_image_url: Optional[str]
 
 
-class FollowerInfo(ChzzkModel):
-    user_id: str = Field(alias="channelId")
-    user_name: str = Field(alias="channelName")
-    created_date: datetime.datetime
+class Video(PartialVideo):
+    model_config = ConfigDict(frozen=False)
 
-
-class SubscriberInfo(ChzzkModel):
-    user_id: str = Field(alias="channelId")
-    user_name: str = Field(alias="channelName")
-    month: int
-    tier_no: int
-    created_date: datetime.datetime
+    adult: bool
+    category_type: Optional[str]
+    channel: Optional[PartialChannel] = None
+    channel_id: str
+    # publish_date_at: int # div/1000
+    read_count: int
+    video_category: Optional[str]
+    video_category_value: str

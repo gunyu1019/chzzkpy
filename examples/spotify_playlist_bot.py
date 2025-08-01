@@ -5,7 +5,7 @@ import asyncio
 from typing import Any
 from pydantic import BaseModel
 
-from chzzkpy.offical import Client, Message, UserPermission
+from chzzkpy import Client, Message, UserPermission
 
 # Configuration
 prefix = "$"

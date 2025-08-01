@@ -1,6 +1,6 @@
 """MIT License
 
-Copyright (c) 2024 gunyu1019
+Copyright (c) 2024-2025 gunyu1019
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,73 +24,98 @@ SOFTWARE.
 import asyncio
 import aiohttp
 import logging
-from typing import Annotated, Final, Optional
+from typing import Annotated, Optional, Literal, overload
 
-from ahttp_client import Session, get, Path, Query
-from ahttp_client.extension import get_pydantic_response_model
+from ahttp_client import (
+    Session,
+    request,
+    get,
+    post,
+    put,
+    delete,
+    BodyJson,
+    Query,
+    Header,
+    Path,
+)
+from ahttp_client.extension import pydantic_response_model
 from ahttp_client.request import RequestCore
 
-from .base_model import Content
-from .error import LoginRequired, HTTPException, NotFoundException
-from .live import LiveStatus, LiveDetail
-from .search import TopSearchResult
-from .user import User
+from .authorization import AccessToken
+from .base_model import Content, SearchResult
+from .category import CATEGORY_TYPE, Category
+from .channel import Channel, ChannelPermission, FollowerInfo, SubscriberInfo
+from .chat import ChatSetting
+from .error import (
+    LoginRequired,
+    BadRequestException,
+    UnauthorizedException,
+    ForbiddenException,
+    NotFoundException,
+    TooManyRequestsException,
+    HTTPException,
+)
+from .live import BrodecastSetting, Live
+from .restriction import RestrictUser
+from .session import SessionKey
 
 _log = logging.getLogger(__name__)
-_user_agent: Final[str] = (
-    "Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36"
-    "(KHTML, like Gecko) Chrome/37.0.2049.0 Safari/537.36"
-)
 
 
-class ChzzkSession(Session):
-    def __init__(self, base_url: str, loop: Optional[asyncio.AbstractEventLoop] = None):
-        super().__init__(base_url=base_url, loop=loop)
-
-        self._authorization_key = None
-        self._session_key = None
-
-    def login(self, authorization_key: str, session_key: str):
-        self._authorization_key = authorization_key
-        self._session_key = session_key
-
-    @property
-    def has_login(self) -> bool:
-        return self._authorization_key is not None and self._session_key is not None
-
-    @staticmethod
-    def configuration(login_able: bool = False, login_required: bool = False):
-        def decorator(func):
-            func.__login_able__ = login_able
-            func.__login_required__ = login_required
-            return func
-
-        return decorator
+class ChzzkOpenAPISession(Session):
+    def __init__(
+        self,
+        client_id: str,
+        client_secret: str,
+        loop: Optional[asyncio.AbstractEventLoop] = None,
+    ):
+        self.client_id = client_id
+        self.client_secret = client_secret
+        super().__init__(base_url="https://openapi.chzzk.naver.com", loop=loop)
 
     async def before_request(
         self, request: RequestCore, path: str
     ) -> tuple[RequestCore, str]:
         _log.debug(f"Path({path}) was called.")
 
-        # Authorization
-        if getattr(request.func, "__login_able__", False):
-            if self.has_login:
-                if "Cookie" not in request.headers.keys():
-                    request.headers["Cookie"] = ""
-                request.headers["Cookie"] += self._token
-            elif getattr(request.func, "__login_required__", False):
-                raise LoginRequired()
+        if hasattr(request.func, "__authorization_configuration__"):
+            authorization_configuration = request.func.__authorization_configuration__
 
-        # Add User-Agent to avoid blocking
-        if "User-Agent" not in request.headers:
-            request.headers["User-Agent"] = _user_agent
+            if authorization_configuration["user"]:
+                for key, value in request.headers.items():
+                    if not isinstance(value, AccessToken):
+                        continue
 
+                    access_token = request.headers.pop(key)
+                    request.headers["Authorization"] = (
+                        f"{access_token.token_type} {access_token.access_token}"
+                    )
+                    break
+                else:
+                    if not authorization_configuration["client"]:
+                        raise LoginRequired()
+
+            if authorization_configuration["client"]:
+                request.headers["Client-Id"] = self.client_id
+                request.headers["Client-Secret"] = self.client_secret
+
+        request.headers["Content-Type"] = "application/json"
         return request, path
 
     async def after_request(self, response: aiohttp.ClientResponse):
-        if response.status == 404:
+        if response.status == 400:
+            raise BadRequestException(response.reason)
+        elif response.status == 401:
+            data = await response.json()
+            raise UnauthorizedException(data.get("message"))
+        elif response.status == 403:
+            data = await response.json()
+            raise ForbiddenException(data.get("message"))
+        elif response.status == 404:
             data = await response.json()
             raise NotFoundException(data.get("message"))
+        elif response.status == 429:
+            raise TooManyRequestsException(response.reason)
         elif response.status >= 400:
             data = await response.json()
             raise HTTPException(code=data["code"], message=data["message"])
@@ -106,78 +131,269 @@ class ChzzkSession(Session):
         copied_request_obj.body = body
         return copied_request_obj, path
 
-    @property
-    def _token(self) -> str:
-        return f"NID_SES={self._session_key}; NID_AUT={self._authorization_key}"
+    @staticmethod
+    def authorization_configuration(is_client: bool = False, is_user: bool = False):
+        def decorator(func):
+            func.__authorization_configuration__ = {
+                "client": is_client,
+                "user": is_user,
+            }
+            return func
 
+        return decorator
 
-class ChzzkAPISession(ChzzkSession):
-    def __init__(self, loop: Optional[asyncio.AbstractEventLoop] = None):
-        super().__init__(base_url="https://api.chzzk.naver.com", loop=loop)
-
-    @get_pydantic_response_model()
-    @get("/polling/v2/channels/{channel_id}/live-status", directly_response=True)
-    @ChzzkSession.configuration(login_able=True, login_required=False)
-    async def live_status(
-        self, channel_id: Annotated[str, Path]
-    ) -> Content[Optional[LiveStatus]]:
-        pass
-
-    @get_pydantic_response_model()
-    @get("/service/v2/channels/{channel_id}/live-detail", directly_response=True)
-    @ChzzkSession.configuration(login_able=True, login_required=True)
-    async def live_detail(
-        self, channel_id: Annotated[str, Path]
-    ) -> Content[LiveDetail]:
-        pass
-
-    @get_pydantic_response_model()
-    @get("/service/v1/search/channels", directly_response=True)
-    async def search_channel(
+    @overload
+    async def generate_access_token(
         self,
-        keyword: Annotated[str, Query],
-        offset: Annotated[int, Query] = 0,
-        size: Annotated[int, Query] = 13,
-    ) -> Content[TopSearchResult]:
+        grant_type: Annotated[Literal["authorization_code"], BodyJson.to_camel()],
+        client_id: Annotated[str, BodyJson.to_camel()],
+        client_secret: Annotated[str, BodyJson.to_camel()],
+        code: Annotated[Optional[str], BodyJson.to_camel()],
+        state: Annotated[Optional[str], BodyJson.to_camel()],
+    ) -> Content[AccessToken]:
         pass
 
-    @get_pydantic_response_model()
-    @get("/service/v1/search/lives", directly_response=True)
-    async def search_live(
+    @overload
+    async def generate_access_token(
         self,
-        keyword: Annotated[str, Query],
-        offset: Annotated[int, Query] = 0,
-        size: Annotated[int, Query] = 13,
-    ) -> Content[TopSearchResult]:
+        grant_type: Annotated[Literal["refresh_token"], BodyJson.to_camel()],
+        client_id: Annotated[str, BodyJson.to_camel()],
+        client_secret: Annotated[str, BodyJson.to_camel()],
+        refresh_token: Annotated[Optional[str], BodyJson.to_camel()],
+    ) -> Content[AccessToken]:
         pass
 
-    @get_pydantic_response_model()
-    @get("/service/v1/search/videos", directly_response=True)
-    async def search_video(
+    @pydantic_response_model()
+    @post("/auth/v1/token", directly_response=True)
+    @authorization_configuration(is_client=True, is_user=False)
+    async def generate_access_token(
         self,
-        keyword: Annotated[str, Query],
-        offset: Annotated[int, Query] = 0,
-        size: Annotated[int, Query] = 13,
-    ) -> Content[TopSearchResult]:
+        grant_type: Annotated[
+            Literal["authorization_code", "refresh_token"], BodyJson.to_camel()
+        ],
+        client_id: Annotated[str, BodyJson.to_camel()],
+        client_secret: Annotated[str, BodyJson.to_camel()],
+        code: Annotated[Optional[str], BodyJson.to_camel()] = None,
+        state: Annotated[Optional[str], BodyJson.to_camel()] = None,
+        refresh_token: Annotated[Optional[str], BodyJson.to_camel()] = None,
+    ) -> Content[AccessToken]:
         pass
 
-    @get_pydantic_response_model()
-    @get("/service/v1/search/channels/auto-complete", directly_response=True)
-    async def autocomplete(
+    @post("/auth/v1/token/revoke", directly_response=True)
+    @authorization_configuration(is_client=True, is_user=False)
+    async def revoke_access_token(
         self,
-        keyword: Annotated[str, Query],
-        offset: Annotated[int, Query] = 0,
-        size: Annotated[int, Query] = 13,
-    ) -> Content[TopSearchResult]:
+        client_id: Annotated[str, BodyJson.to_camel()],
+        client_secret: Annotated[str, BodyJson.to_camel()],
+        token: Annotated[Optional[str], BodyJson.to_camel()],
+        token_type_hint: Annotated[
+            Literal["access_token", "refresh_token"], BodyJson.to_camel()
+        ] = "access_token",
+    ) -> None:
         pass
 
+    @pydantic_response_model()
+    @get("/open/v1/channels", directly_response=True)
+    @authorization_configuration(is_client=True, is_user=False)
+    async def get_channel(
+        self, channel_ids: Annotated[str, Query.to_camel()]
+    ) -> Content[SearchResult[Channel]]:
+        pass
 
-class NaverGameAPISession(ChzzkSession):
-    def __init__(self, loop: Optional[asyncio.AbstractEventLoop] = None):
-        super().__init__(base_url="https://comm-api.game.naver.com", loop=loop)
+    @pydantic_response_model()
+    @get("/open/v1/channels/streaming-roles", directly_response=True)
+    @authorization_configuration(is_client=False, is_user=True)
+    async def get_channel_administrator(
+        self, token: Annotated[Optional[AccessToken], Header] = None
+    ) -> Content[list[ChannelPermission]]:
+        pass
 
-    @get_pydantic_response_model()
-    @get("/nng_main/v1/user/getUserStatus", directly_response=True)
-    @ChzzkSession.configuration(login_able=True, login_required=True)
-    async def user(self) -> Content[User]:
+    @pydantic_response_model()
+    @get("/open/v1/channels/followers", directly_response=True)
+    @authorization_configuration(is_client=False, is_user=True)
+    async def get_channel_followers(
+        self,
+        token: Annotated[Optional[AccessToken], Header] = None,
+        page: Annotated[int, Query] = 0,
+        size: Annotated[int, Query] = 30,
+    ) -> Content[SearchResult[FollowerInfo]]:
+        pass
+
+    @pydantic_response_model()
+    @get("/open/v1/channels/subscribers", directly_response=True)
+    @authorization_configuration(is_client=False, is_user=True)
+    async def get_channel_subscribers(
+        self,
+        token: Annotated[Optional[AccessToken], Header] = None,
+        page: Annotated[int, Query] = 0,
+        size: Annotated[int, Query] = 30,
+        sort: Annotated[Literal["RECENT", "LONGER"], Query] = "RECENT",
+    ) -> Content[SearchResult[SubscriberInfo]]:
+        pass
+
+    @pydantic_response_model()
+    @get("/open/v1/categories/search", directly_response=True)
+    @authorization_configuration(is_client=True, is_user=False)
+    async def get_category(
+        self, query: Annotated[str, Query], size: Annotated[Optional[int], Query] = 20
+    ) -> Content[SearchResult[Category]]:
+        pass
+
+    @pydantic_response_model()
+    @get("/open/v1/sessions/auth/client", directly_response=True)
+    @authorization_configuration(is_client=True, is_user=False)
+    async def generate_client_session(self) -> Content[SessionKey]:
+        pass
+
+    @pydantic_response_model()
+    @get("/open/v1/sessions/auth", directly_response=True)
+    @authorization_configuration(is_client=False, is_user=True)
+    async def generate_user_session(
+        self, token: Annotated[Optional[AccessToken], Header] = None
+    ) -> Content[SessionKey]:
+        pass
+
+    @pydantic_response_model()
+    @post("/open/v1/sessions/events/subscribe/{event}", directly_response=True)
+    @authorization_configuration(is_client=True, is_user=True)
+    async def subcribe_event(
+        self,
+        event: Annotated[str, Path],
+        session_key: Annotated[str, Query.to_camel()],
+        token: Annotated[Optional[AccessToken], Header] = None,
+    ) -> Content[None]:
+        pass
+
+    @pydantic_response_model()
+    @post("/open/v1/sessions/events/unsubscribe/{event}", directly_response=True)
+    @authorization_configuration(is_client=True, is_user=True)
+    async def unsubcribe_event(
+        self,
+        event: Annotated[str, Path],
+        session_key: Annotated[str, Query.to_camel()],
+        token: Annotated[Optional[AccessToken], Header] = None,
+    ) -> Content[None]:
+        pass
+
+    @pydantic_response_model()
+    @get("/open/v1/users/me", directly_response=True)
+    @authorization_configuration(is_client=False, is_user=True)
+    async def get_user_self(
+        self,
+        token: Annotated[AccessToken, Header],
+    ) -> Content[Channel]:
+        pass
+
+    @pydantic_response_model()
+    @post("/open/v1/chats/send", directly_response=True)
+    @authorization_configuration(is_client=False, is_user=True)
+    async def create_message(
+        self, token: Annotated[AccessToken, Header], message: Annotated[str, BodyJson]
+    ) -> Content[dict[str, str]]:
+        pass
+
+    @post("/open/v1/chats/notice", directly_response=True)
+    @authorization_configuration(is_client=False, is_user=True)
+    async def create_notice(
+        self,
+        token: Annotated[AccessToken, Header],
+        message: Annotated[Optional[str], BodyJson] = None,
+        message_id: Annotated[Optional[str], BodyJson.to_camel()] = None,
+    ) -> None:
+        pass
+
+    @pydantic_response_model()
+    @get("/open/v1/chats/settings", directly_response=True)
+    @authorization_configuration(is_client=False, is_user=True)
+    async def get_chat_setting(
+        self,
+        token: Annotated[AccessToken, Header],
+    ) -> Content[ChatSetting]:
+        pass
+
+    @put("/open/v1/chats/settings", directly_response=True)
+    @authorization_configuration(is_client=False, is_user=True)
+    async def set_chat_setting(
+        self,
+        token: Annotated[AccessToken, Header],
+        chat_available_condition: Annotated[
+            Literal["NONE", "REAL_NAME"], BodyJson.to_camel()
+        ],
+        chat_available_group: Annotated[
+            Literal["ALL", "FOLLOWER", "MANAGER", "SUBSCRIBER"], BodyJson.to_camel()
+        ],
+        min_follower_minute: Annotated[int, BodyJson.to_camel()],
+        allow_subscriber_in_follower_mode: Annotated[bool, BodyJson.to_camel()],
+        chat_slow_mode_sec: Annotated[
+            Literal[0, 3, 5, 10, 30, 60, 120, 300], BodyJson.to_camel()
+        ],
+        chat_emoji_mode: Annotated[bool, BodyJson.to_camel()],
+    ) -> None:
+        pass
+
+    @pydantic_response_model()
+    @get("/open/v1/lives/setting", directly_response=True)
+    @authorization_configuration(is_client=False, is_user=True)
+    async def get_live_setting(
+        self, token: Annotated[AccessToken, Header]
+    ) -> Content[BrodecastSetting]:
+        pass
+
+    @request("patch", "/open/v1/lives/setting", directly_response=True)
+    @authorization_configuration(is_client=False, is_user=True)
+    async def set_live_setting(
+        self,
+        token: Annotated[AccessToken, Header],
+        default_live_title: Annotated[Optional[str], BodyJson.to_camel()] = None,
+        category_type: Annotated[Optional[CATEGORY_TYPE], BodyJson.to_camel()] = None,
+        category_id: Annotated[Optional[str], BodyJson.to_camel()] = None,
+        tags: Annotated[Optional[list[str]], BodyJson.to_camel()] = None,
+    ) -> None:
+        pass
+
+    @pydantic_response_model()
+    @get("/open/v1/streams/key", directly_response=True)
+    @authorization_configuration(is_client=False, is_user=True)
+    async def get_stream_key(
+        self, token: Annotated[AccessToken, Header]
+    ) -> Content[dict[str, str]]:
+        pass
+
+    @pydantic_response_model()
+    @get("/open/v1/lives", directly_response=True)
+    @authorization_configuration(is_client=True, is_user=False)
+    async def get_lives(
+        self,
+        size: Annotated[Optional[int], Query] = 20,
+        next: Annotated[Optional[str], Query] = None,
+    ) -> Content[SearchResult[Live]]:
+        pass
+
+    @post("/open/v1/restrict-channels", directly_response=True)
+    @authorization_configuration(is_client=False, is_user=True)
+    async def add_restrcit_user(
+        self,
+        token: Annotated[AccessToken, Header],
+        target_channel_id: Annotated[str, BodyJson.to_camel()],
+    ) -> None:
+        pass
+
+    @delete("/open/v1/restrict-channels", directly_response=True)
+    @authorization_configuration(is_client=False, is_user=True)
+    async def remove_restrcit_user(
+        self,
+        token: Annotated[AccessToken, Header],
+        target_channel_id: Annotated[str, BodyJson.to_camel()],
+    ) -> None:
+        pass
+
+    @pydantic_response_model()
+    @get("/open/v1/restrict-channels", directly_response=True)
+    @authorization_configuration(is_client=False, is_user=True)
+    async def get_restrcit_users(
+        self,
+        token: Annotated[AccessToken, Header],
+        size: Annotated[Optional[int], Query] = 20,
+        next: Annotated[Optional[str], Query] = None,
+    ) -> Content[SearchResult[RestrictUser]]:
         pass

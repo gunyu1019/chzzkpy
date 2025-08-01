@@ -21,43 +21,17 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-import datetime
 from pydantic import Field
-from typing import Optional, Literal
+from typing import Literal, Optional
 
 from .base_model import ChzzkModel
 
 
-class Channel(ChzzkModel):
-    id: str = Field(alias="channelId")
-    name: str = Field(alias="channelName")
-    image: Optional[str] = Field(alias="channelImageUrl", default=None)
-
-    follower_count: Optional[int] = 0
-    verified_mark: bool = False
+CATEGORY_TYPE = Literal["GAME", "SPORTS", "ETC"]
 
 
-class ChannelPermission(ChzzkModel):
-    user_id: str = Field(alias="managerChannelId")
-    user_name: str = Field(alias="managerChannelName")
-    role: Literal[
-        "STREAMING_CHANNEL_OWNER",
-        "STREAMING_CHANNEL_MANAGER",
-        "STREAMING_CHAT_MANAGER",
-        "STREAMING_SETTLEMENT_MANAGER",
-    ] = Field(alias="userRole")
-    created_date: datetime.datetime
-
-
-class FollowerInfo(ChzzkModel):
-    user_id: str = Field(alias="channelId")
-    user_name: str = Field(alias="channelName")
-    created_date: datetime.datetime
-
-
-class SubscriberInfo(ChzzkModel):
-    user_id: str = Field(alias="channelId")
-    user_name: str = Field(alias="channelName")
-    month: int
-    tier_no: int
-    created_date: datetime.datetime
+class Category(ChzzkModel):
+    id: str = Field(alias="categoryId")
+    name: str = Field(alias="categoryValue")
+    type: Optional[CATEGORY_TYPE] = Field(alias="categoryType")
+    image: Optional[str] = Field(alias="posterImageUrl", default=None)

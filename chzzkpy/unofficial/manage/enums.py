@@ -1,4 +1,4 @@
-MIT License
+"""MIT License
 
 Copyright (c) 2024-2025 gunyu1019
 
@@ -19,3 +19,16 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+"""
+
+from enum import Enum
+
+
+class SortType(Enum):
+    recent = "RECENT"
+    longer = "LONGER"
+
+
+class SubscriberTier(Enum):
+    tier1 = "TIER_1"
+    tier2 = "TIER_2"

@@ -22,42 +22,16 @@ SOFTWARE.
 """
 
 import datetime
+from typing import Optional
 from pydantic import Field
-from typing import Optional, Literal
 
-from .base_model import ChzzkModel
-
-
-class Channel(ChzzkModel):
-    id: str = Field(alias="channelId")
-    name: str = Field(alias="channelName")
-    image: Optional[str] = Field(alias="channelImageUrl", default=None)
-
-    follower_count: Optional[int] = 0
-    verified_mark: bool = False
+from ..base_model import ChzzkModel
 
 
-class ChannelPermission(ChzzkModel):
-    user_id: str = Field(alias="managerChannelId")
-    user_name: str = Field(alias="managerChannelName")
-    role: Literal[
-        "STREAMING_CHANNEL_OWNER",
-        "STREAMING_CHANNEL_MANAGER",
-        "STREAMING_CHAT_MANAGER",
-        "STREAMING_SETTLEMENT_MANAGER",
-    ] = Field(alias="userRole")
-    created_date: datetime.datetime
-
-
-class FollowerInfo(ChzzkModel):
-    user_id: str = Field(alias="channelId")
-    user_name: str = Field(alias="channelName")
-    created_date: datetime.datetime
-
-
-class SubscriberInfo(ChzzkModel):
-    user_id: str = Field(alias="channelId")
-    user_name: str = Field(alias="channelName")
-    month: int
-    tier_no: int
-    created_date: datetime.datetime
+class Blind(ChzzkModel):
+    service_id: str
+    time: datetime.datetime = Field(alias="messageTime")
+    blind_type: str
+    blind_user_id: Optional[str]
+    user_id: str
+    message: Optional[str]

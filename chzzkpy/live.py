@@ -1,6 +1,6 @@
 """MIT License
 
-Copyright (c) 2024 gunyu1019
+Copyright (c) 2024-2025 gunyu1019
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,76 +22,65 @@ SOFTWARE.
 """
 
 import datetime
-from typing import Literal, Any, Optional
-from pydantic import ConfigDict, Field, Json
+
+from typing import Optional
+from pydantic import Field, PrivateAttr, computed_field
+
 from .base_model import ChzzkModel
-from .channel import PartialChannel
+from .category import CATEGORY_TYPE, Category
+from .channel import Channel
 
 
-class LivePollingStatus(ChzzkModel):
-    status: str
-    is_publishing: bool
-    playable_status: str
-    traffic_throttling: int
-    call_period_millisecond: int = Field(alias="callPeriodMilliSecond")
-
-
-class LiveStatus(ChzzkModel):
-    live_title: str
-    status: Literal["OPEN", "CLOSE"]
-    concurrent_user_count: int
-    accumulate_count: int
-    paid_promotion: bool
-    adult: bool
-    chat_channel_id: Optional[str]
-    category_type: Optional[str]
-    live_category: Optional[str]
-    live_category_value: str
-    live_polling_status: Json[LivePollingStatus] = Field(alias="livePollingStatusJson")
-    fault_status: Any  # typing: ???
-    user_adult_status: str
-    chat_active: bool
-    chat_available_group: str
-    chat_available_condition: str
-    min_follower_minute: int
-
-
-class BaseLive(ChzzkModel):
+class Live(ChzzkModel):
     live_id: int
     live_title: str
-    live_image_url: str
-    accumulate_count: int
-    adult: bool
-    chat_channel_id: Optional[str]
-    category_type: Optional[str]
+    live_image_url: str = Field(alias="liveThumbnailImageUrl")
     concurrent_user_count: int
-    default_thumbnail_image_url: Optional[str]
-    live_category: str
-    live_category_value: str
-
-    # live_playback: Json[LivePlayback] = Field(alias="livePlaybackJson") WIP
     open_date: datetime.datetime
-
+    adult: bool
     tags: list[str]
 
+    _category_id: Optional[str] = PrivateAttr(default=None)
+    _category_name: Optional[str] = PrivateAttr(default=None)
+    _category_type: Optional[CATEGORY_TYPE] = PrivateAttr(default=None)
 
-# This class used at search.
-class Live(BaseLive):
-    model_config = ConfigDict(frozen=False)
+    _channel_id: Optional[str] = PrivateAttr(default=None)
+    _channel_name: Optional[str] = PrivateAttr(default=None)
+    _channel_image: Optional[str] = PrivateAttr(default=None)
 
-    channel_id: str
-    channel: Optional[PartialChannel] = None
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self._category_id = kwargs.pop("liveCategory")
+        self._category_name = kwargs.pop("liveCategoryValue")
+        self._category_type = kwargs.pop("categoryType")
+
+        self._channel_id = kwargs.pop("channelId")
+        self._channel_name = kwargs.pop("channelName")
+        self._channel_image = kwargs.pop("channelImageUrl")
+
+    @computed_field
+    @property
+    def category(self) -> Optional[Category]:
+        if self._category_id is None:
+            return
+        return Category(
+            categoryId=self._category_id,
+            categoryValue=self._category_name,
+            categoryType=self._category_type,
+        )
+
+    @computed_field
+    @property
+    def channel(self) -> Channel:
+        return Channel(
+            channelId=self._channel_id,
+            channelName=self._channel_name,
+            channelImageUrl=self._channel_image,
+        )
 
 
-class LiveDetail(BaseLive):
-    status: Literal["OPEN", "CLOSE"]
-
-    live_polling_status: Json[LivePollingStatus] = Field(alias="livePollingStatusJson")
-
-    close_date: datetime.datetime
-    chat_active: bool
-    chat_available_group: str
-    chat_available_condition: str
-    paid_promotion: bool
-    min_follower_minute: int
-    user_adult_status: Optional[str]
+class BrodecastSetting(ChzzkModel):
+    title: str = Field(alias="defaultLiveTitle")
+    category: Category
+    tags: list[str]

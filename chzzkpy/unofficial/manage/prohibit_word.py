@@ -22,42 +22,33 @@ SOFTWARE.
 """
 
 import datetime
-from pydantic import Field
-from typing import Optional, Literal
 
-from .base_model import ChzzkModel
+from ..base_model import ChzzkModel, ManagerClientAccessable
 
 
-class Channel(ChzzkModel):
-    id: str = Field(alias="channelId")
-    name: str = Field(alias="channelName")
-    image: Optional[str] = Field(alias="channelImageUrl", default=None)
-
-    follower_count: Optional[int] = 0
-    verified_mark: bool = False
-
-
-class ChannelPermission(ChzzkModel):
-    user_id: str = Field(alias="managerChannelId")
-    user_name: str = Field(alias="managerChannelName")
-    role: Literal[
-        "STREAMING_CHANNEL_OWNER",
-        "STREAMING_CHANNEL_MANAGER",
-        "STREAMING_CHAT_MANAGER",
-        "STREAMING_SETTLEMENT_MANAGER",
-    ] = Field(alias="userRole")
+class ProhibitWord(ChzzkModel, ManagerClientAccessable):
     created_date: datetime.datetime
+    nickname: str
+    prohibit_word: str
+    prohibit_word_no: int
+
+    @ManagerClientAccessable.based_manage_client
+    async def remove(self):
+        """Remove this prohibit word."""
+        await self._manage_client.remove_prohibit_word(self)
+
+    @ManagerClientAccessable.based_manage_client
+    async def edit(self, word: str):
+        """Modify this prohibit word.
+
+        Parameters
+        ----------
+        word : str
+            A new word to prohibit.
+        """
+        data = await self._manage_client.edit_prohibit_word(self, word)
+        return data
 
 
-class FollowerInfo(ChzzkModel):
-    user_id: str = Field(alias="channelId")
-    user_name: str = Field(alias="channelName")
-    created_date: datetime.datetime
-
-
-class SubscriberInfo(ChzzkModel):
-    user_id: str = Field(alias="channelId")
-    user_name: str = Field(alias="channelName")
-    month: int
-    tier_no: int
-    created_date: datetime.datetime
+class ProhibitWordResponse(ChzzkModel):
+    prohibit_word_list: list[ProhibitWord]

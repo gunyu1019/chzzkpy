@@ -1,6 +1,6 @@
 """MIT License
 
-Copyright (c) 2024 gunyu1019
+Copyright (c) 2024-2025 gunyu1019
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,8 +21,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from typing import Optional, Any
-from .base_model import Content
+from typing import Any, Literal, Optional
 
 
 class ChzzkpyException(Exception):
@@ -43,7 +42,7 @@ class BadRequestException(ChzzkpyException):
 
     def __init__(self, message: Optional[str] = None):
         if message is None:
-            message = "Invaild input value"
+            message = "Invalid input value"
         super(BadRequestException, self).__init__(message)
 
 
@@ -61,7 +60,7 @@ class ForbiddenException(ChzzkpyException):
 
     def __init__(self, message: Optional[str] = None):
         if message is None:
-            message = "Invaild permission"
+            message = "Invalid permission"
         super(ForbiddenException, self).__init__(message)
 
 
@@ -92,3 +91,31 @@ class HTTPException(ChzzkpyException):
         else:
             message += f" ({code})"
         super(HTTPException, self).__init__(message)
+
+
+class ChatConnectFailed(ChzzkpyException):
+    def __init__(self, message: str):
+        super(ChatConnectFailed, self).__init__(message)
+
+    @classmethod
+    def websocket_upgrade_failed(cls):
+        return cls("WebSocket upgrade failed: no PONG packet")
+
+    @classmethod
+    def polling_connect_failed(cls, status: int):
+        return cls(f"Unexpected status code {status} in connect polling")
+
+    @classmethod
+    def max_connection(cls):
+        return cls("Maximum number of sessions allowed to connect has been exceeded.")
+
+
+class ReceiveErrorPacket(ChzzkpyException):
+    def __init__(self, transport: Literal["polling", "websocket"], data: Any):
+        super().__init__(
+            f"{transport} type of connection received packet with an error. "
+            f" (data: {self.code})"
+        )
+
+        self.current_transport = transport
+        self.data = data

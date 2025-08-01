@@ -1,4 +1,4 @@
-MIT License
+"""MIT License
 
 Copyright (c) 2024-2025 gunyu1019
 
@@ -19,3 +19,39 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+"""
+
+from .blind import Blind
+from .chat_client import ChatClient
+from .connected import ConnectedInfo
+from .donation import (
+    DonationRank,
+    BaseDonation,
+    ChatDonation,
+    VideoDonation,
+    MissionDonation,
+    MissionParticipationDonation,
+)
+from .enums import ChatType, ChatCmd
+from .error import *
+from .message import (
+    Message,
+    MessageDetail,
+    ChatMessage,
+    NoticeMessage,
+    DonationMessage,
+    SubscriptionMessage,
+    SubscriptionGiftMessage,
+    SystemMessage,
+    Extra,
+    ChatDonationExtra,
+    VideoDonationExtra,
+    MissionDonationExtra,
+    SubscriptionExtra,
+    SubscriptionGiftExtra,
+    NoticeExtra,
+    SystemExtra,
+    SystemExtraParameter,
+)
+from .profile import Profile, ActivityBadge, StreamingProperty, Badge
+from .recent_chat import RecentChat

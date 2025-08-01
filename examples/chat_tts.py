@@ -10,7 +10,7 @@ import gtts
 import pydub
 import pydub.playback
 
-from chzzkpy.offical import Client, Message, UserPermission
+from chzzkpy import Client, Message, UserPermission
 
 # Configuration
 client_id = "client_id"
