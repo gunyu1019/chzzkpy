@@ -39,10 +39,12 @@ from .gateway import ChzzkGateway
 from .http import ChzzkOpenAPISession
 from .live import BrodecastSetting, Live
 from .message import SentMessage
+from .oauth2 import ChzzkOAuth2Client
 from .state import ConnectionState
 
 
 if TYPE_CHECKING:
+    from aiohttp.web import Response as webResponse
     from typing import Self, Literal, Optional, Callable, Coroutine
 
     from .base_model import SearchResult
@@ -327,6 +329,53 @@ class Client(BaseEventManager):
             pass
         self.user_client.append(user_cls)
         return user_cls
+
+    @initial_async_setup
+    async def login(
+        self, 
+        state: Optional[str] = None,
+        redirect_url: Optional[str] = None,
+        remote_host: str = "localhost", 
+        remote_port: int = 8080, 
+        remote_path: str = "/",
+        success_response: Optional[webResponse] = None,
+        ssl: bool = False
+    ) -> UserClient:
+        """Get :class:`UserClient` instance with oauth2 login process.
+        This :meth:`login` provides a convenient login method using the aiohttp web server.
+
+        Parameters
+        ----------
+        state: Optional[str]
+            A code used in the authentication process.
+        redirect_url: Optional[str]
+            A redirect_url used in the authentication process.
+        remote_host : str
+            A host url for the temporarily operated web server, default by localhost.
+            If the public environment required, enter "0.0.0.0" value to this parameter.
+        remote_port : int
+            A port for the temporarily operated web server, default by 8080.
+        remote_path : int
+            A path for the temporarily operated web server, default by '/'.
+        success_response : aiohttp.web.Response
+            A content to be displayed on the website after successful login.
+        ssl: bool
+            Whether to use http(s) during opening the web browser.
+        """
+        remote_scheme = "https" if ssl else "http"
+        oauth2_client = ChzzkOAuth2Client(
+            self, 
+            remote_scheme=remote_scheme, 
+            remote_host=remote_host, 
+            remote_port=remote_port, 
+            remote_path=remote_path, 
+            success_response=success_response
+        )
+
+        state = state or "chzzkpy_authorization"  # Temporatry Code
+        access_token = await oauth2_client.process_oauth2(state, redirect_url)
+        user_client = await self.get_user_client(access_token)
+        return user_client
 
     @initial_async_setup
     async def refresh_access_token(self, refresh_token: str) -> AccessToken:
