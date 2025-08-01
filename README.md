@@ -114,27 +114,28 @@ asyncio.run(main())
 #### 팔로워 불러오기 (Get followers)
 
 ```py
-import asyncio
-import chzzkpy
+from chzzkpy import Client, Donation, Message, UserPermission
+
+client_id = "Prepared Client ID"
+client_secret = "Prepared Client Secret"
+client = Client(client_id, client_secret)
 
 
 async def main():
-    client = chzzkpy.Client()
+    authorization_url = client.generate_authorization_token_url(redirect_url="https://localhost", state="abcd12345")
+    print(f"Please login with this url: {authorization_url}")
+    code = input("Please input response code: ")
 
-    # 채널 관리 기능을 이용하기 위해서는 네이버 사용자 인증이 필요합니다.
-    # 웹브라우저의 쿠키 값에 있는 NID_AUT와 NID_SES 값으로 로그인을 대체할 수 있습니다.
-    client.login("NID_AUT", "NID_SES")
-    manage_client = client.manage("channel_id")
-
-    followers = await manage_client.followers()
+    user_client = await client.generate_user_client(code, "abcd12345")
+    result = await user_client.get_followers()
     if len(result) == 0:
         print("팔로워가 없습니다. :(")
         await client.close()
         return
 
     for user in result.data:
-        print(f"{user.user.nickname}: {user.following.follow_date}부터 팔로우 중.")
-    await client.close()
+        print(f"{user.user_name}: {user.created_date}부터 팔로우 중.")
+
 
 asyncio.run(main())
 ```
