@@ -35,7 +35,7 @@
 * Add `UserClient.get_channel_administrator` method to read administrator of channel.
 * Add `verified_mark` attribute in Channel data model.
 * Add `slow_mode` and `emoji_mode` parameter in `UserClient.set_chat_setting` method.
-* [Fix] Invaild HTTP method called in `get_channel`, `get_category` method.
+* [Fix] Invalid HTTP method called in `get_channel`, `get_category` method.
 * [Fix] (chzzkpy.chat) Modify condition of connection exception.
 
 ## v2.0.6 - Jun 25th, 2025
@@ -49,21 +49,21 @@
 * [Fix] (chzzkpy.offical) Missing typing.Self feature in python 3.10 version. 
 
 ## v2.0.4 - Mar 16th, 2025
-* [Fix] Invaild parameter name called in offical.Donation
+* [Fix] Invalid parameter name called in offical.Donation
 
 ## v2.0.3 - Mar 9th, 2025
-* [Fix] Invaild client-id, client-secret attribute called in user client
+* [Fix] Invalid client-id, client-secret attribute called in user client
 
 ## v2.0.2 - Mar 9th, 2025
 * Add refresh access token method in client.
-* [Fix] Invaild calling attribute name in refresh user client method
+* [Fix] Invalid calling attribute name in refresh user client method
 
 ## v2.0.1 - Mar 8th, 2025
 * Add `quantity`, and other attribute in `SubscriptionGiftExtra` to receive multiple subscriptions gift
 * Add `viewer_badge` attribute in `Profile`
 * Add `nickname_color`, and `subscription` attribute in `StreamingProperty`
 * Add validation in defining UserClient part to check correcting access token
-* [Fix] Invaild calling method  (geturl) => (__str__) in https://github.com/gunyu1019/chzzkpy/issues/65
+* [Fix] Invalid calling method  (geturl) => (__str__) in https://github.com/gunyu1019/chzzkpy/issues/65
 
 ## v2.0.0 - Mar 7th, 2025
 * Support offical API provided by [Chzzk Developer Center](https://developers.chzzk.naver.com/)
@@ -96,11 +96,11 @@
 * [Fix] (Temporary Action) An Exception was raised when ManageClient.subcribers method called without filter parameter.
 
 ## v1.1.6 - Feb 6th, 2025
-* [Fix] Invaild parameter name to filter subscribers with nickname.
+* [Fix] Invalid parameter name to filter subscribers with nickname.
 * [Fix] Add `has_login` condition at Message.model_validate_with_client classmethod to cause LoginRequired Exception when client didn't logined.
 
 ## v1.1.5 - Feb 4th, 2025
-* [Fix] Invaild usage parameter at ManageClient.subcribers method.
+* [Fix] Invalid usage parameter at ManageClient.subcribers method.
 * [Fix] Missing attribute exception(in anonymous donation) at MissingDonation
 
 ## v1.1.4 - Jan 28th, 2025
@@ -160,7 +160,7 @@
 * Add HTTPException and NotFound Exception for more experience.
 
 ## v1.0.1 - Jul 23th, 2024
-* [Fix] Invalid `emojis` field
+* [Fix] Invalid`emojis` field
 * Update python dependience packages
 
 ## v1.0.0 - Jun 6th, 2024

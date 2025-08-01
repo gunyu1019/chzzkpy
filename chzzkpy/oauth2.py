@@ -76,7 +76,7 @@ class ChzzkOAuth2Client:
             )
 
         if state != self._authorize_state:
-            return aiohttp.web.Response(text="Invaild state code. Please try again!")
+            return aiohttp.web.Response(text="Invalid state code. Please try again!")
 
         self._response = await self.client.generate_access_token(
             code, state=self._authorize_state

@@ -42,7 +42,7 @@ class BadRequestException(ChzzkpyException):
 
     def __init__(self, message: Optional[str] = None):
         if message is None:
-            message = "Invaild input value"
+            message = "Invalid input value"
         super(BadRequestException, self).__init__(message)
 
 
@@ -60,7 +60,7 @@ class ForbiddenException(ChzzkpyException):
 
     def __init__(self, message: Optional[str] = None):
         if message is None:
-            message = "Invaild permission"
+            message = "Invalid permission"
         super(ForbiddenException, self).__init__(message)
 
 
