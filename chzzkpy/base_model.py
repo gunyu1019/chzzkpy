@@ -86,3 +86,6 @@ class SearchResult(ChzzkModel, Generic[T]):
         if isinstance(index, (slice, int)):
             return self.data[index]
         raise TypeError("'SearchResult' object is not subscriptable.")
+
+    def __len__(self) -> int:
+        return len(self.data)
