@@ -193,7 +193,7 @@ class ChzzkOpenAPISession(Session):
         pass
 
     @pydantic_response_model()
-    @post("/open/v1/channels", directly_response=True)
+    @get("/open/v1/channels", directly_response=True)
     @authorization_configuration(is_client=True, is_user=False)
     async def get_channel(
         self, channel_ids: Annotated[str, Query.to_camel()]
@@ -201,7 +201,7 @@ class ChzzkOpenAPISession(Session):
         pass
 
     @pydantic_response_model()
-    @post("/open/v1/channels/streaming-roles", directly_response=True)
+    @get("/open/v1/channels/streaming-roles", directly_response=True)
     @authorization_configuration(is_client=False, is_user=True)
     async def get_channel_administrator(
         self, token: Annotated[Optional[AccessToken], Header] = None
@@ -209,7 +209,7 @@ class ChzzkOpenAPISession(Session):
         pass
 
     @pydantic_response_model()
-    @post("/open/v1/channels/followers", directly_response=True)
+    @get("/open/v1/channels/followers", directly_response=True)
     @authorization_configuration(is_client=False, is_user=True)
     async def get_channel_followers(
         self,
@@ -220,7 +220,7 @@ class ChzzkOpenAPISession(Session):
         pass
 
     @pydantic_response_model()
-    @post("/open/v1/channels/subscribers", directly_response=True)
+    @get("/open/v1/channels/subscribers", directly_response=True)
     @authorization_configuration(is_client=False, is_user=True)
     async def get_channel_subscribers(
         self,
@@ -232,7 +232,7 @@ class ChzzkOpenAPISession(Session):
         pass
 
     @pydantic_response_model()
-    @post("/open/v1/categories/search", directly_response=True)
+    @get("/open/v1/categories/search", directly_response=True)
     @authorization_configuration(is_client=True, is_user=False)
     async def get_category(
         self, query: Annotated[str, Query], size: Annotated[Optional[int], Query] = 20
