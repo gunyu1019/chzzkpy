@@ -35,7 +35,7 @@ $ python3 -m pip install -U .
 
 #### 챗봇 (Chat-Bot)
 ```py
-from chzzkpy.offical import Client, Donation, Message, UserPermission
+from chzzkpy import Client, Donation, Message, UserPermission
 
 client_id = "Prepared Client ID"
 client_secret = "Prepared Client Secret"
@@ -62,7 +62,7 @@ asyncio.run(main())
 #### 챗봇 (Chat-Bot / 비공식 API)
 
 ```py
-from chzzkpy.chat import ChatClient, ChatMessage, DonationMessage
+from chzzkpy.unoffical.chat import ChatClient, ChatMessage, DonationMessage
 
 client = ChatClient("channel_id")
 
@@ -88,11 +88,11 @@ client.run("NID_AUT", "NID_SES")
 
 ```py
 import asyncio
-import chzzkpy
+import chzzkpy.unoffical
 
 
 async def main():
-    client = chzzkpy.Client()
+    client = chzzkpy.unoffical.Client()
     result = await client.search_channel("건유1019")
     if len(result) == 0:
         print("검색 결과가 없습니다 :(")
