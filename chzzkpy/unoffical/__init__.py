@@ -21,8 +21,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from typing import NamedTuple, Literal, Optional
-
 from .client import Client
 from .error import *
 from .manage import *

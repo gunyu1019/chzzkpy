@@ -21,6 +21,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
+from typing import NamedTuple, Literal, Optional
+
 from .authorization import AccessToken
 from .category import Category
 from .channel import Channel
@@ -30,17 +32,11 @@ from .flags import UserPermission
 from .message import Donation, Profile, Message
 
 
-try:
-    from .unoffical import *
-except ModuleNotFoundError:
-    pass
-
-
 __title__ = "chzzkpy"
 __author__ = "gunyu1019"
 __license__ = "MIT"
 __copyright__ = "Copyright 2024-present gunyu1019"
-__version__ = "2.1.0-beta1"  # version_info.to_string()
+__version__ = "2.1.0"  # version_info.to_string()
 
 
 class VersionInfo(NamedTuple):
@@ -58,5 +54,5 @@ class VersionInfo(NamedTuple):
 
 
 version_info: VersionInfo = VersionInfo(
-    major=2, minor=1, micro=0, release_level="beta", serial=1
+    major=2, minor=1, micro=0, release_level=None, serial=0
 )
