@@ -62,7 +62,7 @@ asyncio.run(main())
 #### 챗봇 (Chat-Bot / 비공식 API)
 
 ```py
-from chzzkpy.unoffical.chat import ChatClient, ChatMessage, DonationMessage
+from chzzkpy.unofficial.chat import ChatClient, ChatMessage, DonationMessage
 
 client = ChatClient("channel_id")
 
@@ -88,11 +88,11 @@ client.run("NID_AUT", "NID_SES")
 
 ```py
 import asyncio
-import chzzkpy.unoffical
+import chzzkpy.unofficial
 
 
 async def main():
-    client = chzzkpy.unoffical.Client()
+    client = chzzkpy.unofficial.Client()
     result = await client.search_channel("건유1019")
     if len(result) == 0:
         print("검색 결과가 없습니다 :(")
@@ -152,12 +152,12 @@ asyncio.run(main())
     from chzzkpy.chat import ChatClient
 
     # After
-    from chzzkpy.unoffical.chat import ChatClient  # 비공식 API
+    from chzzkpy.unofficial.chat import ChatClient  # 비공식 API
     from chzzkpy import Client  # 공식 API
     ```
     
     이전에 이슈에서 공지사항으로 게재했던 것([내용](https://github.com/gunyu1019/chzzkpy/issues/42#issuecomment-2661430481))처럼 8월 1일부터 같이 `chzzkpy.offical` 패키지가 `chzzkpy`로 대체되었습니다.
-    비공식 API는 `chzzkpy.unoffical` 패키지로 이용하실 수 있습니다.
+    비공식 API는 `chzzkpy.unofficial` 패키지로 이용하실 수 있습니다.
 
 * **클라이언트 인증** ([Reference](https://chzzk.gitbook.io/chzzk/chzzk-api/authorization))<br/>
     `v1`는 네이버 송.수신 중에 입력되는 `NID_AUT`와 `NID_SES` 쿠키로 인증을 합니다. <br/>

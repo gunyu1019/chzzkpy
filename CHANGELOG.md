@@ -1,12 +1,12 @@
 ## v2.1.0 - Aug 1st, 2025
-* **(Breaking Change)** Modify offical pacakge to default package, and unoffical package from default package.
+* **(Breaking Change)** Modify offical pacakge to default package, and unofficial package from default package.
   ```py
   # Before (~v2.0.6)
   from chzzkpy.chat import ChatClient
   from chzzkpy.offical import Client
 
   # After (v2.1.0~)
-  from chzzkpy.unoffical.chat import ChatClient
+  from chzzkpy.unofficial.chat import ChatClient
   from chzzkpy import Client
   ```
 * Add restriction related feature. ([Restriction API Reference](https://chzzk.gitbook.io/chzzk/chzzk-api/restriction))
