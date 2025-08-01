@@ -582,7 +582,7 @@ class UserClient:
         # Resolved issue in https://github.com/gunyu1019/chzzkpy/issues/66
         if not isinstance(self.access_token, AccessToken):
             raise TypeError(
-                "An Invalid type of parameter was entered. The access_token parameter must be AccessToken type."
+                "An invalid type of parameter was entered. The access_token parameter must be AccessToken type."
             )
 
         self._gateway: Optional[ChzzkGateway] = None
