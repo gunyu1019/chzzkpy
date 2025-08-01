@@ -30,5 +30,5 @@ from .base_model import ChzzkModel
 class RestrictUser(ChzzkModel):
     channel_id: str = Field(alias="restrictedChannelId")
     channel_name: str = Field(alias="restrictedChannelName")
-    created_date: datetime.date = Field(alias="createdDate")
-    release_date: datetime.date = Field(alias="releaseDate")
+    created_date: datetime.datetime = Field(alias="createdDate")
+    release_date: datetime.datetime = Field(alias="releaseDate")

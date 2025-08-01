@@ -46,13 +46,13 @@ class ChannelPermission(ChzzkModel):
         "STREAMING_CHAT_MANAGER",
         "STREAMING_SETTLEMENT_MANAGER",
     ] = Field(alias="userRole")
-    created_date: datetime.date
+    created_date: datetime.datetime
 
 
 class FollowerInfo(ChzzkModel):
     user_id: str = Field(alias="channelId")
     user_name: str = Field(alias="channelName")
-    created_date: datetime.date
+    created_date: datetime.datetime
 
 
 class SubscriberInfo(ChzzkModel):
@@ -60,4 +60,4 @@ class SubscriberInfo(ChzzkModel):
     user_name: str = Field(alias="channelName")
     month: int
     tier_no: int
-    created_date: datetime.date
+    created_date: datetime.datetime
