@@ -1,19 +1,18 @@
 # required spotipy
 # pip install spotipy
 import spotipy
+import asyncio
 from typing import Any
 from pydantic import BaseModel
 
-from chzzkpy.chat import ChatClient, ChatMessage
+from chzzkpy import Client, Message, UserPermission
 
 # Configuration
-channel_id = "channel_id"
 prefix = "$"
 
-
 # Naver Authorization
-NID_AUT = "NID_AUTHORIZATION_KEY"
-NID_SES = "NID_SESSION_KEY"
+client_id = "client_id"
+client_secret = "client_secret"
 
 
 # Spotify Authorization
@@ -27,7 +26,7 @@ oauth_manager = spotipy.SpotifyOAuth(
 
 oauth_manager.get_auth_response()
 
-chzzk_client = ChatClient(channel_id)
+chzzk_client = Client(client_id, client_secret)
 spotify_client = spotipy.Spotify(oauth_manager=oauth_manager)
 
 
@@ -43,12 +42,12 @@ class SpotifyMusicInfo(BaseModel):
 
 
 @chzzk_client.event
-async def on_connect():
+async def on_connect(_):
     print("Ready bot.")
 
 
 @chzzk_client.event
-async def on_chat(message: ChatMessage):
+async def on_chat(message: Message):
     if not message.content.startswith("%s선곡" % prefix):
         return
 
@@ -58,14 +57,23 @@ async def on_chat(message: ChatMessage):
     items = [SpotifyMusicInfo.from_spotify(x) for x in tracks_result["items"]]
 
     if len(items) <= 0:
-        await chzzk_client.send_chat("검색 결과가 없습니다 :(")
+        await message.send("검색 결과가 없습니다 :(")
         return
     item = items[0]
     spotify_client.add_to_queue(item.uri)
-    await chzzk_client.send_chat(
-        "%s - %s 노래가 추가되었습니다." % (item.name, item.artists)
-    )
+    await message.send("%s - %s 노래가 추가되었습니다." % (item.name, item.artists))
     return
 
 
-chzzk_client.run(NID_AUT, NID_SES)
+async def main():
+    authorization_url = chzzk_client.generate_authorization_token_url(
+        redirect_url="https://localhost", state="abcd12345"
+    )
+    print(f"Please login with this url: {authorization_url}")
+    code = input("Please input response code: ")
+
+    user_client = await chzzk_client.generate_user_client(code, "abcd12345")
+    await user_client.connect(UserPermission(chat=True))
+
+
+asyncio.run(main())
