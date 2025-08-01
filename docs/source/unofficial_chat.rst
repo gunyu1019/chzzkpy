@@ -1,5 +1,5 @@
-Chat Feature
-============
+(Unofficial) Chat Feature
+=========================
 
 Client
 ------

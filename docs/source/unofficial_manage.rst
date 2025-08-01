@@ -1,5 +1,5 @@
-Manage Feature
-==============
+(Unofficial) Manage Feature
+===========================
 
 Manage Client
 -------------
