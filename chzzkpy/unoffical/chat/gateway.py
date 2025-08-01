@@ -157,7 +157,7 @@ class ChzzkWebSocket:
         _log.debug("Received Message: %s", data)
 
         if cmd_type == ChatCmd.CONNECTED:
-            if "retCode" in data.keys() or "retMsg" in data.keys():
+            if "retCode" in data.keys() and data["retCode"] > 0:
                 raise ChatConnectFailed.conenct_failed(
                     ret_code=data.get("retCode"), ret_message=data.get("retMsg")
                 )
