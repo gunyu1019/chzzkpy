@@ -53,11 +53,7 @@ async def on_donation(donation: Donation):
 
 
 async def main():
-    authorization_url = client.generate_authorization_token_url(redirect_url="https://localhost", state="abcd12345")
-    print(f"Please login with this url: {authorization_url}")
-    code = input("Please input response code: ")
-
-    user_client = await client.generate_user_client(code, "abcd12345")
+    user_client = await client.login()
     await user_client.connect(UserPermission.all())
 
 asyncio.run(main())
@@ -122,11 +118,7 @@ client = Client(client_id, client_secret)
 
 
 async def main():
-    authorization_url = client.generate_authorization_token_url(redirect_url="https://localhost", state="abcd12345")
-    print(f"Please login with this url: {authorization_url}")
-    code = input("Please input response code: ")
-
-    user_client = await client.generate_user_client(code, "abcd12345")
+    user_client = await client.login()
     result = await user_client.get_followers()
     if len(result) == 0:
         print("팔로워가 없습니다. :(")
