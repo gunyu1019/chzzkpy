@@ -151,7 +151,7 @@ asyncio.run(main())
 공식 API와 비공식 API는 완전히 다른 패키지지만, 최대한 개발 환경을 고려하여 비슷하게 만들도록 노력하였습니다.<br/><br/>
 아래에 기재된 내용은 v1(비공식 API)에서 v2(공식 API)로 주요 마이그레이션 과정을 서술하였습니다.<br/>
 
-* **패키지 추가**
+* **패키지 추가 (v2.1.x~)**
     공식 API는 비공식 API와 달리 별도의 패키지로 구성되어있습니다.
     따라서 공식 API를 이용하기 위해서는 아래와 같이 호출하셔야 합니다.
     ```py
@@ -159,11 +159,12 @@ asyncio.run(main())
     from chzzkpy.chat import ChatClient
 
     # After
-    from chzzkpy.offical import Client
+    from chzzkpy.unoffical.chat import ChatClient  # 비공식 API
+    from chzzkpy import Client  # 공식 API
     ```
     
-    이전에 이슈에서 공지사항으로 게재했던 것([내용](https://github.com/gunyu1019/chzzkpy/issues/42#issuecomment-2661430481))과 같이 `chzzkpy.offical` 패키지가 `chzzkpy`로 대체될 예정이긴 합니다.
-    반대로 `chzzkpy`는 더 이상 지원하지 않거나, `chzzkpy.unoffical`로 대체될 예정입니다.
+    이전에 이슈에서 공지사항으로 게재했던 것([내용](https://github.com/gunyu1019/chzzkpy/issues/42#issuecomment-2661430481))처럼 8월 1일부터 같이 `chzzkpy.offical` 패키지가 `chzzkpy`로 대체되었습니다.
+    비공식 API는 `chzzkpy.unoffical` 패키지로 이용하실 수 있습니다.
 
 * **클라이언트 인증** ([Reference](https://chzzk.gitbook.io/chzzk/chzzk-api/authorization))<br/>
     `v1`는 네이버 송.수신 중에 입력되는 `NID_AUT`와 `NID_SES` 쿠키로 인증을 합니다. <br/>
