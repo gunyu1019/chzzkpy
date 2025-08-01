@@ -1,7 +1,7 @@
 Introduction
 ============
-| 파이썬 기반의 치지직(네이버 라이브 스트리밍 서비스)의 비공식 라이브러리 입니다.
-| An unofficial python library for Chzzk(Naver Live Streaming Service).
+| 파이썬 기반의 치지직(네이버 라이브 스트리밍 서비스)의 비공식 라이브러리 입니다.<br/>
+| An unofficial python library for Chzzk(Naver Live Streaming Service.
 
 **Feature**
 
@@ -27,8 +27,8 @@ To install the development version.
 
 .. code-block:: bash
 
-   $ git clone https://github.com/gunyu1019/chzzk_py
-   $ chzzk_py
+   $ git clone https://github.com/gunyu1019/chzzkpy.git -b develop
+   $ cd chzzkpy
    $ python3 -m pip install -U .
 
 Quick Example
@@ -42,11 +42,11 @@ Searching broadcaster
 .. code-block:: python
    
    import asyncio
-   import chzzkpy
+   import chzzkpy.unofficial
 
 
    async def main():
-      client = chzzkpy.Client()
+      client = chzzkpy.unofficial.Client()
       result = await client.search_channel("건유1019")
       if len(result) == 0:
          print("검색 결과가 없습니다 :(")
@@ -61,9 +61,37 @@ Searching broadcaster
    asyncio.run(main())
 
 
-
 Chat Bot
 ````````
+
+.. code-block:: python
+
+   from chzzkpy import Client, Donation, Message, UserPermission
+
+   client_id = "Prepared Client ID"
+   client_secret = "Prepared Client Secret"
+   client = Client(client_id, client_secret)
+
+   @client.event
+   async def on_chat(message: Message):
+      if message.content == "!안녕":
+         await message.send("%s님, 안녕하세요!" % message.profile.nickname)
+
+
+   @client.event
+   async def on_donation(donation: Donation):
+      await donation.send("%s님, %d원 후원 감사합니다." % (donation.profile.nickname, donation.pay_amount))
+
+
+   async def main():
+      user_client = await client.login()
+      await user_client.connect(UserPermission.all())
+
+   asyncio.run(main())
+
+
+Chat Bot(Unofficial)
+````````````````````
 
 .. code-block:: python
 
@@ -90,27 +118,24 @@ Collect Followers
 
 .. code-block:: python
    
-   import asyncio
-   import chzzkpy
+   from chzzkpy import Client, Donation, Message, UserPermission
+
+   client_id = "Prepared Client ID"
+   client_secret = "Prepared Client Secret"
+   client = Client(client_id, client_secret)
 
 
    async def main():
-      client = chzzkpy.Client()
-
-      # 채널 관리 기능을 이용하기 위해서는 네이버 사용자 인증이 필요합니다.
-      # 웹브라우저의 쿠키 값에 있는 NID_AUT와 NID_SES 값으로 로그인을 대체할 수 있습니다.
-      client.login("NID_AUT", "NID_SES")
-      manage_client = client.manage("channel_id")
-
-      followers = await manage_client.followers()
+      user_client = await client.login()
+      result = await user_client.get_followers()
       if len(result) == 0:
          print("팔로워가 없습니다. :(")
          await client.close()
          return
 
       for user in result.data:
-         print(f"{user.user.nickname}: {user.following.follow_date}부터 팔로우 중.")
-      await client.close()
+         print(f"{user.user_name}: {user.created_date}부터 팔로우 중.")
+
 
    asyncio.run(main())
 
@@ -119,9 +144,26 @@ Collect Followers
    :maxdepth: 2
    :glob:
    :hidden:
-   :caption: Table of Contents
+   :caption: Getting Started
 
    Introduction <self>
-   Basic Feature <basic>
-   Chat Feature <chat>
-   Manage Feature <manage>
+
+
+.. toctree::
+   :maxdepth: 2
+   :glob:
+   :hidden:
+   :caption: API Reference
+
+   (Unofficial) Basic Feature <unofficial_basic>
+   (Unofficial) Chat Feature <unofficial_chat>
+   (Unofficial) Manage Feature <unofficial_manage>
+
+
+.. toctree::
+   :maxdepth: 1
+   :glob:
+   :hidden:
+   :caption: Others
+
+   Migration from v1 to v2 <migration_v1_to_v2>
