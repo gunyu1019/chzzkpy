@@ -1,8 +1,27 @@
+# Translations template for PROJECT.
+# Copyright (C) 2025 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2025-08-02 09:24+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.16.0\n"
+
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) 2024-2025, gunyu1019
 # This file is distributed under the same license as the chzzkpy package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2024-2025.
-#: ../../source/index.rst:2 ../../source/index.rst:88
+#: ../../source/index.rst:2 ../../source/index.rst:143
 #, fuzzy
 msgid "Introduction"
 msgstr "소개"
@@ -19,28 +38,57 @@ msgstr "소개"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.16.0\n"
 
-#: ../../source/index.rst:88
-msgid "Basic Feature"
-msgstr "기본(검색) 기능"
+#: ../../source/index.rst:143
+msgid "Generate an application"
+msgstr "애플리케이션 발급하기"
 
-#: ../../source/index.rst:88
-msgid "Chat Feature"
-msgstr "채팅 기능"
+#: ../../source/index.rst:143
+msgid "Authenticate client"
+msgstr "클라리언트 인증하기"
 
-#: ../../source/index.rst:88
-msgid "Manage Feature"
-msgstr "채널 관리 기능"
+#: ../../source/index.rst:143
+msgid "Receive and send message"
+msgstr "메시지 주고 받기"
 
-#: ../../source/index.rst:88
-msgid "Table of Contents"
-msgstr "목차"
+#: ../../source/index.rst:143
+msgid "Getting Started"
+msgstr "시작하기"
+
+#: ../../source/index.rst:155
+msgid "API Reference"
+msgstr "API 래퍼런스"
+
+#: ../../source/index.rst:155
+msgid "(Legacy) Basic API Reference"
+msgstr "(레거시) 기본 API 레퍼런스"
+
+#: ../../source/index.rst:155
+msgid "(Legacy) Chat API Reference"
+msgstr "(레거시) 채팅 API 레퍼런스"
+
+#: ../../source/index.rst:155
+msgid "(Legacy) Manage API Reference"
+msgstr "(레거시) 관리 API 레퍼런스"
+
+#: ../../source/index.rst:167
+msgid "Changelog"
+msgstr "변경 기록"
+
+#: ../../source/index.rst:167
+msgid "Migration from v1 to v2"
+msgstr "v1에서 v2로 마이그레이션하기"
+
+#: ../../source/index.rst:167
+msgid "Others"
+msgstr "기타"
 
 #: ../../source/index.rst:3
 msgid "파이썬 기반의 치지직(네이버 라이브 스트리밍 서비스)의 비공식 라이브러리 입니다."
 msgstr "파이썬 기반의 치지직(네이버 라이브 스트리밍 서비스)의 비공식 라이브러리 입니다."
 
 #: ../../source/index.rst:4
-msgid "An unofficial python library for Chzzk(Naver Live Streaming Service)."
+#, fuzzy
+msgid "An unofficial python library for Chzzk(Naver Live Streaming Service."
 msgstr "An unofficial python library for Chzzk(Naver Live Streaming Service)."
 
 #: ../../source/index.rst:6
@@ -96,7 +144,23 @@ msgstr "방송인 검색"
 msgid "Chat Bot"
 msgstr "채팅 봇"
 
-#: ../../source/index.rst:65
+#: ../../source/index.rst:94
+msgid "Chat Bot(Unofficial)"
+msgstr "채팅 봇 (비공식 API 기반)"
+
+#: ../../source/index.rst:117
 msgid "Collect Followers"
 msgstr "팔로워 조회"
+
+#~ msgid "Basic Feature"
+#~ msgstr "기본(검색) 기능"
+
+#~ msgid "Chat Feature"
+#~ msgstr "채팅 기능"
+
+#~ msgid "Manage Feature"
+#~ msgstr "채널 관리 기능"
+
+#~ msgid "Table of Contents"
+#~ msgstr "목차"
 

@@ -1,0 +1,54 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2024~2025, gunyu1019
+# This file is distributed under the same license as the chzzkpy package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: chzzkpy \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-08-02 09:24+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: ko\n"
+"Language-Team: ko <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.16.0\n"
+
+#: ../../source/tutorial_chat_bot.rst:2
+msgid "Receive and send message"
+msgstr "메시지 주고 받기"
+
+#: ../../source/tutorial_chat_bot.rst:3
+msgid "The “채팅 메시지 조회” and ”채팅 메시지 쓰기” API Scopes are required."
+msgstr "이 기능을 이용하기 위해서는 “채팅 메시지 조회”, ”채팅 메시지 쓰기”의 API Scope가 필요합니다."
+
+#: ../../source/tutorial_chat_bot.rst:25
+msgid ""
+"To receive and send messages, UserClient authentication is required. Use "
+"the :class:`UserClient.connect <chzzkpy.client.UserClient.connect>` "
+"method to wait for messages from the user channel. The `connect` method "
+"parameter subscribes to message receiving permissions through "
+":class:`UserPermission <chzzkpy.flags.UserPermission>`."
+msgstr ""
+"메시지를 주고 받기 위해서는 인증받은 UserClient 객체가 필요합니다. "
+":class:`UserClient.connect <chzzkpy.client.UserClient.connect>` 함수를 이용하여"
+"사용자 인증을 진행해주세요. `connect` 함수의 매게변수에 메시지를 주고 받기 위한 "
+":class:`UserPermission <chzzkpy.flags.UserPermission>` 을 입력하여 이벤트 구독해주세요."
+
+#: ../../source/tutorial_chat_bot.rst:29
+msgid ""
+"The message can be received through the `on_chat` event. The "
+":class:`Message <chzzkpy.message.Message>` instance contains channel, and"
+" the :class:`send() <chzzkpy.message.Message.send>` method is used to "
+"reply to the receiving channel."
+msgstr ""
+"메시지는 `on_chat` 이벤트 함수를 통해 수신받을 수 있습니다. "
+":class:`Message <chzzkpy.message.Message>` 객체에는 수신받은 채널 정보가 담겨 있어 "
+":class:`send() <chzzkpy.message.Message.send>` 함수를 이용하면 수신받은 채널로 메시지를 "
+"회신할 수 있습니다."
+
