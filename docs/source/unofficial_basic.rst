@@ -1,79 +1,90 @@
-(Unofficial) Basic Feature
-==========================
+(Legacy) Basic API Reference
+============================
 
 Client
 ------
 
-.. autoclass:: chzzkpy.client.Client
+.. autoclass:: chzzkpy.unofficial.client.Client
    :members:
+   :member-order: groupwise
 
 Enumerations
 ------------
 
-.. autoclass:: chzzkpy.user.UserRole()
+.. autoclass:: chzzkpy.unofficial.user.UserRole()
    :members:
+   :member-order: groupwise
    :undoc-members:
 
 Channel
 -------
 
-.. autoclass:: chzzkpy.channel.PartialChannel()
+.. autoclass:: chzzkpy.unofficial.channel.PartialChannel()
    :members:
+   :member-order: groupwise
    :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
 
-.. autoclass:: chzzkpy.channel.Channel()
+.. autoclass:: chzzkpy.unofficial.channel.Channel()
    :members:
+   :member-order: groupwise
    :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
    :show-inheritance:
 
-.. autoclass:: chzzkpy.channel.ChannelPersonalData()
+.. autoclass:: chzzkpy.unofficial.channel.ChannelPersonalData()
    :members:
+   :member-order: groupwise
    :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
 
 Search
 ------
-.. autoclass:: chzzkpy.search.SearchResult()
+.. autoclass:: chzzkpy.unofficial.search.SearchResult()
    :members:
+   :member-order: groupwise
    :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
    :show-inheritance:
 
-.. autoclass:: chzzkpy.search.TopSearchResult()
+.. autoclass:: chzzkpy.unofficial.search.TopSearchResult()
    :members:
+   :member-order: groupwise
    :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
 
 User
 ----
-.. autoclass:: chzzkpy.user.PartialUser()
+.. autoclass:: chzzkpy.unofficial.user.PartialUser()
    :members:
+   :member-order: groupwise
    :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
 
-.. autoclass:: chzzkpy.user.User()
+.. autoclass:: chzzkpy.unofficial.user.User()
    :members:
+   :member-order: groupwise
    :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
 
 Video
 -----
-.. autoclass:: chzzkpy.video.PartialVideo()
+.. autoclass:: chzzkpy.unofficial.video.PartialVideo()
    :members:
+   :member-order: groupwise
    :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
 
-.. autoclass:: chzzkpy.video.Video()
+.. autoclass:: chzzkpy.unofficial.video.Video()
    :members:
+   :member-order: groupwise
    :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
 
 Exceptions
 ----------
-.. autoexception:: chzzkpy.error.LoginRequired()
+.. autoexception:: chzzkpy.unofficial.error.LoginRequired()
 
-.. autoexception:: chzzkpy.error.HTTPException()
+.. autoexception:: chzzkpy.unofficial.error.HTTPException()
 
-.. autoexception:: chzzkpy.error.NotFound()
+.. autoexception:: chzzkpy.unofficial.error.NotFoundException()
