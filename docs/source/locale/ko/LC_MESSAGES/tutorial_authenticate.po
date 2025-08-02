@@ -1,0 +1,133 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2024~2025, gunyu1019
+# This file is distributed under the same license as the chzzkpy package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: chzzkpy \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-08-02 09:24+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: ko\n"
+"Language-Team: ko <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.16.0\n"
+
+#: ../../source/tutorial_authenticate.rst:2
+msgid "Authenticate Client"
+msgstr "클라이언트 인증하기"
+
+#: ../../source/tutorial_authenticate.rst:3
+msgid ""
+"API authentication is required to use some features of the chzzkpy "
+"package."
+msgstr ""
+"chzzkpy 패키지의 일부 기능을 이용하기 위해서는 API 인증이 필요합니다."
+
+#: ../../source/tutorial_authenticate.rst:6
+msgid "Client"
+msgstr "Client"
+
+#: ../../source/tutorial_authenticate.rst:7
+msgid "You must complete `Generate an Application`."
+msgstr "먼저 인증을 진행하기 위해서는 `Generate an Application` 페이지의 내용을 완료해주세요."
+
+#: ../../source/tutorial_authenticate.rst:9
+msgid ""
+"Once the process is complete, the client can be authenticate using the "
+"`Client ID` and `Client secret`."
+msgstr ""
+"위 과정을 마치면 클라이언트를 인증하기 위한 `Client ID`와 `Client Secret`키를 발급받을 수 있습니다."
+"이 두 개의 키를 이용하여 클라이언트 인증을 진행할 수 있습니다."
+
+#: ../../source/tutorial_authenticate.rst:20
+msgid "User Client"
+msgstr "User Client"
+
+#: ../../source/tutorial_authenticate.rst:23
+msgid ""
+"In order to authenticate the "
+":class:`UserClient<chzzkpy.client.UserClient>`, the "
+":class:`Client<chzzkpy.client.Client>` must be authenticated."
+msgstr ""
+"먼저 :class:`UserClient<chzzkpy.client.UserClient>`를 인증하기 위해서는"
+":class:`Client<chzzkpy.client.Client>` 인증이 되어 있어야 합니다."
+
+#: ../../source/tutorial_authenticate.rst:25
+msgid ""
+"UserClient authentication is based on the OAuth2 process. This is two "
+"methods to authenticate UserClient."
+msgstr ""
+"UserClient의 인증은 OAuth2 절차에 따릅니다. UserClient의 인증 방법은 2가지가 있습니다."
+
+#: ../../source/tutorial_authenticate.rst:28
+msgid ""
+"Using "
+":class:`generate_authorization_token_url<chzzkpy.client.Client.generate_authorization_token_url>`"
+" and "
+":class:`generate_user_client<chzzkpy.client.Client.generate_user_client>`"
+" methods."
+msgstr ""
+":class:`generate_authorization_token_url<chzzkpy.client.Client.generate_authorization_token_url>` 함수와"
+":class:`generate_user_client<chzzkpy.client.Client.generate_user_client>` 함수를 이용하는 방법"
+
+#: ../../source/tutorial_authenticate.rst:44
+msgid ""
+"Get the URL for OAuth2 authentication through "
+":class:`generate_authorization_token_url<chzzkpy.client.Client.generate_authorization_token_url>`"
+" method. If third-party authentication is successful, it is returned with"
+" a `code` query in the redirection URL."
+msgstr ""
+":class:`generate_authorization_token_url<chzzkpy.client.Client.generate_authorization_token_url>`"
+" 함수를 이용하여 OAuth2를 진행할 URL을 받습니다. 서드파티 인증을 성공하게 되면, 리다이렉션 URL로 이동하게 될 것입니다. "
+"리다이렉션 URL에는 인증에 사용되는 `code`를 포함하고 있습니다."
+
+#: ../../source/tutorial_authenticate.rst:47
+msgid ""
+"To authenticate, enter the `code` in the redirect URL into the "
+":class:`generate_user_client<chzzkpy.client.Client.generate_user_client>`"
+" method."
+msgstr ""
+":class:`generate_user_client<chzzkpy.client.Client.generate_user_client>` 함수의"
+"매개변수에 리다이렉션 URL에 포함되어 있던 `code` 매개변수를 입력해주세요."
+
+#: ../../source/tutorial_authenticate.rst:49
+msgid ""
+"Using :class:`Client.login<chzzkpy.client.Client.login>` method with "
+"temporary HTTP server."
+msgstr ""
+"임시 HTTP 서버와 :class:`Client.login<chzzkpy.client.Client.login>` 함수를 이용하는 방법"
+
+#: ../../source/tutorial_authenticate.rst:55
+msgid ""
+"When :class:`client.login <chzzkpy.client.Client.login>` method is "
+"executed, a temporary web server for authentication is launched and a "
+"browser opens. Once authentication is complete, the web server terminates"
+" and returns :class:`UserClient <chzzkpy.client.UserClient>`."
+msgstr ""
+"만약 :class:`client.login <chzzkpy.client.Client.login>` 호출하게 되면"
+"인증을 위한 임시 웹 서버가 가동되게 되며, 서드파티 인증을 위한 웹브라우저가 열리게 됩니다."
+"인증을 마치게 된다면 :class:`UserClient <chzzkpy.client.UserClient>` 객체를 반환받고,"
+"임시 웹서버는 닫히게 됩니다."
+
+#: ../../source/tutorial_authenticate.rst:59
+msgid "(Legacy) Client / ChatClient"
+msgstr "(레거시) Client / ChatClient"
+
+#: ../../source/tutorial_authenticate.rst:61
+msgid ""
+"An unofficial API-based :class:`client<chzzkpy.unofficial.client.Client>`"
+" use `NID_AUT` and `NID_SES` cookies for authentication. This cookie is "
+"used to verify your Naver account, so it should not be shared with "
+"others."
+msgstr ""
+"비공식 API를 기반으로 하고 있는 :class:`client<chzzkpy.unofficial.client.Client>`"
+"는 통신 과정에서 주고받는 `NID_AUT`, `NID_SES` 쿠키를 이용하여 인증을 진행합니다."
+"이 쿠키는 네이버 개인 계정을 증명하는 값으로 외부에 공유해서는 안됩니다."
+

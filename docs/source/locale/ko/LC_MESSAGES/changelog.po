@@ -1,0 +1,540 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2024~2025, gunyu1019
+# This file is distributed under the same license as the chzzkpy package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: chzzkpy \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-08-02 09:24+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: ko\n"
+"Language-Team: ko <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.16.0\n"
+
+#: ../../source/changelog.rst:2
+msgid "Changelog"
+msgstr "변경 기록"
+
+#: ../../source/changelog.rst:3
+msgid "This documents the changes made during version upgrades."
+msgstr "이 문서는 chzzkpy가 업그레이드되며 변경된 요소를 기록합니다."
+
+#: ../../source/changelog.rst:6
+msgid "v2.1.0 - Aug 1st, 2025"
+msgstr ""
+
+#: ../../source/changelog.rst:7
+msgid ""
+"**(Breaking Change)** Modify offical pacakge to default package, and "
+"unofficial package from default package."
+msgstr ""
+
+#: ../../source/changelog.rst:19
+msgid ""
+"Add restriction related feature. (`Restriction API Reference "
+"<https://chzzk.gitbook.io/chzzk/chzzk-api/restriction>`_ )"
+msgstr ""
+
+#: ../../source/changelog.rst:20
+msgid "Add `on_subscription` event to receive new subscriber event."
+msgstr ""
+
+#: ../../source/changelog.rst:28
+msgid ""
+"Add `UserPermission.subscription` flag to register `subscription` event "
+"and receive `on_subscription` event."
+msgstr ""
+
+#: ../../source/changelog.rst:29
+msgid ""
+"Add `Client.login()` method for comfortable experience. This method "
+"temporarily opens an HTTP server to perform OAuth2 authentication."
+msgstr ""
+
+#: ../../source/changelog.rst:44
+msgid "Add `UserClient.get_followers` method to read followers of channel"
+msgstr ""
+
+#: ../../source/changelog.rst:45
+msgid "Add `UserClient.get_subscribers` method to read subscribers of channel."
+msgstr ""
+
+#: ../../source/changelog.rst:46
+msgid ""
+"Add `UserClient.get_channel_administrator` method to read administrator "
+"of channel."
+msgstr ""
+
+#: ../../source/changelog.rst:47
+msgid "Add `verified_mark` attribute in Channel data model."
+msgstr ""
+
+#: ../../source/changelog.rst:48
+msgid ""
+"Add `slow_mode` and `emoji_mode` parameter in "
+"`UserClient.set_chat_setting` method."
+msgstr ""
+
+#: ../../source/changelog.rst:49
+msgid "[Fix] Invalid HTTP method called in `get_channel`, `get_category` method."
+msgstr ""
+
+#: ../../source/changelog.rst:50
+msgid "[Fix] (chzzkpy.chat) Modify condition of connection exception."
+msgstr ""
+
+#: ../../source/changelog.rst:53
+msgid "v2.0.6 - Jun 25th, 2025"
+msgstr ""
+
+#: ../../source/changelog.rst:54
+msgid ""
+"[Fix] (Engine) Missing length, byteorder arguments of to_bytes method in "
+"Payload.encode() method."
+msgstr ""
+
+#: ../../source/changelog.rst:57
+msgid "v2.0.5 - Mar 28th, 2025"
+msgstr ""
+
+#: ../../source/changelog.rst:58
+msgid ""
+"[Fix] (chzzpky.chat) Add 2 types of ChatConnectFailed exception to handle"
+" exceptional situations."
+msgstr ""
+
+#: ../../source/changelog.rst:59
+msgid ""
+"[Fix] (chzzpky.chat) Add exception condition in confirm_live_status "
+"method to handle exceptional situations."
+msgstr ""
+
+#: ../../source/changelog.rst:60
+msgid ""
+"[Fix] (chzzpky.chat) Missing required body parameter in "
+"NaverGameChatSession http client."
+msgstr ""
+
+#: ../../source/changelog.rst:61
+msgid ""
+"[Fix] (chzzpky.chat) Initial connect method always called, when new "
+"gateway opened."
+msgstr ""
+
+#: ../../source/changelog.rst:62
+msgid ""
+"[Fix] (chzzkpy.offical) Missing typing.Self feature in python 3.10 "
+"version."
+msgstr ""
+
+#: ../../source/changelog.rst:65
+msgid "v2.0.4 - Mar 16th, 2025"
+msgstr ""
+
+#: ../../source/changelog.rst:66
+msgid "[Fix] Invalid parameter name called in offical.Donation"
+msgstr ""
+
+#: ../../source/changelog.rst:69
+msgid "v2.0.3 - Mar 9th, 2025"
+msgstr ""
+
+#: ../../source/changelog.rst:70
+msgid "[Fix] Invalid client-id, client-secret attribute called in user client"
+msgstr ""
+
+#: ../../source/changelog.rst:73
+msgid "v2.0.2 - Mar 9th, 2025"
+msgstr ""
+
+#: ../../source/changelog.rst:74
+msgid "Add refresh access token method in client."
+msgstr ""
+
+#: ../../source/changelog.rst:75
+msgid "[Fix] Invalid calling attribute name in refresh user client method"
+msgstr ""
+
+#: ../../source/changelog.rst:78
+msgid "v2.0.1 - Mar 8th, 2025"
+msgstr ""
+
+#: ../../source/changelog.rst:79
+msgid ""
+"Add `quantity`, and other attribute in `SubscriptionGiftExtra` to receive"
+" multiple subscriptions gift"
+msgstr ""
+
+#: ../../source/changelog.rst:80
+msgid "Add `viewer_badge` attribute in `Profile`"
+msgstr ""
+
+#: ../../source/changelog.rst:81
+msgid "Add `nickname_color`, and `subscription` attribute in `StreamingProperty`"
+msgstr ""
+
+#: ../../source/changelog.rst:82
+msgid ""
+"Add validation in defining UserClient part to check correcting access "
+"token"
+msgstr ""
+
+#: ../../source/changelog.rst:83
+msgid ""
+"[Fix] Invalid calling method  (geturl) => (__str__) in `#65 "
+"<https://github.com/gunyu1019/chzzkpy/issues/65>`_"
+msgstr ""
+
+#: ../../source/changelog.rst:86
+msgid "v2.0.0 - Mar 7th, 2025"
+msgstr ""
+
+#: ../../source/changelog.rst:87
+msgid ""
+"Support offical API provided by `CHZZK Developer Center "
+"<https://developers.chzzk.naver.com/>`_ * Support Session feature to "
+"handle donation, message. * Support Chat Section feature to send message,"
+" send announcement, or setup chatting. * Support User Section feature to "
+"get self-channel info * Support Authorization Section feature to "
+"authentic channel. * Support Channel Section feature to search channel "
+"with an unique id, or setup self-channel * Support Live Section feature "
+"to search live * Support Category Section featrue to gather categories."
+msgstr ""
+
+#: ../../source/changelog.rst:95
+msgid ""
+"Apply indepentent gateway configured socket.io and engine.io protocol in "
+"python environment."
+msgstr ""
+
+#: ../../source/changelog.rst:96
+msgid ""
+"Support Multiple-Connection Session feature. (Max Client Session: 10, Max"
+" User Session: unlimited)"
+msgstr ""
+
+#: ../../source/changelog.rst:99
+msgid "v1.2.0 - Mar 3rd, 2025"
+msgstr ""
+
+#: ../../source/changelog.rst:100
+msgid "Add `on_subscription_gift` event to handle subscription gift."
+msgstr ""
+
+#: ../../source/changelog.rst:101
+msgid "Add `SubscriptionGiftMessage`, `SubscriptionGiftExtra` data class."
+msgstr ""
+
+#: ../../source/changelog.rst:102
+msgid ""
+"Add `approve` and `reject` method in `DonationMessage` to response "
+"Mission Donation."
+msgstr ""
+
+#: ../../source/changelog.rst:113
+msgid "v1.1.7 - Feb 16th, 2025"
+msgstr ""
+
+#: ../../source/changelog.rst:114
+msgid ""
+"Apply new restrict feature to chzzkpy package. (add days, reason "
+"parameter)"
+msgstr ""
+
+#: ../../source/changelog.rst:115
+msgid "Add edit restrict method"
+msgstr ""
+
+#: ../../source/changelog.rst:116
+msgid "RestrictUser data class extends ParticleUser."
+msgstr ""
+
+#: ../../source/changelog.rst:117
+msgid ""
+"[Fix] (Temporary Action) An Exception was raised when "
+"ManageClient.subcribers method called without filter parameter."
+msgstr ""
+
+#: ../../source/changelog.rst:120
+msgid "v1.1.6 - Feb 6th, 2025"
+msgstr ""
+
+#: ../../source/changelog.rst:121
+msgid "[Fix] Invalid parameter name to filter subscribers with nickname."
+msgstr ""
+
+#: ../../source/changelog.rst:122
+msgid ""
+"[Fix] Add `has_login` condition at Message.model_validate_with_client "
+"classmethod to cause LoginRequired Exception when client didn't logined."
+msgstr ""
+
+#: ../../source/changelog.rst:125
+msgid "v1.1.5 - Feb 4th, 2025"
+msgstr ""
+
+#: ../../source/changelog.rst:126
+msgid "[Fix] Invalid usage parameter at ManageClient.subcribers method."
+msgstr ""
+
+#: ../../source/changelog.rst:127
+msgid ""
+"[Fix] Missing attribute exception(in anonymous donation) at "
+"MissingDonation"
+msgstr ""
+
+#: ../../source/changelog.rst:130
+msgid "v1.1.4 - Jan 28th, 2025"
+msgstr ""
+
+#: ../../source/changelog.rst:131
+msgid "[Fix] Missing loginable attribute at the live_status, live_detail method."
+msgstr ""
+
+#: ../../source/changelog.rst:134
+msgid "v1.1.3 - Jan 13st, 2025"
+msgstr ""
+
+#: ../../source/changelog.rst:135
+msgid "Add message for developer-experience at `ChatConnectFailed` Exception."
+msgstr ""
+
+#: ../../source/changelog.rst:138
+msgid "v1.1.2 - Jan 11st, 2025"
+msgstr ""
+
+#: ../../source/changelog.rst:139
+msgid ""
+"(Emergency Update) * [Fix] Missing some commit in `#40 "
+"<https://github.com/gunyu1019/chzzkpy/issues/40>`_"
+msgstr ""
+
+#: ../../source/changelog.rst:143
+msgid "v1.1.1 - Jan 11st, 2025"
+msgstr ""
+
+#: ../../source/changelog.rst:144
+msgid "Add `on_mission_cost_update` event"
+msgstr ""
+
+#: ../../source/changelog.rst:145
+msgid ""
+"Add MissionParticipationDonation data-class to handle "
+"`on_mission_cost_update`"
+msgstr ""
+
+#: ../../source/changelog.rst:146
+msgid ""
+"Add missiong attribute at `BaseDonation`, `MissionDonation` in `#37 "
+"<https://github.com/gunyu1019/chzzkpy/issues/37>`_"
+msgstr ""
+
+#: ../../source/changelog.rst:149
+msgid "v1.1.0 - Jan 1st, 2025"
+msgstr ""
+
+#: ../../source/changelog.rst:150
+msgid "Implement channel management feature."
+msgstr ""
+
+#: ../../source/changelog.rst:151
+msgid "Get chat activity count"
+msgstr ""
+
+#: ../../source/changelog.rst:152
+msgid "Add temporary restrict"
+msgstr ""
+
+#: ../../source/changelog.rst:153
+msgid "Add/Delete restrict"
+msgstr ""
+
+#: ../../source/changelog.rst:154
+msgid "Manage channel permission"
+msgstr ""
+
+#: ../../source/changelog.rst:155
+msgid "Manage Stream"
+msgstr ""
+
+#: ../../source/changelog.rst:156
+msgid "Prohibit Word"
+msgstr ""
+
+#: ../../source/changelog.rst:157
+msgid "Manage video and replay video"
+msgstr ""
+
+#: ../../source/changelog.rst:158
+msgid "Manage restrict-activity user and unrestrict-activity-request."
+msgstr ""
+
+#: ../../source/changelog.rst:159
+msgid "Collect following user and, subscription user."
+msgstr ""
+
+#: ../../source/changelog.rst:160
+msgid ""
+"Add interactive feature at PartialUser classes. (restrict, role, chat "
+"activity count)"
+msgstr ""
+
+#: ../../source/changelog.rst:161
+msgid ""
+"Add interactive feature at Message(extends NoticeMessage, "
+"SubscriptionMessage, DonationMessage ... etc)"
+msgstr ""
+
+#: ../../source/changelog.rst:162
+msgid "Add `profile_card` method at Chat Client"
+msgstr ""
+
+#: ../../source/changelog.rst:163
+msgid "Add PartialVideo class (for management feautre.)"
+msgstr ""
+
+#: ../../source/changelog.rst:164
+msgid "Move UserRole enumeration class to basic. (for management feature.)"
+msgstr ""
+
+#: ../../source/changelog.rst:165
+msgid ""
+"[Fix] SystemExtraParameter.register_chat_profile and "
+"SystemExtraParameter.target_profile can be None."
+msgstr ""
+
+#: ../../source/changelog.rst:166
+msgid "[Fix] Duplicated attribute (Profile.activity_badges)"
+msgstr ""
+
+#: ../../source/changelog.rst:169
+msgid "v1.0.4 - Nov 23th, 2024"
+msgstr ""
+
+#: ../../source/changelog.rst:170
+msgid "Add `on_broadcast_open` / `on_broadcast_close` event handler"
+msgstr ""
+
+#: ../../source/changelog.rst:171
+msgid "Add `close` method at `gateway.py`"
+msgstr ""
+
+#: ../../source/changelog.rst:172
+msgid ""
+"When a client used ChatClient, live_status, live_detail method didn't "
+"need channel_id argument. (Enhance Developer Experience)"
+msgstr ""
+
+#: ../../source/changelog.rst:173
+msgid ""
+"Add Package Document (`Korean <https://gunyu1019.github.io/chzzkpy/ko/>`_"
+" ), `English <https://gunyu1019.github.io/chzzkpy/en/>`_)"
+msgstr ""
+
+#: ../../source/changelog.rst:174
+msgid ""
+"[Fix] Add chat reconnection condition. (When a streammer created a new "
+"broadcast, the chat_channel_id will regenerated.)"
+msgstr ""
+
+#: ../../source/changelog.rst:178
+msgid "v1.0.3 - Nov 10th, 2024"
+msgstr ""
+
+#: ../../source/changelog.rst:179
+msgid ""
+"Add `on_mission_pending` event (When a user request a new mission, the "
+"event handler is called.)"
+msgstr ""
+
+#: ../../source/changelog.rst:180
+msgid ""
+"Add `on_mission_rejected/approved` event (When a broadcaster approves or "
+"rejects a new mission, the event handler is called.)"
+msgstr ""
+
+#: ../../source/changelog.rst:181
+msgid ""
+"Add `on_mission_complete` event (When a broadcaster complete a mission, "
+"the event handler is called.)"
+msgstr ""
+
+#: ../../source/changelog.rst:182
+msgid "Add `on_subscription` event."
+msgstr ""
+
+#: ../../source/changelog.rst:183
+msgid "Divide data class struction `donation.py` from `message.py`"
+msgstr ""
+
+#: ../../source/changelog.rst:184
+msgid "[Fix] Wrong literial type (MissionDontationExtra)"
+msgstr ""
+
+#: ../../source/changelog.rst:187
+msgid "v1.0.2 - Oct 4th, 2024"
+msgstr ""
+
+#: ../../source/changelog.rst:188
+msgid "Change LoginRequired Exception message."
+msgstr ""
+
+#: ../../source/changelog.rst:189
+msgid ""
+"Add ChatConnectFailed Exception, when LiveStatus content is None. "
+"(Addition Description: the broadcaster isn't on air for a long time or "
+"anytime.)"
+msgstr ""
+
+#: ../../source/changelog.rst:191
+msgid "Add HTTPException and NotFound Exception for more experience."
+msgstr ""
+
+#: ../../source/changelog.rst:194
+msgid "v1.0.1 - Jul 23th, 2024"
+msgstr ""
+
+#: ../../source/changelog.rst:195
+msgid "[Fix] Invalid`emojis` field"
+msgstr ""
+
+#: ../../source/changelog.rst:196
+msgid "Update python dependience packages"
+msgstr ""
+
+#: ../../source/changelog.rst:199
+msgid "v1.0.0 - Jun 6th, 2024"
+msgstr ""
+
+#: ../../source/changelog.rst:200
+msgid "Impelement search feature (channel, live, video)"
+msgstr ""
+
+#: ../../source/changelog.rst:201
+msgid "Impelement autocomplete feature"
+msgstr ""
+
+#: ../../source/changelog.rst:202
+msgid "Impelement manage feature about chat message."
+msgstr ""
+
+#: ../../source/changelog.rst:203
+msgid "Impelement channel data-model"
+msgstr ""
+
+#: ../../source/changelog.rst:204
+msgid "Impelement video data-model"
+msgstr ""
+
+#: ../../source/changelog.rst:205
+msgid "[Fix] Skipped return on notice event."
+msgstr ""
+
