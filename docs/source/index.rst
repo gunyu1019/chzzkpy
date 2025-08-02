@@ -166,4 +166,5 @@ Collect Followers
    :hidden:
    :caption: Others
 
+   Changelog <changelog>
    Migration from v1 to v2 <migration_v1_to_v2>
