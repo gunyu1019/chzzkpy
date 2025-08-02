@@ -50,6 +50,9 @@ msgid ""
 " blocked to wait for a response. However addition_connect is True, a task"
 " waiting for a response is processed in the background."
 msgstr ""
+"이 매개변수는 다중 채널 연결을 위해 사용되며, 기본 값은 False 입니다. "
+"만약에 addition_connect의 값이 False 라면 메인 스레드는 이벤트를 수신받기 위해 사용됩니다. "
+"하지만 addition_connect의 값이 True 라면, 이벤트를 수신받기 위한 작업은 백그라운드에서 진행되게 됩니다."
 
 #: ../../source/api.rst
 msgid "Returns"
@@ -60,6 +63,7 @@ msgid ""
 "Returns an unique session ID, if the gateway connects succeeds. A session"
 " ID used by subscribe, unsubscribe method."
 msgstr ""
+"고유 세션 ID를 반환 받습니다. 세션 ID는 이벤트를 구독하는 용도로 사용됩니다."
 
 #: ../../source/api.rst
 msgid "Return type"
@@ -70,6 +74,8 @@ msgid ""
 "If the main task is empty, as if addition_connect parameter used for all "
 "connections is true, all connections are aborted."
 msgstr ""
+"만약에 메인 스레드의 작업이 없고, addition_connect 매개변수의 값이 True 라면, "
+"모든 메인 스레드의 연산 작업을 마치고 연결은 중단됩니다. "
 
 #: ../../source/api.rst
 msgid "Raises"
@@ -80,27 +86,33 @@ msgid ""
 "A Client Session can connect up to 10 sessions.     When connection "
 "request more than 10 sessions, ChatConnectFailed exception raised."
 msgstr ""
+"클라이언트 세션은 10개까지 연결할 수 있습니다. 만약 10개 이상의 연결을 시도한다면 "
+"ChatConnectFailed 예외가 유발될 수 있습니다."
 
 #: chzzkpy.client.Client.disconnect:1 chzzkpy.client.UserClient.disconnect:1 of
 msgid "Disconnect from session."
 msgstr ""
+"세션 연결을 종료합니다."
 
 #: chzzkpy.client.Client.disconnect:3 of
 msgid ""
 "A session ID to disconnect from session. When session parameter is empty,"
 " all client sessions are disconnected."
 msgstr ""
+"연결을 종료할 세션의 ID 입니다. 만약 세션 ID를 담는 매개변수가 비어있다면, 모든 세션을 종료합니다."
 
 #: chzzkpy.client.Client.generate_access_token:1 of
 msgid ""
 "Generate an Access Token. An access token is used by features that "
 "require user authentication. (example. creating chat, receiving chat)"
 msgstr ""
+"Access Token을 생성합니다. Access Token은 사용자 인증이 필요한 기능을 위해 사용됩니다."
 
 #: chzzkpy.client.Client.generate_access_token:4
 #: chzzkpy.client.Client.generate_user_client:3 of
 msgid "A code received from :meth:`generate_authorization_token_url`."
 msgstr ""
+":meth:`generate_authorization_token_url` 에서 응답받은 코드입니다."
 
 #: chzzkpy.client.Client.generate_access_token:6
 #: chzzkpy.client.Client.generate_user_client:5 of
@@ -108,65 +120,70 @@ msgid ""
 "A state code. This value must be the same as the state of "
 ":meth:`generate_authorization_token_url`."
 msgstr ""
+"인증을 위해 사용되는 임시 코드입니다. "
+":meth:`generate_authorization_token_url`의 매개변수에 사용된 state 코드와 동일해야 합니다."
 
 #: chzzkpy.client.Client.generate_access_token:10 of
 msgid "A instance that contain user authentic."
 msgstr ""
+"사용자 인증 정보를 담고 있는 객체입니다."
 
 #: chzzkpy.client.Client.generate_authorization_token_url:1 of
 msgid "Get an url to generate chzzk access token."
 msgstr ""
+"치지직 Access Token을 발급받기 위한 URL를 생성합니다."
 
 #: chzzkpy.client.Client.generate_authorization_token_url:3 of
 msgid "Redirect URL after login."
-msgstr ""
+msgstr "서드파티 인증을 마치고 이동될 리다이렉트 URL 입니다."
 
 #: chzzkpy.client.Client.generate_authorization_token_url:5 of
 msgid ""
 "A state code to use in `state` parameter of :meth:`generate_access_token`"
 " method."
 msgstr ""
+":meth:`generate_access_token` 등의 함수의 `state` 매개변수에 사용될 임시 코드입니다."
 
 #: chzzkpy.client.Client.generate_user_client:1 of
 msgid "Generate user client instance."
-msgstr ""
+msgstr "UserClient 객체를 생성합니다."
 
 #: chzzkpy.client.Client.get_category:1 of
 msgid "Get category information"
-msgstr ""
+msgstr "카테고리 정보를 불러옵니다."
 
 #: chzzkpy.client.Client.get_category:3 of
 msgid "A name of category."
-msgstr ""
+msgstr "카테고리 이름"
 
 #: chzzkpy.client.Client.get_category:5 of
 msgid "A number of categories to load at once, by default 20"
-msgstr ""
+msgstr "한 번에 불러올 카테고리의 개수입니다. 기본 값은 20개 입니다."
 
 #: chzzkpy.client.Client.get_channel:1 of
 msgid "Get channel information."
-msgstr ""
+msgstr "채널 정보를 불러옵니다."
 
 #: chzzkpy.client.Client.get_channel:3 of
 msgid "An unique ID of the channel to lookup."
-msgstr ""
+msgstr "검색할 채널의 ID입니다."
 
 #: chzzkpy.client.Client.get_live:1 of
 msgid "Get live information"
-msgstr ""
+msgstr "방송 정보를 불러옵니다."
 
 #: chzzkpy.client.Client.get_live:3 chzzkpy.client.UserClient.get_restriction:3
 #: of
 msgid "A number of lives to load at once, by default 20"
-msgstr ""
+msgstr "한 번에 불러올 방송의 개수 입니다. 기본 값은 20개 입니다."
 
 #: chzzkpy.client.Client.get_user_client:1 of
 msgid "Generate :class:`UserClient` with prepared access token."
-msgstr ""
+msgstr "Access Toekn을 이용하여 :class:`UserClient` 객체를 생성합니다."
 
 #: chzzkpy.client.Client.get_user_client:3 of
 msgid "A prepared instance of access token."
-msgstr ""
+msgstr "Access Token 객체"
 
 #: chzzkpy.client.Client.get_user_client_cached:1 of
 msgid ""
@@ -174,16 +191,20 @@ msgid ""
 ":class:`UserClient` can be obtained via the subscription event of session"
 " or when the client has the `유저 정보 조회` scope."
 msgstr ""
+"channel_id 를 이용하여 :class:`UserClient` 객체를 불러옵니다. "
+":class:`UserClient`의 채널 ID는 이벤트 구독하는 과정 또는 "
+" `유저 정보 조회` 권한을 통해 불러옵니다."
 
 #: chzzkpy.client.Client.get_user_client_cached:5 of
 msgid ""
 "If the channel Id of :class:`UserClient` is not filled, it can't found "
 "client."
 msgstr ""
+"만약 :class:`UserClient`의 channel ID가 비어있다면, 클라이언트를 찾을 수 없습니다."
 
 #: chzzkpy.client.Client.get_user_client_cached:7 of
 msgid "A channel ID to get :class:`UserClient`"
-msgstr ""
+msgstr ":class:`UserClient` 객체를 불러올 채널 ID 입니다."
 
 #: chzzkpy.client.Client.login:1 of
 msgid ""
@@ -191,14 +212,16 @@ msgid ""
 ":meth:`login` provides a convenient login method using the aiohttp web "
 "server."
 msgstr ""
+":class:`UserClient` 객체를 OAuth2 로그인 과정으로 불러옵니다."
+":meth:`login` 함수는 로그인을 위한 임시 웹 서버를 가동합니다."
 
 #: chzzkpy.client.Client.login:4 of
 msgid "A code used in the authentication process."
-msgstr ""
+msgstr "인증 과정에서 사용되는 임시 코드입니다."
 
 #: chzzkpy.client.Client.login:6 of
 msgid "A redirect_url used in the authentication process."
-msgstr ""
+msgstr "인증 과정에서 사용되는 리다이렉션 URL입니다."
 
 #: chzzkpy.client.Client.login:8 of
 msgid ""
@@ -206,46 +229,50 @@ msgid ""
 " If the public environment required, enter \"0.0.0.0\" value to this "
 "parameter."
 msgstr ""
+"임시 웹 서버에서 사용되는 Host URL이며, 기본 값은 \"localhost\" 입니다. "
+"만약 공개 환경에서 웹 서버를 기동하고 싶으면 \"0.0.0.0\" 값을 매개변수로 입력하세요."
 
 #: chzzkpy.client.Client.login:11 of
 msgid "A port for the temporarily operated web server, default by 8080."
-msgstr ""
+msgstr "임시 웹 서버에 사용할 포트이며, 기본 값은 8080 입니다."
 
 #: chzzkpy.client.Client.login:13 of
 msgid "A path for the temporarily operated web server, default by '/'."
-msgstr ""
+msgstr "임시 웹 서버에 사용할 주소이며, 기본 값은 '/' 입니다."
 
 #: chzzkpy.client.Client.login:15 of
 msgid "A content to be displayed on the website after successful login."
-msgstr ""
+msgstr "로그인을 성공하면 웹사이트에 표시할 내용입니다."
 
 #: chzzkpy.client.Client.login:17 of
 msgid "Whether to use http(s) during opening the web browser."
-msgstr ""
+msgstr "웹 브라우저에 HTTP(s)를 사용할 여부입니다."
 
 #: chzzkpy.client.Client.refresh_access_token:1 of
 msgid ""
 "Regenerate an Access Token. The Access Token in chzzk follows Open "
 "Authorization 2.0 protocol,"
 msgstr ""
+"Access Token을 재생성 합니다. Access Token은 OAuth2 프로포콜을 따릅니다."
 
 #: chzzkpy.client.Client.refresh_access_token:3 of
 msgid "which means that access tokens expire after a certain amount of time."
 msgstr ""
+"이 뜻은 일정 시간을 경과하면 Access Token이 만료된다는 것을 의미합니다."
 
 #: chzzkpy.client.Client.refresh_access_token:5
 #: chzzkpy.client.Client.refresh_user_client:3 of
 msgid "A refresh token to re-generated access token."
-msgstr ""
+msgstr "재생성된 Access Token 입니다."
 
 #: chzzkpy.client.Client.refresh_user_client:1 of
 msgid "Get :class:`UserClient` instance with refresh_token."
-msgstr ""
+msgstr "Refresh Token으로 재생성한 :class:`UserClient` 객체를 불러옵니다."
 
 #: chzzkpy.client.Client.wait_until_connect:1
 #: chzzkpy.client.UserClient.wait_until_connect:1 of
 msgid "Waits until the session connected."
-msgstr ""
+msgstr "세션이 연결될 때까지 기다립니다."
 
 #: ../../source/api.rst:13
 msgid "User Client"
@@ -256,30 +283,38 @@ msgid ""
 "Represents a user client to provide feature that requires user "
 "authentication."
 msgstr ""
+"치지직(네이버 스트리밍 서비스)의 사용자 API를 제공하는 클라이언트 객체입니다."
 
 #: chzzkpy.client.UserClient.add_restrict_channel:1 of
 msgid "Add an user to restrict activity."
 msgstr ""
+"시청자 활동 제한합니다."
 
 #: chzzkpy.client.UserClient.add_restrict_channel:3 of
 msgid "A channel id of user to add restrict activity."
 msgstr ""
+"활동 제한할 시청자의 채널 ID입니다."
 
 #: chzzkpy.client.UserClient.connect:1 of
 msgid "Connect to user session to handle donation or chatting"
 msgstr ""
+"후원, 채팅 정보를 수신받기 위하여 사용자 세션에 연결합니다."
 
 #: chzzkpy.client.UserClient.connect:3 of
 msgid ""
 "The permissions to receive, such as chat or donation. After connecting, "
 "permission is granted via subscription method."
 msgstr ""
+"후원, 채팅과 같이 수신받을 이벤트의 권한을 설정합니다. "
+"세션에 연결을 마친 후 이벤트 구독을 진행하여 권한을 부여받습니다. "
 
 #: chzzkpy.client.UserClient.fetch_self:1 of
 msgid ""
 "Get channel based on access token. This method required \"유저 정보 조회\" API "
 "Scope on the access token."
 msgstr ""
+"Access Token에 기반으로 한 자신의 채널 정보를 불러옵니다."
+"이 함수를 사용하려면 \"유저 정보 조회\" API Scope가 필요합니다."
 
 #: chzzkpy.client.UserClient.fetch_self:4 of
 msgid "A channel based on the access token."
@@ -287,119 +322,126 @@ msgstr ""
 
 #: chzzkpy.client.UserClient.get_channel_administrator:1 of
 msgid "Get users who have channel management permission."
-msgstr ""
+msgstr "채널에 관리 권한을 가지고 있는 사용자 정보를 불러옵니다."
 
 #: chzzkpy.client.UserClient.get_chat_setting:1 of
 msgid "Get the chat settings."
-msgstr ""
+msgstr "채팅 설정 정보를 불러옵니다."
 
 #: chzzkpy.client.UserClient.get_followers:1 of
 msgid "Get followers for this channel."
-msgstr ""
+msgstr "채널에 팔로우한 시청자를 불러옵니다."
 
 #: chzzkpy.client.UserClient.get_followers:3 of
 msgid "A number of followers to load at once, by default 30"
-msgstr ""
+msgstr "한 번에 불러올 팔로워 수입니다. 기본 값은 30명 입니다."
 
 #: chzzkpy.client.UserClient.get_live_setting:1 of
 msgid "Get the live settings."
-msgstr ""
+msgstr "방송 설정을 불러옵니다."
 
 #: chzzkpy.client.UserClient.get_restriction:1 of
 msgid "Get users with restricted activities."
-msgstr ""
+msgstr "채널에 활동 제한된 사용자를 불러옵니다."
 
 #: chzzkpy.client.UserClient.get_stream_key:1 of
 msgid "Get the stream key to brodecast"
-msgstr ""
+msgstr "방송에 사용되는 스트림키를 불러옵니다."
 
 #: chzzkpy.client.UserClient.get_subscribers:1 of
 msgid "Get subscribers for this channel."
-msgstr ""
+msgstr "채널을 구독한 시청자를 불러옵니다."
 
 #: chzzkpy.client.UserClient.get_subscribers:3 of
 msgid "A number of subscribers to load at once, by default 30"
-msgstr ""
+msgstr "한 번에 불러올 구독자 수입니다. 기본 값은 30명 입니다."
 
 #: chzzkpy.client.UserClient.get_subscribers:5 of
 msgid "A method of sorting subscribers."
-msgstr ""
+msgstr "구독자를 정렬하는 방법입니다."
 
 #: chzzkpy.client.UserClient.refresh:1 of
 msgid "Refresh the access token."
-msgstr ""
+msgstr "Access Token을 갱신합니다."
 
 #: chzzkpy.client.UserClient.remove_restrict_channel:1 of
 msgid "Remove an user to restrict activity."
-msgstr ""
+msgstr "활동 제한된 사용자를 해제합니다."
 
 #: chzzkpy.client.UserClient.remove_restrict_channel:3 of
 msgid "A channel id of user to remove restrict activity."
-msgstr ""
+msgstr "활동 제한을 해제할 사용자의 채널 ID입니다."
 
 #: chzzkpy.client.UserClient.revoke:1 of
 msgid "Revoke the access token."
-msgstr ""
+msgstr "Access Token을 만료합니다."
 
 #: chzzkpy.client.UserClient.send_announcement:1 of
 msgid ""
 "Send the announcement to channel This method required \"채팅 공지 등록\" API "
 "Scope on the access token."
-msgstr ""
+msgstr "채팅에 공지사항을 전파합니다."
+"이 함수를 사용하기 위해서는 \"채널 공지 등록\" API Scope가 필요합니다."
 
 #: chzzkpy.client.UserClient.send_announcement:4 of
 msgid "A content of announcement."
-msgstr ""
+msgstr "공지사항으로 전파할 내용"
 
 #: chzzkpy.client.UserClient.send_message:1 of
 msgid ""
 "Send the message to channel This method required \"채팅 메시지 전송\" API Scope "
 "on the access token."
 msgstr ""
+"채팅창에 메시지를 보냅니다."
+"이 함수를 사용하기 위해서는 \"채팅 메시지 전송\" API Scope가 필요합니다."
 
 #: chzzkpy.client.UserClient.send_message:4 of
 msgid "A content of message."
-msgstr ""
+msgstr "보낼 메시지의 내용"
 
 #: chzzkpy.client.UserClient.subscribe:1 of
 msgid ""
 "Subcribe to events based on UserPermission. Subsribed events are recived "
 "in the session."
-msgstr ""
+msgstr "UserPermission을 이용하여 이벤트 구독을 진행합니다."
 
 #: chzzkpy.client.UserClient.subscribe:4 of
 msgid "The session subscribed evnet."
-msgstr ""
+msgstr "수신받을 권한입니다."
 
 #: chzzkpy.client.UserClient.subscribe:6 of
 msgid ""
 "ID of the session to receive event, by default None The session ID is "
 "provided as a parameter in `on_connect` event"
 msgstr ""
+"구독할 세션의 ID가 입력됩니다. 기본 값은 None이며, `on_connect` 이벤트에서 "
+"불러와진 매개변수를 입력하면 됩니다."
 
 #: chzzkpy.client.UserClient.unsubscribe:1 of
 msgid ""
 "Unsubcribe to events based on UserPermission. The events specified by "
 "UserPermission are no longer received."
-msgstr ""
+msgstr "UserPermission으로 구독했던 이벤트 구독을 해제합니다. 입력되는 매개변수에 따라 더 이상 이벤트를 수신받지 않습니다."
 
 #: chzzkpy.client.UserClient.unsubscribe:4 of
 msgid "The session unsubscribed evnet."
-msgstr ""
+msgstr "더 이상 수신을 받지않을 권한입니다."
 
 #: chzzkpy.client.UserClient.unsubscribe:6 of
 msgid "ID of the session to block event, by default None"
 msgstr ""
+"이벤트 구독을 취소할 세션의 ID가 입력됩니다. 기본 값은 None이며, `on_connect` 이벤트에서 "
+"불러와진 매개변수를 입력하면 됩니다."
 
 #: chzzkpy.client.UserClient.is_connected:1 of
 msgid "Returns the gateway had been connected."
-msgstr ""
+msgstr "세션 연결의 여부"
 
 #: chzzkpy.client.UserClient.is_expired:1 of
 msgid ""
 "An access token for user expires after a certain amount of time. Returns "
 "status that an access token had been expired."
-msgstr ""
+msgstr "Access Token이 일정 시간 경과되어 만료된 여부"
 
 #: ../../source/api.rst:20
 msgid "Event Refenence"
@@ -550,7 +592,7 @@ msgstr "Live"
 
 #: ../../source/api.rst:172
 msgid "Message"
-msgstr "메시지 (Message)"
+msgstr "Message"
 
 #: chzzkpy.message.Message:1 of
 msgid ""
