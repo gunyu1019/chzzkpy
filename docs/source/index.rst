@@ -1,6 +1,6 @@
 Introduction
 ============
-| 파이썬 기반의 치지직(네이버 라이브 스트리밍 서비스)의 비공식 라이브러리 입니다.<br/>
+| 파이썬 기반의 치지직(네이버 라이브 스트리밍 서비스)의 비공식 라이브러리 입니다.
 | An unofficial python library for Chzzk(Naver Live Streaming Service.
 
 **Feature**
@@ -141,12 +141,15 @@ Collect Followers
 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :glob:
    :hidden:
    :caption: Getting Started
 
    Introduction <self>
+   Generate an application <tutorial_generate_key>
+   Authenticate client <tutorial_authenticate>
+   Receive and send message <tutorial_chat_bot>
 
 
 .. toctree::
@@ -155,9 +158,10 @@ Collect Followers
    :hidden:
    :caption: API Reference
 
-   (Unofficial) Basic Feature <unofficial_basic>
-   (Unofficial) Chat Feature <unofficial_chat>
-   (Unofficial) Manage Feature <unofficial_manage>
+   API Reference <api>
+   (Legacy) Basic API Reference <unofficial_basic>
+   (Legacy) Chat API Reference <unofficial_chat>
+   (Legacy) Manage API Reference <unofficial_manage>
 
 
 .. toctree::
