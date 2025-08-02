@@ -48,7 +48,7 @@ Meanwhile, the client of chzzkpy v2 package uses `Client ID` and `Client Secret`
 The user authentication is required to send and receive chat messages or to get followers info from the channel.
 This is two methods to user authentication. 
 
-The first method is to use the :method:`Client.generate_authorization_token_url` and :method:`Client.generate_user_client` methods.
+The first method is to use the :class:`generate_authorization_token_url<chzzkpy.client.Client.generate_authorization_token_url>` and :class:`generate_user_client<chzzkpy.client.Client.generate_user_client>` methods.
 
 .. code-block:: python
 
@@ -62,27 +62,27 @@ The first method is to use the :method:`Client.generate_authorization_token_url`
         # await user_client.fetch_self()
         print(user_client.channel_id)
 
-Using the :method:`Client.generate_authorization_token_url` method, following the OAuth2 process, gets a code for authentication.
-Enter the code received into :method:`Client.generate_user_client` parameter and get the :class:`UserClient` to send and receive chat messages or to get followers info from the channel.
+Using the :class:`generate_authorization_token_url<chzzkpy.client.Client.generate_authorization_token_url>` method, following the OAuth2 process, gets a code for authentication.
+Enter the code received into :class:`generate_user_client<chzzkpy.client.Client.generate_user_client>` parameter and get the :class:`UserClient<chzzkpy.client.UserClient>` to send and receive chat messages or to get followers info from the channel.
 
-**(Recommended / v2.1~)** The seconde method is to use the :method:`Client.login` method.
+**(Recommended / v2.1~)** The seconde method is to use the :class:`Client.login<chzzkpy.client.Client.login>` method.
 
 .. code-block:: python
 
     client = Client(client_id, client_secret)
     await client.login()
 
-The :method:`Client.login` method opens a web browser and launches a temporary HTTP server based on aiohttp.
+The :class:`Client.login<chzzkpy.client.Client.login>` method opens a web browser and launches a temporary HTTP server based on aiohttp.
 After completing third-party authentication with a NAVER account, it will redirect to a temporary web server and automatically authenticate.
 
-When completed, it will return :class:`UserClient`. 
+When completed, it will return :class:`UserClient<chzzkpy.client.UserClient>`. 
 The related channel features are available in the API scope.
 
 
 Receive Event 
 -------------
 In the official API, it's required to subscribe event to handle donation or chat events.
-You can subscribe event using :class:`UserPermission` class and :method:`Client.connect` method.
+You can subscribe event using :class:`UserPermission<chzzkpy.flags.UserPermission>` class and :class:`Client.connect<chzzkpy.client.Client.connect>` method.
 
 .. code-block:: python
 
@@ -93,7 +93,7 @@ You can subscribe event using :class:`UserPermission` class and :method:`Client.
     await client.connect(permission=permission_type1)
     # await UserClient.subscription(permission=permission_type1, ...) 
 
-Alternatively, you can subscribe to event using the :method:`UserClient.subscription` method.
+Alternatively, you can subscribe to event using the :class:`UserClient.subscription<chzzkpy.client.UserClient.subscription>` method.
 
 
 Support Multiple Channel Connection
@@ -101,7 +101,7 @@ Support Multiple Channel Connection
 Since v2.0 version, the chzzkpy pacakge support multiple channel connection.
 A single client can receive from multiple channel, or send messages.
 
-To enable multiple channel connection, use the :method:`connect` method with `addition_connect` parameter.
+To enable multiple channel connection, use the :class:`connect<chzzkpy.client.Client.connect>` method with `addition_connect` parameter.
 
 .. code-block:: python
 
