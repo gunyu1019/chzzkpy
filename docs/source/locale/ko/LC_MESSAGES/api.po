@@ -453,7 +453,7 @@ msgid ""
 ":class:`ChatClient<chzzkpy.unofficial.chat.ChatClient>` received. You can"
 " received event with decorator `event` method."
 msgstr ""
-"이 섹션은 :class:`Client<chzzkpy.client.Client>`에서 수신받는 모든 이벤트에 대해 설명합니다. "
+"이 섹션은 :class:`Client<chzzkpy.client.Client>` 에서 수신받는 모든 이벤트에 대해 설명합니다. "
 "이벤트는 `Client.event` 데코레이터를 이용하여 수신받을 수 있습니다."
 
 #: ../../source/api.rst:25
