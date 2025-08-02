@@ -46,3 +46,87 @@ Meanwhile, the client of chzzkpy v2 package uses `Client ID` and `Client Secret`
     client = Client("client_id", "client_secret")
 
 The user authentication is required to send and receive chat messages or to get followers info from the channel.
+This is two methods to user authentication. 
+
+The first method is to use the :method:`Client.generate_authorization_token_url` and :method:`Client.generate_user_client` methods.
+
+.. code-block:: python
+
+    async def authentic_user():
+        authorization_url = client.generate_authorization_token_url(redirect_url="https://localhost", state="abcd12345")
+        print(f"Please login with this url: {authorization_url}")
+        code = input("Please input response code: ")
+
+        user_client = await client.generate_user_client(code, "abcd12345")
+
+        # await user_client.fetch_self()
+        print(user_client.channel_id)
+
+Using the :method:`Client.generate_authorization_token_url` method, following the OAuth2 process, gets a code for authentication.
+Enter the code received into :method:`Client.generate_user_client` parameter and get the :class:`UserClient` to send and receive chat messages or to get followers info from the channel.
+
+**(Recommended / v2.1~)** The seconde method is to use the :method:`Client.login` method.
+
+.. code-block:: python
+
+    client = Client(client_id, client_secret)
+    await client.login()
+
+The :method:`Client.login` method opens a web browser and launches a temporary HTTP server based on aiohttp.
+After completing third-party authentication with a NAVER account, it will redirect to a temporary web server and automatically authenticate.
+
+When completed, it will return :class:`UserClient`. 
+The related channel features are available in the API scope.
+
+
+Receive Event 
+-------------
+In the official API, it's required to subscribe event to handle donation or chat events.
+You can subscribe event using :class:`UserPermission` class and :method:`Client.connect` method.
+
+.. code-block:: python
+
+    permission_type1 = UserPermission.all()  # Receive all events.
+    permission_type2 = UserPermission(chat=True)  # Receive chat event.
+    permission_type3 = UserPermission(donation=True)  # Receive donation event.
+
+    await client.connect(permission=permission_type1)
+    # await UserClient.subscription(permission=permission_type1, ...) 
+
+Alternatively, you can subscribe to event using the :method:`UserClient.subscription` method.
+
+
+Support Multiple Channel Connection
+-----------------------------------
+Since v2.0 version, the chzzkpy pacakge support multiple channel connection.
+A single client can receive from multiple channel, or send messages.
+
+To enable multiple channel connection, use the :method:`connect` method with `addition_connect` parameter.
+
+.. code-block:: python
+
+    @client.event
+    async def on_chat(message):
+        await message.send("응답")
+
+    async def main():
+        authorization_url = client.generate_authorization_token_url(redirect_url="https://localhost", state="abcd12345")
+        print(f"Please login with this url: {authorization_url}")
+        code1 = input("Please input response code1: ")
+        code2 = input("Please input response code2: ")
+
+        user_client1 = await client.generate_user_client(code1, "abcd12345")
+        user_client2 = await client.generate_user_client(code2, "abcd12345")
+
+        await user_client1.connect(UserPermission.all(), addition_connect=True)
+        await user_client2.connect(UserPermission.all()) 
+    
+The `on_chat` event function can receive all messages from user_client1 and user_client2.
+When a message is replied to via the `send` method, a message is replied to the channel from which it was received.
+
+If the `addition_connect` parameter is True, the event listening will be done in the background.
+The events from `user_client1` can be listened to in the background, while events from `user_client2` can be listened to in main thread.
+
+You can also use the `addition_connect` parameter to use the main block elsewhere as needed.
+When the main block exits, all backgrounds will be killed.
+Therefore, it should be avoided that the main block terminates.
