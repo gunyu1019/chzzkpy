@@ -13,12 +13,13 @@ from dataclasses import asdict
 from sphinxawesome_theme import ThemeOptions
 
 sys.path.insert(0, os.path.abspath(".."))
-sys.path.append(os.path.abspath("chat"))
+sys.path.append(os.path.abspath("chzzkpy"))
+sys.path.append(os.path.abspath("chzzkpy.unofficial"))
 
 project = "chzzkpy"
-copyright = "2024, gunyu1019"
+copyright = "2024-2025, gunyu1019"
 author = "gunyu1019"
-release = "v1.0.3"
+release = "v1.0.4"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
