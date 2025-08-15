@@ -4,6 +4,7 @@ The “채팅 메시지 조회” and ”채팅 메시지 쓰기” API Scopes a
 
 .. code-block:: python
 
+    import asyncio
     from chzzkpy import Client, Donation, Message, UserPermission
 
     client_id = "Application Client ID"
