@@ -633,7 +633,7 @@ msgstr "채널을 구독한 시청자의 정보가 담긴 객체입니다."
 
 #: chzzkpy.message.SentMessage:1 of
 msgid "Represents a message sent by client.send() method"
-msgstr ":class:`client.send() <chzzkpy.client.Client.send>` 함수로 보낸 메시지 정보를 담고 있는 객체이빈다."
+msgstr ":class:`client.send() <chzzkpy.client.Client.send>` 함수로 보낸 메시지 정보를 담고 있는 객체입니다."
 
 #: chzzkpy.message.SentMessage.pin:1 of
 msgid "Pin the sent message for announcement."

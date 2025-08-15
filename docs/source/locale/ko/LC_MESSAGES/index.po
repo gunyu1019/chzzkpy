@@ -134,7 +134,7 @@ msgid ""
 "<https://github.com/gunyu1019/chzzkpy/tree/main/examples>`__ ."
 msgstr ""
 "이 섹션은 간단한 예제를 보여줍니다. chzzkpy를 사용한 사례를 보시려면, `이곳 "
-"<https://github.com/gunyu1019/chzzkpy/tree/main/examples>`__ 을 확인해주세요.."
+"<https://github.com/gunyu1019/chzzkpy/tree/main/examples>`__ 을 확인해주세요."
 
 #: ../../source/index.rst:40
 msgid "Searching broadcaster"

@@ -54,7 +54,7 @@ msgstr "치지직 채팅 서버 연결을 종료합니다."
 
 #: chzzkpy.unofficial.chat.chat_client.ChatClient.delete_notice_message:1 of
 msgid "Delete a pinned message."
-msgstr "고정된 메시지를 해제합니다.."
+msgstr "고정된 메시지를 해제합니다."
 
 #: chzzkpy.unofficial.chat.chat_client.ChatClient.history:1 of
 msgid "Get messages the user has previously sent."

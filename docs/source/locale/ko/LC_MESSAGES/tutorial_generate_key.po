@@ -80,7 +80,7 @@ msgid ""
 " 메시지 조회” and “채팅 메시지 쓰기”.)"
 msgstr ""
 "(예를 들어 애플리케이션이 메시지를 송신, 수신 받기 위해서는 “채팅"
-" 메시지 조회”와 “채팅 메시지 쓰기” 권한이 필요합니다..)"
+" 메시지 조회”와 “채팅 메시지 쓰기” 권한이 필요합니다.)"
 
 #: ../../source/tutorial_generate_key.rst:23
 msgid "Click “등록” to register the new application."
