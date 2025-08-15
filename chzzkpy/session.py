@@ -30,5 +30,5 @@ class SessionKey(ChzzkModel):
 
 
 class EventSubscribeMessage(ChzzkModel):
-    event_type: Literal["CHAT", "DONATION"]
+    event_type: Literal["CHAT", "DONATION", "SUBSCRIPTION"]
     channel_id: str
