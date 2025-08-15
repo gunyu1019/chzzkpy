@@ -1,18 +1,19 @@
-Chat Feature
-============
+(Legacy) Chat API Reference
+===========================
 
 Client
 ------
 
-.. autoclass:: chzzkpy.chat.ChatClient
+.. autoclass:: chzzkpy.unofficial.chat.ChatClient
    :members:
+   :member-order: groupwise
    :show-inheritance:
    :exclude-members: event
 
 Event Refenence
 ---------------
 
-This section describes the events listened that :class:`ChatClient<chzzkpy.chat.ChatClient>` received.
+This section describes the events listened that :class:`ChatClient<chzzkpy.unofficial.chat.ChatClient>` received.
 You can received event with decorator `event` method.
 
 For example:
@@ -28,7 +29,7 @@ All event method must be a coroutine. Otherwise, unexpected errors may occur.
 .. py:function:: on_chat(message: ChatMessage)
    :async:
 
-   Call when a :class:`ChatMesage<chzzkpy.chat.ChatMessage>` is created and sent.
+   Call when a :class:`ChatMesage<chzzkpy.unofficial.chat.ChatMessage>` is created and sent.
    
    :param ChatMessage message: The current message.
 
@@ -43,12 +44,12 @@ All event method must be a coroutine. Otherwise, unexpected errors may occur.
    Called when a broadcaster received donation.
    Donation types include Chat, Video, and Mission, which are all invoked.
 
-   :param DonationMessage message: The message included donation info.
+   :param DonationMessage donation: The message included donation info.
 
 .. py:function:: on_system_message(system_message: SystemMessage)
    :async:
 
-   Called when a :class:`SystemMessage<chzzkpy.chat.SystemMessage>` is created and sent.
+   Called when a :class:`SystemMessage<chzzkpy.unofficial.chat.SystemMessage>` is created and sent.
 
    :param SystemMessage message: The system message.
 
@@ -57,7 +58,7 @@ All event method must be a coroutine. Otherwise, unexpected errors may occur.
 
    Called when a broadcast participant registered a new subscription.
 
-   :param SubscriptionMessage message: The message included subscription info.
+   :param SubscriptionMessage subscription: The message included subscription info.
 
 .. py:function:: on_recent_chat(messages: RecentChat)
    :async:
@@ -129,163 +130,189 @@ Blind
 -----
 This model is used in the `on_blind` event handler, which contains the blinded message.
 
-.. autoclass:: chzzkpy.chat.Blind()
+.. autoclass:: chzzkpy.unofficial.chat.Blind()
    :members:
+   :member-order: groupwise
    :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
 
 Connection
 ----------
 
-.. autoclass:: chzzkpy.chat.ConnectedInfo()
+.. autoclass:: chzzkpy.unofficial.chat.ConnectedInfo()
    :members:
+   :member-order: groupwise
    :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
 
 Donation
 --------
 
-.. autoclass:: chzzkpy.chat.DonationRank()
+.. autoclass:: chzzkpy.unofficial.chat.DonationRank()
    :members:
+   :member-order: groupwise
    :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
 
-.. autoclass:: chzzkpy.chat.BaseDonation()
+.. autoclass:: chzzkpy.unofficial.chat.BaseDonation()
    :members:
+   :member-order: groupwise
    :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
 
-.. autoclass:: chzzkpy.chat.ChatDonation()
+.. autoclass:: chzzkpy.unofficial.chat.ChatDonation()
    :members:
-   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
-   :undoc-members:
-   :show-inheritance:
-
-.. autoclass:: chzzkpy.chat.VideoDonation()
-   :members:
+   :member-order: groupwise
    :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
    :show-inheritance:
 
-.. autoclass:: chzzkpy.chat.MissionDonation()
+.. autoclass:: chzzkpy.unofficial.chat.VideoDonation()
    :members:
+   :member-order: groupwise
+   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
+   :undoc-members:
+   :show-inheritance:
+
+.. autoclass:: chzzkpy.unofficial.chat.MissionDonation()
+   :members:
+   :member-order: groupwise
    :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
    :show-inheritance:
 
 Message
 -------
-.. autoclass:: chzzkpy.chat.Message()
+.. autoclass:: chzzkpy.unofficial.chat.Message()
    :members:
+   :member-order: groupwise
    :exclude-members: model_computed_fields, model_config, model_fields, model_post_init, model_validate_with_client
    :undoc-members:
 
-.. autoclass:: chzzkpy.chat.MessageDetail()
+.. autoclass:: chzzkpy.unofficial.chat.MessageDetail()
    :members:
+   :member-order: groupwise
    :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
    :show-inheritance:
 
-.. autoclass:: chzzkpy.chat.ChatMessage()
+.. autoclass:: chzzkpy.unofficial.chat.ChatMessage()
    :members:
+   :member-order: groupwise
    :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
    :show-inheritance:
 
-.. autoclass:: chzzkpy.chat.NoticeMessage()
+.. autoclass:: chzzkpy.unofficial.chat.NoticeMessage()
    :members:
+   :member-order: groupwise
    :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
    :show-inheritance:
 
-.. autoclass:: chzzkpy.chat.DonationMessage()
+.. autoclass:: chzzkpy.unofficial.chat.DonationMessage()
    :members:
+   :member-order: groupwise
    :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
    :show-inheritance:
 
-.. autoclass:: chzzkpy.chat.SubscriptionMessage()
+.. autoclass:: chzzkpy.unofficial.chat.SubscriptionMessage()
    :members:
+   :member-order: groupwise
    :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
    :show-inheritance:
 
-.. autoclass:: chzzkpy.chat.SystemMessage()
+.. autoclass:: chzzkpy.unofficial.chat.SystemMessage()
    :members:
+   :member-order: groupwise
    :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
    :show-inheritance:
 
 Message Extra
 -------------
-.. autoclass:: chzzkpy.chat.Extra()
+.. autoclass:: chzzkpy.unofficial.chat.Extra()
    :members:
+   :member-order: groupwise
    :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
 
-.. autoclass:: chzzkpy.chat.NoticeExtra()
+.. autoclass:: chzzkpy.unofficial.chat.NoticeExtra()
    :members:
-   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
-   :undoc-members:
-   :show-inheritance:
-
-.. autoclass:: chzzkpy.chat.ChatDonationExtra()
-   :members:
+   :member-order: groupwise
    :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
    :show-inheritance:
 
-.. autoclass:: chzzkpy.chat.VideoDonationExtra()
+.. autoclass:: chzzkpy.unofficial.chat.ChatDonationExtra()
    :members:
+   :member-order: groupwise
    :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
    :show-inheritance:
 
-.. autoclass:: chzzkpy.chat.MissionDonationExtra()
+.. autoclass:: chzzkpy.unofficial.chat.VideoDonationExtra()
    :members:
+   :member-order: groupwise
+   :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
+   :undoc-members:
+   :show-inheritance:
+
+.. autoclass:: chzzkpy.unofficial.chat.MissionDonationExtra()
+   :members:
+   :member-order: groupwise
    :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
    :show-inheritance:
    :no-index:
 
-.. autoclass:: chzzkpy.chat.SubscriptionExtra()
+.. autoclass:: chzzkpy.unofficial.chat.SubscriptionExtra()
    :members:
+   :member-order: groupwise
    :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
    :show-inheritance:
 
-.. autoclass:: chzzkpy.chat.SystemExtra()
+.. autoclass:: chzzkpy.unofficial.chat.SystemExtra()
    :members:
+   :member-order: groupwise
    :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
    :show-inheritance:
 
-.. autoclass:: chzzkpy.chat.SystemExtraParameter()
+.. autoclass:: chzzkpy.unofficial.chat.SystemExtraParameter()
    :members:
+   :member-order: groupwise
    :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
    :show-inheritance:
 
 Profile
 -------
-.. autoclass:: chzzkpy.chat.Profile()
+.. autoclass:: chzzkpy.unofficial.chat.Profile()
    :members:
+   :member-order: groupwise
    :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
 
-.. autoclass:: chzzkpy.chat.Badge()
+.. autoclass:: chzzkpy.unofficial.chat.Badge()
    :members:
+   :member-order: groupwise
    :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
 
-.. autoclass:: chzzkpy.chat.ActivityBadge()
+.. autoclass:: chzzkpy.unofficial.chat.ActivityBadge()
    :members:
+   :member-order: groupwise
    :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
    :show-inheritance:
 
-.. autoclass:: chzzkpy.chat.StreamingProperty()
+.. autoclass:: chzzkpy.unofficial.chat.StreamingProperty()
    :members:
+   :member-order: groupwise
    :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
 
@@ -293,8 +320,9 @@ Recent Chat
 -----------
 This model is used in the `on_recent_chat` event handler, which contains the historical messages.
 
-.. autoclass:: chzzkpy.chat.RecentChat()
+.. autoclass:: chzzkpy.unofficial.chat.RecentChat()
    :members:
+   :member-order: groupwise
    :exclude-members: model_computed_fields, model_config, model_fields, model_post_init
    :undoc-members:
 
@@ -305,10 +333,10 @@ The `Chat Features` exceptions section describes exceptions that can be thrown b
 Exceptions that occur in the `Basic Features` exceptions section can also occur.
 
 
-.. autoexception:: chzzkpy.chat.ChatConnectFailed()
+.. autoexception:: chzzkpy.unofficial.chat.ChatConnectFailed()
 
-.. autoexception:: chzzkpy.chat.ConnectionClosed()
+.. autoexception:: chzzkpy.unofficial.chat.ConnectionClosed()
 
-.. autoexception:: chzzkpy.chat.WebSocketClosure()
+.. autoexception:: chzzkpy.unofficial.chat.WebSocketClosure()
 
-.. autoexception:: chzzkpy.chat.ReconnectWebsocket()
+.. autoexception:: chzzkpy.unofficial.chat.ReconnectWebsocket()

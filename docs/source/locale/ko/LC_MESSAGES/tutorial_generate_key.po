@@ -1,0 +1,95 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2024~2025, gunyu1019
+# This file is distributed under the same license as the chzzkpy package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: chzzkpy \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-08-02 09:24+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: ko\n"
+"Language-Team: ko <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.16.0\n"
+
+#: ../../source/tutorial_generate_key.rst:2
+msgid "Generate an application"
+msgstr "애플리케이션 생성하기"
+
+#: ../../source/tutorial_generate_key.rst:3
+msgid ""
+"To use the CHZZK API with chzzkpy package, we need to register an "
+"application. The process of registering for the app is very simple."
+msgstr ""
+"치지직 API을 사용하기 위해서는 애플리케이션 등록이 필요합니다."
+
+#: ../../source/tutorial_generate_key.rst:6
+msgid ""
+"Login to the `CHZZK Developer Center "
+"<https://developers.chzzk.naver.com/>`_ page with your Naver account."
+msgstr ""
+"`CHZZK 개발자 센터 <https://developers.chzzk.naver.com/>`_ 에 접속하고 네이버 계정으로 로그인합니다."
+
+#: ../../source/tutorial_generate_key.rst:9
+msgid ""
+"Click “내 서비스” to navigate to the `application "
+"<https://developers.chzzk.naver.com/application>`_ page."
+msgstr ""
+"“내 서비스” 를 클릭하여 `Application <https://developers.chzzk.naver.com/application>`_ 페이지로 이동합니다."
+
+#: ../../source/tutorial_generate_key.rst:13
+msgid "Fill in the text fields."
+msgstr "텍스트 필드를 모두 작성합니다."
+
+#: ../../source/tutorial_generate_key.rst:16
+msgid "애플리케이션 ID: Application's unique ID"
+msgstr "애플리케이션 ID: 애플리케이션의 고유 ID 입니다.
+
+#: ../../source/tutorial_generate_key.rst:17
+msgid "애플리케이션 이름: The name of application"
+msgstr "애플리케이션 이름: 애플리케이션의 이름입니다."
+
+#: ../../source/tutorial_generate_key.rst:18
+msgid "로그인 리디렉션 URL: The redirect URL following the OAuth2 process"
+msgstr "로그인 리디렉션 URL: OAuth2에서 사용할 리디렉션 URL입니다."
+
+#: ../../source/tutorial_generate_key.rst:19
+msgid ""
+"(To authenticate with a temporary web server using the "
+":class:`Client.login <chzzkpy.client.Client.login>` method, enter "
+"“http://localhost:8080/”.)"
+msgstr ""
+"(:class:`Client.login <chzzkpy.client.Client.login>` 함수를 이용하여 "
+"임시 웹서버를 통한 사용자 인증을 진행하려면,"
+"“http://localhost:8080/”를 입력해주세요.)"
+
+#: ../../source/tutorial_generate_key.rst:20
+msgid "API Scopes: Permissions that this application can access."
+msgstr "API Scopes: 애플리케이션에 필요한 기능입니다."
+
+#: ../../source/tutorial_generate_key.rst:21
+msgid ""
+"(For example, to send and receive messages, this application requires “채팅"
+" 메시지 조회” and “채팅 메시지 쓰기”.)"
+msgstr ""
+"(예를 들어 애플리케이션이 메시지를 송신, 수신 받기 위해서는 “채팅"
+" 메시지 조회”와 “채팅 메시지 쓰기” 권한이 필요합니다..)"
+
+#: ../../source/tutorial_generate_key.rst:23
+msgid "Click “등록” to register the new application."
+msgstr "“등록” 버튼을 눌러 애플리케이션을 등록합니다."
+
+#: ../../source/tutorial_generate_key.rst:25
+msgid ""
+"Copy “클라이언트 ID” and “클라이언트 Secret” to authenticate "
+":class:`chzzkpy.Client<chzzkpy.Client>`"
+msgstr ""
+"“클라이언트 ID” 그리고, “클라이언트 Secret”는 "
+":class:`chzzkpy.Client<chzzkpy.Client>` 매개변수로 입력하여 인증합니다."
