@@ -39,10 +39,12 @@ All event method must be a coroutine. Otherwise, unexpected errors may occur.
    
    :param Message message: The current message.
 
-.. py:function:: on_connect()
+.. py:function:: on_connect(session_id: str)
    :async:
 
    Called when the client has successfully connected to chzzk chat.
+
+   :param str session_id: The unique ID of sesssion. It's used to :class:`subscribe<chzzkpy.client.UserClient.subscribe>` or :class:`unsubscribe<chzzkpy.client.UserClient.unsubscribe>` method.
 
 .. py:function:: on_donation(donation: Donation)
    :async:
