@@ -26,11 +26,15 @@ from __future__ import annotations
 import asyncio
 
 from typing import Optional, TYPE_CHECKING
+from functools import wraps
+
 from .http import ChzzkAPISession, NaverGameAPISession
 from .live import Live, LiveStatus, LiveDetail
 from .user import User
 from .video import Video
 from .manage.manage_client import ManageClient
+
+from ..client import _LoopSentinel
 
 
 if TYPE_CHECKING:
@@ -48,25 +52,47 @@ class Client:
         authorization_key: Optional[str] = None,
         session_key: Optional[str] = None,
     ):
-        self.loop = loop or asyncio.get_event_loop()
+        self.loop = loop or _LoopSentinel()
         self._closed = False
         self._api_session = None
         self._game_session = None
 
-        if authorization_key is not None and session_key is not None:
-            self.login(authorization_key, session_key)
-
-        self._session_initial_set()
+        self.__authorization_key = authorization_key
+        self.__session_key = session_key
 
         # For management feature
         self._manage_client: dict[str, ManageClient] = dict()
         self._latest_manage_client_id = None
 
-    def _session_initial_set(self):
-        self._api_session = ChzzkAPISession(loop=self.loop)
-        self._game_session = NaverGameAPISession(loop=self.loop)
+        if not isinstance(self.loop, _LoopSentinel):
+            self._session_initial_set()
+
+    @staticmethod
+    def initial_async_setup(func):
+        @wraps(func)
+        async def wrapper(self: Self, *args, **kwargs):
+            if isinstance(self.loop, _LoopSentinel):
+                await self._async_setup_hook()
+            return await func(self, *args, **kwargs)
+
+        return wrapper
+
+    async def _async_setup_hook(self) -> None:
+        self.loop = loop = asyncio.get_running_loop()
+        self._session_initial_set(loop)
+
+    def _session_initial_set(self, loop: Optional[asyncio.AbstractEventLoop] = None) -> None:
+        self._api_session = ChzzkAPISession(loop=self.loop or loop)
+        self._game_session = NaverGameAPISession(loop=self.loop or loop)
+
+        if self.__authorization_key is not None and self.__session_key is not None:
+            self.login(self.__authorization_key, self.__session_key)
+
+        for manage_client in self._manage_client.values():
+            manage_client._session_initial_set(self.loop or loop)
 
     async def __aenter__(self) -> Self:
+        await self._async_setup_hook()
         return self
 
     async def __aexit__(
@@ -86,8 +112,9 @@ class Client:
     async def close(self):
         """Closes the connection to chzzk."""
         self._closed = True
-        await self._api_session.close()
-        await self._game_session.close()
+        if self._api_session is not None and self._game_session is not None:
+            await self._api_session.close()
+            await self._game_session.close()
 
         for manage_client in self._manage_client.values():
             if manage_client.is_closed:
@@ -107,13 +134,21 @@ class Client:
         session_key : str
             A `NID_SES` value in the cookie.
         """
+        if self._api_session is None or self._game_session is None:
+            self.__authorization_key = authorization_key
+            self.__session_key = session_key
+            return
+
         self._api_session.login(authorization_key, session_key)
         self._game_session.login(authorization_key, session_key)
 
     @property
     def has_login(self) -> bool:
+        if self._api_session is None or self._game_session is None:
+            return all((self.__authorization_key is not None, self.__session_key is not None))
         return all((self._api_session.has_login, self._game_session.has_login))
 
+    @initial_async_setup
     async def live_status(self, channel_id: str) -> Optional[LiveStatus]:
         """Get a live status info of broadcaster.
 
@@ -130,6 +165,7 @@ class Client:
         res = await self._api_session.live_status(channel_id=channel_id)
         return res.content
 
+    @initial_async_setup
     async def live_detail(self, channel_id: str) -> Optional[LiveDetail]:
         """Get a live detail info of broadcaster.
 
@@ -146,6 +182,7 @@ class Client:
         res = await self._api_session.live_detail(channel_id=channel_id)
         return res.content
 
+    @initial_async_setup
     async def user(self) -> User:
         """Get my user info.
         This method should be used after login.
@@ -158,6 +195,7 @@ class Client:
         res = await self._game_session.user()
         return res.content
 
+    @initial_async_setup
     async def search_channel(self, keyword: str) -> list[Channel]:
         """Search the channel with keyword.
 
@@ -175,6 +213,7 @@ class Client:
         data = res.content.data
         return [x.channel for x in data]
 
+    @initial_async_setup
     async def search_video(self, keyword: str) -> list[Video]:
         """Search the video with keyword.
 
@@ -197,6 +236,7 @@ class Client:
 
         return [x.video for x in data]
 
+    @initial_async_setup
     async def search_live(self, keyword: str) -> list[Live]:
         """Search the live with keyword.
 
@@ -219,8 +259,9 @@ class Client:
 
         return [x.live for x in data]
 
+    @initial_async_setup
     async def autocomplete(self, keyword: str) -> list[str]:
-        """Get a auto-completed keyword.
+        """Get an auto-completed keyword.
 
         Parameters
         ----------
