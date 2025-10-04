@@ -87,8 +87,8 @@ class NaverGameChatSession(NaverGameAPISession):
         extras: Annotated[str, BodyJson],
         message: Annotated[str, BodyJson],
         message_time: Annotated[int, BodyJson.to_camel()],
-        message_user_id_hash: Annotated[int, BodyJson.to_camel()],
-        streaming_channel_id: Annotated[int, BodyJson.to_camel()],
+        message_user_id_hash: Annotated[str, BodyJson.to_camel()],
+        streaming_channel_id: Annotated[str, BodyJson.to_camel()],
         chat_type: Annotated[str, BodyJson.to_camel()] = "STREAMING",
     ) -> Content[None]:
         return
@@ -101,8 +101,8 @@ class NaverGameChatSession(NaverGameAPISession):
         channel_id: Annotated[str, BodyJson.to_camel()],
         message: Annotated[str, BodyJson],
         message_time: Annotated[int, BodyJson.to_camel()],
-        message_user_id_hash: Annotated[int, BodyJson.to_camel()],
-        streaming_channel_id: Annotated[int, BodyJson.to_camel()],
+        message_user_id_hash: Annotated[str, BodyJson.to_camel()],
+        streaming_channel_id: Annotated[str, BodyJson.to_camel()],
         chat_type: Annotated[str, BodyJson.to_camel()] = "STREAMING",
     ) -> Content[None]:
         pass
