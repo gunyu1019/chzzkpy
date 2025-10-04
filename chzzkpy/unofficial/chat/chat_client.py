@@ -72,7 +72,10 @@ class ChatClient(Client):
         self.access_token: Optional[AccessToken] = None
         self.user_id: Optional[str] = None
 
-        self.ws_session = aiohttp.ClientSession(loop=self.loop)
+        self.ws_session = None
+
+        self.__authorization_key = authorization_key
+        self.__session_key = session_key
 
         self._listeners: dict[str, list[tuple[asyncio.Future, Callable[..., bool]]]] = (
             dict()
@@ -90,9 +93,17 @@ class ChatClient(Client):
         self._gateway: Optional[ChzzkWebSocket] = None
         self._status: Literal["OPEN", "CLOSE"] = None
 
-    def _session_initial_set(self):
-        self._api_session = ChzzkAPIChatSession(loop=self.loop)
-        self._game_session = NaverGameChatSession(loop=self.loop)
+    def _session_initial_set(self, loop: Optional[asyncio.AbstractEventLoop] = None):
+        self._api_session = ChzzkAPIChatSession(loop=self.loop or loop)
+        self._game_session = NaverGameChatSession(loop=self.loop or loop)
+
+        self.ws_session = aiohttp.ClientSession(loop=self.loop or loop)
+
+        if self.__authorization_key is not None and self.__session_key is not None:
+            self.login(self.__authorization_key, self.__session_key)
+
+        for manage_client in self._manage_client.values():
+            manage_client._session_initial_set(self.loop or loop)
 
     @property
     def is_connected(self) -> bool:
@@ -125,9 +136,14 @@ class ChatClient(Client):
         session_key : str
             A `NID_SES` value in the cookie.
         """
+        if self._api_session is None or self._game_session is None:
+            self.__authorization_key = authorization_key
+            self.__session_key = session_key
+
         super().login(authorization_key=authorization_key, session_key=session_key)
         self._manage_client[self.channel_id] = ManageClient(self.channel_id, self)
 
+    @Client.initial_async_setup
     async def connect(self) -> None:
         if self.chat_channel_id is None:
             status = await self.live_status(channel_id=self.channel_id)
@@ -161,7 +177,9 @@ class ChatClient(Client):
 
         if self._gateway is not None:
             await self._gateway.close()
-        await self.ws_session.close()
+
+        if self.ws_session is not None:
+            await self.ws_session.close()
         await super().close()
 
     async def _confirm_live_status(self):
@@ -194,6 +212,7 @@ class ChatClient(Client):
         self.chat_channel_id = live_status.chat_channel_id
         raise ReconnectWebsocket()
 
+    @Client.initial_async_setup
     async def polling(self) -> None:
         while not self.is_closed:
             try:
@@ -366,6 +385,7 @@ class ChatClient(Client):
         return self.loop.create_task(wrapped, name=f"chzzk.py: {event_name}")
 
     # API Method
+    @Client.initial_async_setup
     async def _generate_access_token(self) -> AccessToken:
         res = await self._game_session.chat_access_token(
             channel_id=self.chat_channel_id
@@ -374,6 +394,7 @@ class ChatClient(Client):
         return self.access_token
 
     # Chat Method
+    @Client.initial_async_setup
     async def send_chat(self, message: str) -> None:
         """Send a message.
 
@@ -395,6 +416,7 @@ class ChatClient(Client):
 
         await self._gateway.send_chat(message, self.chat_channel_id)
 
+    @Client.initial_async_setup
     async def request_recent_chat(self, count: int = 50):
         """Send a request recent chat to chzzk.
         This method only makes a “request”.
@@ -415,6 +437,7 @@ class ChatClient(Client):
 
         await self._gateway.request_recent_chat(count, self.chat_channel_id)
 
+    @Client.initial_async_setup
     async def history(self, count: int = 50) -> list[ChatMessage]:
         """Get messages the user has previously sent.
 
@@ -434,6 +457,7 @@ class ChatClient(Client):
         )
         return recent_chat.message_list
 
+    @Client.initial_async_setup
     async def set_notice_message(self, message: ChatMessage) -> None:
         """Set a pinned messsage.
 
@@ -456,11 +480,13 @@ class ChatClient(Client):
         )
         return
 
+    @Client.initial_async_setup
     async def delete_notice_message(self) -> None:
         """Delete a pinned message."""
         await self._game_session.delete_notice_message(channel_id=self.chat_channel_id)
         return
 
+    @Client.initial_async_setup
     async def blind_message(self, message: ChatMessage) -> None:
         """Blinds a chat.
 
@@ -478,6 +504,7 @@ class ChatClient(Client):
         )
         return
 
+    @Client.initial_async_setup
     async def temporary_restrict(self, user: PartialUser | str) -> PartialUser:
         """Give temporary restrict to user.
         A temporary restriction cannot be lifted arbitrarily.
@@ -504,7 +531,10 @@ class ChatClient(Client):
         )
         return response
 
-    async def live_status(self, channel_id: Optional[str] = None):
+    @Client.initial_async_setup
+    async def live_status(
+        self, channel_id: Optional[str] = None
+    ) -> Optional[LiveStatus]:
         """Get a live status info of broadcaster.
 
         Parameters
@@ -521,7 +551,10 @@ class ChatClient(Client):
             channel_id = self.channel_id
         return await super().live_status(channel_id)
 
-    async def live_detail(self, channel_id: Optional[str] = None):
+    @Client.initial_async_setup
+    async def live_detail(
+        self, channel_id: Optional[str] = None
+    ) -> Optional[LiveDetail]:
         """Get a live detail info of broadcaster.
 
         Parameters
@@ -563,6 +596,7 @@ class ChatClient(Client):
         """Get a client provided self-channel management functionally."""
         return self.manage(channel_id=self.channel_id)
 
+    @Client.initial_async_setup
     async def profile_card(self, user: PartialUser | str) -> Profile:
         """Get a profile card.
 
