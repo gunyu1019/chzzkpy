@@ -532,7 +532,9 @@ class ChatClient(Client):
         return response
 
     @Client.initial_async_setup
-    async def live_status(self, channel_id: Optional[str] = None) -> Optional[LiveStatus]:
+    async def live_status(
+        self, channel_id: Optional[str] = None
+    ) -> Optional[LiveStatus]:
         """Get a live status info of broadcaster.
 
         Parameters
@@ -550,7 +552,9 @@ class ChatClient(Client):
         return await super().live_status(channel_id)
 
     @Client.initial_async_setup
-    async def live_detail(self, channel_id: Optional[str] = None):
+    async def live_detail(
+        self, channel_id: Optional[str] = None
+    ) -> Optional[LiveDetail]:
         """Get a live detail info of broadcaster.
 
         Parameters

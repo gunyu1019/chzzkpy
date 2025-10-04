@@ -74,7 +74,9 @@ class ManageClient:
 
         return wrapper
 
-    def _session_initial_set(self, loop: Optional[asyncio.AbstractEventLoop] = None) -> None:
+    def _session_initial_set(
+        self, loop: Optional[asyncio.AbstractEventLoop] = None
+    ) -> None:
         self._http = ChzzkManageSession(self.client.loop or loop)
         self._http.login(
             authorization_key=self.client._api_session._authorization_key,

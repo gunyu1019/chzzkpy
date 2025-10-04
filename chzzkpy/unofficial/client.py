@@ -81,7 +81,9 @@ class Client:
         self.loop = loop = asyncio.get_running_loop()
         self._session_initial_set(loop)
 
-    def _session_initial_set(self, loop: Optional[asyncio.AbstractEventLoop] = None) -> None:
+    def _session_initial_set(
+        self, loop: Optional[asyncio.AbstractEventLoop] = None
+    ) -> None:
         self._api_session = ChzzkAPISession(loop=self.loop or loop)
         self._game_session = NaverGameAPISession(loop=self.loop or loop)
 
@@ -145,7 +147,9 @@ class Client:
     @property
     def has_login(self) -> bool:
         if self._api_session is None or self._game_session is None:
-            return all((self.__authorization_key is not None, self.__session_key is not None))
+            return all(
+                (self.__authorization_key is not None, self.__session_key is not None)
+            )
         return all((self._api_session.has_login, self._game_session.has_login))
 
     @initial_async_setup
