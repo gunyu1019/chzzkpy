@@ -70,6 +70,9 @@ class ManageClient:
         async def wrapper(self: Self, *args, **kwargs):
             if not isinstance(self.client.loop, asyncio.AbstractEventLoop):
                 await self.client._async_setup_hook()
+
+            if self._http is None:
+                self._session_initial_set()
             return await func(self, *args, **kwargs)
 
         return wrapper
