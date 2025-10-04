@@ -23,7 +23,10 @@ SOFTWARE.
 
 from __future__ import annotations
 
-from typing import List, Literal, Optional, TYPE_CHECKING
+import asyncio
+
+from typing import List, Self, Literal, Optional, TYPE_CHECKING
+from functools import wraps
 from ..error import LoginRequired
 from ..user import PartialUser, UserRole
 from .enums import SortType, SubscriberTier
@@ -52,20 +55,37 @@ class ManageClient:
         self.client = client
 
         # All manage feature needs login.
-        if not self.client._api_session.has_login:
+        if not self.client.has_login:
             raise LoginRequired()
 
-        self._http = ChzzkManageSession(self.client.loop)
+        self._http: Optional[ChzzkManageSession] = None
+        if isinstance(self.client.loop, asyncio.AbstractEventLoop):
+            self._session_initial_set()
+
+        self._is_closed = False
+
+    @staticmethod
+    def initial_async_setup(func):
+        @wraps(func)
+        async def wrapper(self: Self, *args, **kwargs):
+            if not isinstance(self.client.loop, asyncio.AbstractEventLoop):
+                await self.client._async_setup_hook()
+            return await func(self, *args, **kwargs)
+
+        return wrapper
+
+    def _session_initial_set(self, loop: Optional[asyncio.AbstractEventLoop] = None) -> None:
+        self._http = ChzzkManageSession(self.client.loop or loop)
         self._http.login(
             authorization_key=self.client._api_session._authorization_key,
             session_key=self.client._api_session._session_key,
         )
-        self._is_closed = False
 
     async def close(self):
         """Closes the connection to chzzk."""
         self._is_closed = True
-        await self._http.close()
+        if self._http is not None:
+            await self._http.close()
         return
 
     @property
@@ -73,6 +93,7 @@ class ManageClient:
         """Indicates if the session is closed."""
         return self._is_closed
 
+    @initial_async_setup
     async def get_prohibit_words(self) -> List[ProhibitWord]:
         """Get prohibit words in chat.
 
@@ -87,6 +108,7 @@ class ManageClient:
         ]
         return prohibit_words
 
+    @initial_async_setup
     async def get_prohbit_word(self, word: str) -> Optional[ProhibitWord]:
         """Get prohibit word with word.
         When word does not contain prohibit word, returns None.
@@ -107,6 +129,7 @@ class ManageClient:
             return
         return prohibit_words[0]
 
+    @initial_async_setup
     async def add_prohibit_word(self, word: str) -> Optional[ProhibitWord]:
         """Add a prohibit word at chat.
 
@@ -123,6 +146,7 @@ class ManageClient:
         await self._http.add_prohibit_word(self.channel_id, word)
         return await self.get_prohbit_word(word)
 
+    @initial_async_setup
     async def edit_prohibit_word(
         self, prohibit_word: ProhibitWord | int, word: str
     ) -> Optional[ProhibitWord]:
@@ -149,6 +173,7 @@ class ManageClient:
         await self._http.edit_prohibit_word(self.channel_id, prohibit_word_number, word)
         return await self.get_prohbit_word(word)
 
+    @initial_async_setup
     async def remove_prohibit_word(self, prohibit_word: ProhibitWord | int) -> None:
         """Remove a prohibit word.
 
@@ -165,10 +190,12 @@ class ManageClient:
 
         await self._http.remove_prohibit_word(self.channel_id, prohibit_word_number)
 
+    @initial_async_setup
     async def remove_prohibit_words(self) -> None:
         """Remove all prohibit words."""
         await self._http.remove_prohibit_word_all(self.channel_id)
 
+    @initial_async_setup
     async def get_chat_rule(self) -> str:
         """Get chat rule of broadcast.
 
@@ -180,6 +207,7 @@ class ManageClient:
         data = await self._http.get_chat_rule(self.channel_id)
         return data.content.rule
 
+    @initial_async_setup
     async def set_chat_rule(self, word: str) -> None:
         """Set chat rule of broadcast.
 
@@ -190,6 +218,7 @@ class ManageClient:
         """
         await self._http.set_chat_rule(self.channel_id, word)
 
+    @initial_async_setup
     async def stream(self) -> Stream:
         """Get a stream key required for streamming.
 
@@ -201,6 +230,7 @@ class ManageClient:
         data = await self._http.stream(channel_id=self.channel_id)
         return data.content
 
+    @initial_async_setup
     async def add_restrict(
         self,
         user: str | PartialUser,
@@ -246,6 +276,7 @@ class ManageClient:
         return user
         return data.content
 
+    @initial_async_setup
     async def edit_restrict(
         self,
         user: str | PartialUser,
@@ -284,6 +315,7 @@ class ManageClient:
         user._set_manage_client(self)
         return user
 
+    @initial_async_setup
     async def remove_restrict(self, user: str | PartialUser) -> None:
         """Remove an user to restrict activity.
 
@@ -306,6 +338,7 @@ class ManageClient:
             channel_id=self.channel_id, target_id=target_id
         )
 
+    @initial_async_setup
     async def add_role(self, user: str | PartialUser, role: UserRole) -> PartialUser:
         """Add a broadcast permission to user.
 
@@ -341,6 +374,7 @@ class ManageClient:
         user._set_manage_client(self)
         return user
 
+    @initial_async_setup
     async def remove_role(self, user: str | PartialUser) -> None:
         """Remove a broadcast permission to user.
 
@@ -356,6 +390,7 @@ class ManageClient:
 
         await self._http.remove_role(channel_id=self.channel_id, target_id=user_id)
 
+    @initial_async_setup
     async def chat_activity_count(self, user: str | PartialUser) -> ChatActivityCount:
         """Get chat activity count of user.
 
@@ -380,7 +415,8 @@ class ManageClient:
         )
         return data.content
 
-    async def subcribers(
+    @initial_async_setup
+    async def subscribers(
         self,
         page: int = 0,
         size: int = 50,
@@ -389,7 +425,7 @@ class ManageClient:
         tier: Optional[SubscriberTier] = None,
         nickname: Optional[str] = None,
     ) -> ManageResult[ManageSubcriber]:
-        """Get subcribers of channel.
+        """Get subscribers of channel.
 
         Parameters
         ----------
@@ -422,6 +458,7 @@ class ManageClient:
         )
         return data.content
 
+    @initial_async_setup
     async def followers(
         self, page: int = 0, size: int = 50, sort_type: SortType = SortType.recent
     ) -> ManageResult[ManageFollower]:
@@ -448,6 +485,7 @@ class ManageClient:
             followed_user.user._set_manage_client(self)
         return data.content
 
+    @initial_async_setup
     async def restrict(
         self, page: int = 0, size: int = 50, nickname: Optional[str] = None
     ) -> ManageResult[UnrestrictRequest]:
@@ -477,6 +515,7 @@ class ManageClient:
             restricted_user._set_manage_client(self)
         return data.content
 
+    @initial_async_setup
     async def unrestrict_requests(
         self, page: int = 0, size: int = 50, nickname: Optional[str] = None
     ) -> ManageResult[UnrestrictRequest]:
@@ -506,6 +545,7 @@ class ManageClient:
             unrestrict_request._set_manage_client(self)
         return data.content
 
+    @initial_async_setup
     async def live_replay(
         self, page: int = 0, size: int = 50
     ) -> ManageResult[ManageVideo]:
@@ -528,6 +568,7 @@ class ManageClient:
         )
         return data.content
 
+    @initial_async_setup
     async def videos(self, page: int = 0, size: int = 50) -> ManageResult[ManageVideo]:
         """Get uploaded video of channel.
 
