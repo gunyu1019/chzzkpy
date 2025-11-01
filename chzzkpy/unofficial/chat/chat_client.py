@@ -111,12 +111,27 @@ class ChatClient(Client):
         return self._ready.is_set()
 
     def run(self, authorization_key: str = None, session_key: str = None) -> None:
-        wrapper = self.start(authorization_key, session_key)
+        async def runner():
+            await self._async_setup_hook()
+            await self.start(authorization_key, session_key)
+
         try:
-            self.loop.run_until_complete(wrapper)
+            # Checking running loop (if non-async context, raised Runtime Error)
+            _ = asyncio.get_running_loop()
+        except RuntimeError:
+            pass
+        else:
+            raise RuntimeError(
+                "The ChatClient.run() method can be used in non-async contexts. "
+                "Using ChatClient.start() method instead."
+            )
+
+        try:
+            asyncio.run(runner())
         except KeyboardInterrupt:
             return
 
+    @Client.initial_async_setup
     async def start(self, authorization_key: str = None, session_key: str = None):
         try:
             if authorization_key is not None and session_key is not None:
@@ -136,6 +151,7 @@ class ChatClient(Client):
         session_key : str
             A `NID_SES` value in the cookie.
         """
+
         if self._api_session is None or self._game_session is None:
             self.__authorization_key = authorization_key
             self.__session_key = session_key
@@ -164,6 +180,7 @@ class ChatClient(Client):
 
         if self._game_session.has_login:
             user = await self.user()
+            print(user)
             self.user_id = user.user_id_hash
 
         if self.access_token is None:
