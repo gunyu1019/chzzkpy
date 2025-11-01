@@ -116,6 +116,17 @@ class ChatClient(Client):
             await self.start(authorization_key, session_key)
 
         try:
+            # Checking running loop (if non-async context, raised Runtime Error)
+            _ = asyncio.get_running_loop()
+        except RuntimeError:
+            pass
+        else:
+            raise RuntimeError(
+                "The ChatClient.run() method can be used in non-async contexts. "
+                "Using ChatClient.start() method instead."
+            )
+
+        try:
             asyncio.run(runner())
         except KeyboardInterrupt:
             return
