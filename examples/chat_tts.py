@@ -16,8 +16,7 @@ from chzzkpy import Client, Message, UserPermission
 client_id = "client_id"
 client_secret = "client_secret"
 
-loop = asyncio.get_event_loop()
-client = Client(client_id, client_secret, loop=loop)
+client = Client(client_id, client_secret)
 queue = collections.deque()
 
 
