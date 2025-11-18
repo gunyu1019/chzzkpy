@@ -242,16 +242,21 @@ class Client(BaseEventManager):
         user_client = self.get_user_client_cached(channel_id)
         if user_client is not None:
             return user_client.access_token
-        return
+        return None
 
     async def __aenter__(self) -> Self:
         await self._async_setup_hook()
         return self
 
     async def _async_setup_hook(self) -> None:
-        self.loop = loop = asyncio.get_running_loop()
+        if isinstance(self.loop, _LoopSentinel):
+            self.loop = asyncio.get_running_loop()
+
+        if asyncio.current_task(self.loop) is None:
+            raise RuntimeError("This loop should be defined in an asynchronous context.")
+
         self.http = ChzzkOpenAPISession(
-            loop=loop, client_id=self.client_id, client_secret=self.client_secret
+            loop=self.loop, client_id=self.client_id, client_secret=self.client_secret
         )
         self._connection.http = self.http
 
@@ -259,7 +264,7 @@ class Client(BaseEventManager):
     def initial_async_setup(func):
         @wraps(func)
         async def wrapper(self: Self, *args, **kwargs):
-            if isinstance(self.loop, _LoopSentinel):
+            if isinstance(self.loop, _LoopSentinel) or self.http is None:
                 await self._async_setup_hook()
             return await func(self, *args, **kwargs)
 
@@ -558,7 +563,7 @@ class Client(BaseEventManager):
             return
 
         if session_id is not None:
-            await self._gateway.disconnect()
+            await self._gateway[session_id].disconnect()
             self._gateway.pop(session_id)
             return
 
