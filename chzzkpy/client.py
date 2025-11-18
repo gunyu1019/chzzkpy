@@ -253,7 +253,9 @@ class Client(BaseEventManager):
             self.loop = asyncio.get_running_loop()
 
         if asyncio.current_task(self.loop) is None:
-            raise RuntimeError("This loop should be defined in an asynchronous context.")
+            raise RuntimeError(
+                "This loop should be defined in an asynchronous context."
+            )
 
         self.http = ChzzkOpenAPISession(
             loop=self.loop, client_id=self.client_id, client_secret=self.client_secret
