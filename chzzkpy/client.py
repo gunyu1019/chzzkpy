@@ -1029,7 +1029,9 @@ class UserClient:
         return result.content
 
     @refreshable
-    async def get_followers(self, page: int = 0, size: int = 30) -> ChannelSearchResult[FollowerInfo]:
+    async def get_followers(
+        self, page: int = 0, size: int = 30
+    ) -> ChannelSearchResult[FollowerInfo]:
         """Get followers for this channel.
 
         Parameters
@@ -1049,7 +1051,10 @@ class UserClient:
 
     @refreshable
     async def get_subscribers(
-        self, page: int = 0, size: int = 30, sort: Literal["RECENT", "LONGER"] = "RECENT"
+        self,
+        page: int = 0,
+        size: int = 30,
+        sort: Literal["RECENT", "LONGER"] = "RECENT",
     ) -> ChannelSearchResult[SubscriberInfo]:
         """Get subscribers for this channel.
 
@@ -1067,5 +1072,9 @@ class UserClient:
         )
         data = result.content
         data._next_method = self.http.get_channel_subscribers
-        data._next_method_key_argument = {"size": size, "sort": sort, "token": self.access_token}
+        data._next_method_key_argument = {
+            "size": size,
+            "sort": sort,
+            "token": self.access_token,
+        }
         return result.content
