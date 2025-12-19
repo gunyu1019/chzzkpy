@@ -42,7 +42,7 @@ from ahttp_client.extension import pydantic_response_model
 from ahttp_client.request import RequestCore
 
 from .authorization import AccessToken
-from .base_model import Content, SearchResult
+from .base_model import Content, SearchResult, ChannelSearchResult
 from .category import CATEGORY_TYPE, Category
 from .channel import Channel, ChannelPermission, FollowerInfo, SubscriberInfo
 from .chat import ChatSetting
@@ -216,7 +216,7 @@ class ChzzkOpenAPISession(Session):
         token: Annotated[Optional[AccessToken], Header] = None,
         page: Annotated[int, Query] = 0,
         size: Annotated[int, Query] = 30,
-    ) -> Content[SearchResult[FollowerInfo]]:
+    ) -> Content[ChannelSearchResult[FollowerInfo]]:
         pass
 
     @pydantic_response_model()
@@ -228,7 +228,7 @@ class ChzzkOpenAPISession(Session):
         page: Annotated[int, Query] = 0,
         size: Annotated[int, Query] = 30,
         sort: Annotated[Literal["RECENT", "LONGER"], Query] = "RECENT",
-    ) -> Content[SearchResult[SubscriberInfo]]:
+    ) -> Content[ChannelSearchResult[SubscriberInfo]]:
         pass
 
     @pydantic_response_model()
