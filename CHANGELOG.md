@@ -1,3 +1,8 @@
+## v2.1.5 - Dec 20th, 2025
+* Add new attribute in `FollowingPeriod` integer enumeration object to follow the [official chzzk API updates](https://chzzk.gitbook.io/chzzk/introduction/updates).
+* [Fix] Missing provided `page` attribute in `UserClient.get_followers` and `UserClient.get_subscribers` method.
+* [Fix] Invalid logic of `next()` method in `UserClient.get_followers` and `UserClient.get_subscribers` method.
+
 ## v2.1.4 - Nov 18th, 2025
 * Add current_task inspection in Client.async_setup_hook private method to avoid Timer context exception.
 * [Fix] Add a check for undefined `self.http` field in Client.initial_async_setup method.
