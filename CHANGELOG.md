@@ -1,3 +1,25 @@
+## v2.1.5 - Dec 20th, 2025
+* Add new attribute in `FollowingPeriod` integer enumeration object to follow the [official chzzk API updates](https://chzzk.gitbook.io/chzzk/introduction/updates).
+* [Fix] Missing provided `page` attribute in `UserClient.get_followers` and `UserClient.get_subscribers` method.
+* [Fix] Invalid logic of `next()` method in `UserClient.get_followers` and `UserClient.get_subscribers` method.
+
+## v2.1.4 - Nov 18th, 2025
+* Add current_task inspection in Client.async_setup_hook private method to avoid Timer context exception.
+* [Fix] Add a check for undefined `self.http` field in Client.initial_async_setup method.
+* [Fix] Invalid method called in disconnect() method with session ID.
+
+## v2.1.3 - Nov 1st, 2025
+* [Fix] (chzzkpy.unofficial SDK) Using asyncio.run() method instead loop.run_until_complete in non-async context environment. (#92)
+* [Fix] Upgrade dependencies to support Python 3.14
+
+## v2.1.2 - Oct 5th, 2025
+* [Fix] Add applying current running loop on `unofficial.Client` to avoid Timeout context manager task exception. (#89)
+* [Fix] Invalid parameter type in set_notice_message, blind_message function.
+
+## v2.1.1 - Aug 15th, 2025
+- [Fix] Add 'SUBSCRIPTION' value to literal value of EventSubscribeMessage object.
+- [Fix] Delete unused source code.
+
 ## v2.1.0 - Aug 1st, 2025
 * **(Breaking Change)** Modify offical pacakge to default package, and unofficial package from default package.
   ```py

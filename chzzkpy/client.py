@@ -47,7 +47,7 @@ if TYPE_CHECKING:
     from aiohttp.web import Response as webResponse
     from typing import Self, Literal, Optional, Callable, Coroutine
 
-    from .base_model import SearchResult
+    from .base_model import SearchResult, ChannelSearchResult
     from .channel import Channel, ChannelPermission, FollowerInfo, SubscriberInfo
     from .category import Category
     from .enums import FollowingPeriod
@@ -1029,26 +1029,33 @@ class UserClient:
         return result.content
 
     @refreshable
-    async def get_followers(self, size: int = 30) -> SearchResult[FollowerInfo]:
+    async def get_followers(
+        self, page: int = 0, size: int = 30
+    ) -> ChannelSearchResult[FollowerInfo]:
         """Get followers for this channel.
 
         Parameters
         ----------
         size : Optional[int]
             A number of followers to load at once, by default 30
+        page : Optional[int]
+            A page number to load at once, by default 0
         """
         result = await self.http.get_channel_followers(
-            token=self.access_token, size=size
+            token=self.access_token, size=size, page=page
         )
         data = result.content
         data._next_method = self.http.get_channel_followers
-        data._next_method_key_argument = {"size": size}
+        data._next_method_key_argument = {"size": size, "token": self.access_token}
         return result.content
 
     @refreshable
     async def get_subscribers(
-        self, size: int = 30, sort: Literal["RECENT", "LONGER"] = "RECENT"
-    ) -> SearchResult[SubscriberInfo]:
+        self,
+        page: int = 0,
+        size: int = 30,
+        sort: Literal["RECENT", "LONGER"] = "RECENT",
+    ) -> ChannelSearchResult[SubscriberInfo]:
         """Get subscribers for this channel.
 
         Parameters
@@ -1057,11 +1064,17 @@ class UserClient:
             A number of subscribers to load at once, by default 30
         sort : Optional[Literal['RECENT', 'LONGER']]
             A method of sorting subscribers.
+        page : Optional[int]
+            A page number to load at once, by default 0
         """
         result = await self.http.get_channel_subscribers(
-            token=self.access_token, size=size, sort=sort
+            token=self.access_token, size=size, sort=sort, page=page
         )
         data = result.content
         data._next_method = self.http.get_channel_subscribers
-        data._next_method_key_argument = {"size": size, "sort": sort}
+        data._next_method_key_argument = {
+            "size": size,
+            "sort": sort,
+            "token": self.access_token,
+        }
         return result.content

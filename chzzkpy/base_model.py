@@ -54,7 +54,7 @@ class Content(ChzzkModel, Generic[T]):
 class SearchResult(ChzzkModel, Generic[T]):
     data: list[T]
 
-    _page: Optional[dict[str]] = PrivateAttr(default=None)
+    _page: Optional[dict[str] | int] = PrivateAttr(default=None)
     _next_method: Optional[Callable[..., Coroutine[Any, Any, Content[T]]]] = (
         PrivateAttr(default=None)
     )
@@ -66,21 +66,30 @@ class SearchResult(ChzzkModel, Generic[T]):
         if "page" in kwargs.keys():
             self._page = kwargs.pop("page")
 
-    async def next(self) -> Optional[SearchResult]:
-        if self._page is None or self._next_method is None:
-            raise RuntimeError(f"This search result has only one result.")
-        next_id = self._page["next"]
+    async def _next(self, *args, **kwargs) -> Optional[SearchResult]:
+        if self._next_method is None:
+            return None
+
         next_method_arguments = self._next_method_arguments or tuple()
         next_method_key_argument = self._next_method_key_argument or dict()
+        next_method_arguments += args
+        next_method_key_argument.update(kwargs)
 
         result = await self._next_method(
-            *next_method_arguments, next=next_id, **next_method_key_argument
+            *next_method_arguments, **next_method_key_argument
         )
         data = result.content
         data._next_method = self._next_method
         data._next_method_arguments = self._next_method_arguments
         data._next_method_key_argument = self._next_method_key_argument
         return data
+
+    async def next(self) -> Optional[SearchResult]:
+        if self._page is None or self._next_method is None:
+            raise RuntimeError(f"This search result has only one result.")
+        next_id = self._page["next"]
+        result = await self._next(next=next_id)
+        return result
 
     def __getitem__(self, index):
         if isinstance(index, (slice, int)):
@@ -89,3 +98,26 @@ class SearchResult(ChzzkModel, Generic[T]):
 
     def __len__(self) -> int:
         return len(self.data)
+
+
+class ChannelSearchResult(SearchResult, Generic[T]):
+    total_count: int
+    total_pages: int
+
+    def __init__(self, *args, **kwargs):
+        print(kwargs)
+        super().__init__(*args, **kwargs)
+
+    async def next(self) -> Optional[ChannelSearchResult]:
+        if self._page + 1 >= self.total_pages:
+            raise TypeError("This is the last page of search result.")
+        page_id = self._page + 1
+        result = await self._next(page=page_id)
+        return result
+
+    async def previous(self) -> Optional[ChannelSearchResult]:
+        if self._page - 1 < 0:
+            raise TypeError("This is the first page of search result.")
+        page_id = self._page - 1
+        result = await self._next(page=page_id)
+        return result
