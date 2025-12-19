@@ -56,6 +56,11 @@ class FollowingPeriod(IntEnum):
     DAY = 1440
     WEEK = 10080
     MONTH = 43200
+    TWO_MONTH = 86400
+    THREE_MONTH = 129600
+    FOUR_MONTH = 172800
+    FIVE_MONTH = 172800
+    SIX_MONTH = 172800
 
 
 def get_enum(cls: type[E], val: Any) -> E:
