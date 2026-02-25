@@ -369,15 +369,22 @@ class ChzzkGateway:
                 await asyncio.wait_for(
                     self._heartbeat_receive_event.wait(), timeout=self.ping_timeout
                 )
-            except (asyncio.TimeoutError, asyncio.CancelledError):
+            except asyncio.TimeoutError:
                 raise ConnectionError("PONG response has not been received.")
+            except asyncio.CancelledError:
+                # Exit the loop if the task is cancelled (e.g., during disconnect)
+                return
             _log.debug("Received Pong packet from server.")
             self._heartbeat_receive_event.clear()
             await asyncio.sleep(self.ping_interval)
 
     async def read(self):
         while self.is_connected:
-            await self._read_loop()
+            try:
+                await self._read_loop()
+            except asyncio.CancelledError:
+                # Exit the loop if the task is cancelled (e.g., during disconnect)
+                return
 
     def read_in_background(self) -> asyncio.Task:
         task = self.loop.create_task(self.read())
