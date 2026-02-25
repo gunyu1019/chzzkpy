@@ -90,11 +90,14 @@ class ChzzkGateway:
 
         _log.debug(f"Success connected to {self.base_url.host} with socket.io gateway")
 
+        # Initialize event hooks with all enum values set to None, then update with provided hooks
         self._event_hook: dict[
             SocketPacketType | EnginePacketType, Optional[Callable[..., Any]]
-        ] = event_hook or {
-            key: None for key in list(SocketPacketType) + list(EnginePacketType)
-        }
+        ] = {key: None for key in list(SocketPacketType) + list(EnginePacketType)}
+
+        # Update with provided event hooks
+        if event_hook:
+            self._event_hook.update(event_hook)
 
         _log.debug("Start handshake task")
         self._ping_loop_task = loop.create_task(self._ping_loop())
@@ -228,6 +231,8 @@ class ChzzkGateway:
         )
         for packet in payload.packets:
             await new_cls.received_message(packet)
+        # Start background reading to receive messages from server
+        new_cls.read_in_background()
         return new_cls
 
     @classmethod
@@ -299,6 +304,8 @@ class ChzzkGateway:
             )
         )
         new_cls.websocket = websocket
+        # Start background reading to receive messages from server
+        new_cls.read_in_background()
         return new_cls
 
     async def _read_polling(self):
