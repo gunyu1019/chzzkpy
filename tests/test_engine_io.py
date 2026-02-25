@@ -21,7 +21,9 @@ from chzzkpy.payload import Payload
 class TestEngineIOPolling:
     """Test Engine.IO polling transport."""
 
-    async def test_polling_handshake(self, mock_server, mock_connection_state, test_session):
+    async def test_polling_handshake(
+        self, mock_server, mock_connection_state, test_session
+    ):
         """Test handshake process via long-polling."""
         gateway = await ChzzkGateway._connect_polling(
             url=mock_server.url,
@@ -44,7 +46,9 @@ class TestEngineIOPolling:
 
         await gateway.disconnect()
 
-    async def test_polling_send_message(self, mock_server, mock_connection_state, test_session):
+    async def test_polling_send_message(
+        self, mock_server, mock_connection_state, test_session
+    ):
         """Test sending messages via polling transport."""
         gateway = await ChzzkGateway._connect_polling(
             url=mock_server.url,
@@ -70,7 +74,9 @@ class TestEngineIOPolling:
 
         await gateway.disconnect()
 
-    async def test_polling_receive_data(self, mock_server, mock_connection_state, test_session):
+    async def test_polling_receive_data(
+        self, mock_server, mock_connection_state, test_session
+    ):
         """Test receiving raw data packets via polling."""
         received_packets = []
 
@@ -99,7 +105,9 @@ class TestEngineIOPolling:
 class TestEngineIOWebSocket:
     """Test Engine.IO WebSocket transport."""
 
-    async def test_websocket_direct_connection(self, mock_server, mock_connection_state, test_session):
+    async def test_websocket_direct_connection(
+        self, mock_server, mock_connection_state, test_session
+    ):
         """Test direct WebSocket connection without polling upgrade."""
         gateway = await ChzzkGateway._connect_websocket(
             url=mock_server.url,
@@ -117,7 +125,9 @@ class TestEngineIOWebSocket:
 
         await gateway.disconnect()
 
-    async def test_websocket_upgrade_from_polling(self, mock_server, mock_connection_state, test_session):
+    async def test_websocket_upgrade_from_polling(
+        self, mock_server, mock_connection_state, test_session
+    ):
         """Test WebSocket upgrade from polling transport.
 
         Note: _connect_polling automatically upgrades to websocket if the server supports it.
@@ -139,7 +149,9 @@ class TestEngineIOWebSocket:
 
         await gateway.disconnect()
 
-    async def test_polling_only_without_upgrade(self, mock_server, mock_connection_state, test_session):
+    async def test_polling_only_without_upgrade(
+        self, mock_server, mock_connection_state, test_session
+    ):
         """Test polling transport when server doesn't support websocket upgrade."""
         # Temporarily disable websocket upgrade on mock server
         original_upgrades = mock_server.upgrades
@@ -164,7 +176,9 @@ class TestEngineIOWebSocket:
             # Restore original upgrades
             mock_server.upgrades = original_upgrades
 
-    async def test_websocket_upgrade_probe(self, mock_server, mock_connection_state, test_session):
+    async def test_websocket_upgrade_probe(
+        self, mock_server, mock_connection_state, test_session
+    ):
         """Test ping/pong probe during WebSocket upgrade process."""
         # Simulate upgrade by providing open_packet
         from chzzkpy.gateway import OpenPacketInfo
@@ -193,7 +207,9 @@ class TestEngineIOWebSocket:
 
         await gateway.disconnect()
 
-    async def test_websocket_upgrade_failure(self, mock_server, mock_connection_state, test_session):
+    async def test_websocket_upgrade_failure(
+        self, mock_server, mock_connection_state, test_session
+    ):
         """Test handling of failed WebSocket upgrade."""
         mock_server._accept_upgrade = False
 
@@ -220,14 +236,18 @@ class TestEngineIOWebSocket:
             )
             # If we get here, gateway was created
             # Try to use it - should fail because server rejected upgrade
-            assert not gateway.websocket.closed or gateway.current_transport == "polling"
+            assert (
+                not gateway.websocket.closed or gateway.current_transport == "polling"
+            )
         except ChatConnectFailed:
             # This is acceptable - upgrade failed
             pass
         finally:
             mock_server._accept_upgrade = True
 
-    async def test_websocket_send_receive(self, mock_server, mock_connection_state, test_session):
+    async def test_websocket_send_receive(
+        self, mock_server, mock_connection_state, test_session
+    ):
         """Test bidirectional communication over WebSocket."""
         gateway = await ChzzkGateway._connect_websocket(
             url=mock_server.url,
@@ -258,7 +278,9 @@ class TestEngineIOWebSocket:
 class TestEngineIOHeartbeat:
     """Test Engine.IO ping/pong heartbeat mechanism."""
 
-    async def test_ping_pong_exchange(self, mock_server, mock_connection_state, test_session):
+    async def test_ping_pong_exchange(
+        self, mock_server, mock_connection_state, test_session
+    ):
         """Test ping/pong packet exchange for heartbeat."""
         gateway = await ChzzkGateway._connect_websocket(
             url=mock_server.url,
@@ -296,7 +318,9 @@ class TestEngineIOHeartbeat:
         except asyncio.CancelledError:
             pass
 
-    async def test_ping_with_data(self, mock_server, mock_connection_state, test_session):
+    async def test_ping_with_data(
+        self, mock_server, mock_connection_state, test_session
+    ):
         """Test ping packet with probe data."""
         gateway = await ChzzkGateway._connect_websocket(
             url=mock_server.url,
@@ -315,7 +339,9 @@ class TestEngineIOHeartbeat:
 
         await gateway.disconnect()
 
-    async def test_heartbeat_timeout(self, mock_server, mock_connection_state, test_session):
+    async def test_heartbeat_timeout(
+        self, mock_server, mock_connection_state, test_session
+    ):
         """Test connection handling when heartbeat times out."""
         mock_server._auto_pong = False
 
@@ -354,13 +380,13 @@ class TestEngineIOPackets:
         """Test packet encoding and decoding integrity."""
         # Test only engine-level packets (non-socket packets)
         engine_only_packets = {
-            'open': sample_packets['open'],
-            'ping': sample_packets['ping'],
-            'pong': sample_packets['pong'],
-            'ping_probe': sample_packets['ping_probe'],
-            'pong_probe': sample_packets['pong_probe'],
-            'upgrade': sample_packets['upgrade'],
-            'close': sample_packets['close'],
+            "open": sample_packets["open"],
+            "ping": sample_packets["ping"],
+            "pong": sample_packets["pong"],
+            "ping_probe": sample_packets["ping_probe"],
+            "pong_probe": sample_packets["pong_probe"],
+            "upgrade": sample_packets["upgrade"],
+            "close": sample_packets["close"],
         }
 
         for name, packet in engine_only_packets.items():
@@ -379,7 +405,11 @@ class TestEngineIOPackets:
         test_cases = [
             ("40", EnginePacketType.MESSAGE, SocketPacketType.CONNECT),  # CONNECT
             ("41", EnginePacketType.MESSAGE, SocketPacketType.DISCONNECT),  # DISCONNECT
-            ('42["event",{"key":"value"}]', EnginePacketType.MESSAGE, SocketPacketType.EVENT),  # EVENT
+            (
+                '42["event",{"key":"value"}]',
+                EnginePacketType.MESSAGE,
+                SocketPacketType.EVENT,
+            ),  # EVENT
             ("43", EnginePacketType.MESSAGE, SocketPacketType.ACK),  # ACK
         ]
 
@@ -391,8 +421,8 @@ class TestEngineIOPackets:
     def test_payload_encode_decode(self, sample_packets):
         """Test payload encoding/decoding with multiple packets."""
         packets = [
-            sample_packets['open'],
-            sample_packets['socket_connect'],
+            sample_packets["open"],
+            sample_packets["socket_connect"],
         ]
 
         payload = Payload(packets=packets)
@@ -430,15 +460,15 @@ class TestEngineIOPackets:
     def test_binary_payload_encoding(self, sample_packets):
         """Test binary payload encoding integrity."""
         packets = [
-            sample_packets['open'],
-            sample_packets['socket_event'],
+            sample_packets["open"],
+            sample_packets["socket_event"],
         ]
 
         payload = Payload(packets=packets)
         encoded = payload.encode()
 
         # Should be binary format with delimiters
-        assert b'\x00' in encoded or b'\xff' in encoded
+        assert b"\x00" in encoded or b"\xff" in encoded
 
         # Should be decodable
         decoded = Payload.decode(encoded)
@@ -449,7 +479,9 @@ class TestEngineIOPackets:
 class TestEngineIOErrorHandling:
     """Test Engine.IO error handling and edge cases."""
 
-    async def test_connection_close_handling(self, mock_server, mock_connection_state, test_session):
+    async def test_connection_close_handling(
+        self, mock_server, mock_connection_state, test_session
+    ):
         """Test proper handling of connection close packets."""
         gateway = await ChzzkGateway._connect_websocket(
             url=mock_server.url,
@@ -480,7 +512,9 @@ class TestEngineIOErrorHandling:
                 ssl=False,
             )
 
-    async def test_websocket_connection_error(self, mock_connection_state, test_session):
+    async def test_websocket_connection_error(
+        self, mock_connection_state, test_session
+    ):
         """Test handling of WebSocket connection failures."""
         # Try to connect to non-existent WebSocket endpoint
         with pytest.raises(Exception):
@@ -497,7 +531,9 @@ class TestEngineIOErrorHandling:
 class TestEngineIOTransportUpgrade:
     """Test Engine.IO transport upgrade mechanism."""
 
-    async def test_polling_to_websocket_upgrade(self, mock_server, mock_connection_state, test_session):
+    async def test_polling_to_websocket_upgrade(
+        self, mock_server, mock_connection_state, test_session
+    ):
         """Test complete upgrade process from polling to WebSocket."""
         # Use the high-level connect method which handles upgrade
         gateway = await ChzzkGateway.connect(
@@ -515,7 +551,9 @@ class TestEngineIOTransportUpgrade:
 
         await gateway.disconnect()
 
-    async def test_upgrade_packet_exchange(self, mock_server, mock_connection_state, test_session):
+    async def test_upgrade_packet_exchange(
+        self, mock_server, mock_connection_state, test_session
+    ):
         """Test UPGRADE packet is sent correctly during upgrade."""
         from chzzkpy.gateway import OpenPacketInfo
 

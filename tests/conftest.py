@@ -33,7 +33,7 @@ class MockEngineIOServer:
     def __init__(self):
         self.sid = "test-session-id-12345"
         self.ping_interval = 25000  # 25 seconds
-        self.ping_timeout = 60000   # 60 seconds
+        self.ping_timeout = 60000  # 60 seconds
         self.upgrades = ["websocket"]
         self.connections: Dict[str, web.WebSocketResponse] = {}
         self.received_messages: List[str] = []
@@ -57,18 +57,20 @@ class MockEngineIOServer:
 
     async def handle_polling(self, request: web.Request) -> web.Response:
         """Handle engine.io polling transport."""
-        sid = request.query.get('sid')
+        sid = request.query.get("sid")
 
-        if request.method == 'GET':
+        if request.method == "GET":
             if sid is None:
                 # Initial handshake
-                payload = Payload(packets=[
-                    self._create_open_packet(),
-                    self._create_socket_connect_packet(),
-                ])
+                payload = Payload(
+                    packets=[
+                        self._create_open_packet(),
+                        self._create_socket_connect_packet(),
+                    ]
+                )
                 return web.Response(
                     body=payload.encode(),
-                    content_type='application/octet-stream',
+                    content_type="application/octet-stream",
                 )
             else:
                 # Polling for messages
@@ -76,16 +78,16 @@ class MockEngineIOServer:
                 payload = Payload(packets=[Packet(EnginePacketType.NOOP)])
                 return web.Response(
                     body=payload.encode(),
-                    content_type='application/octet-stream',
+                    content_type="application/octet-stream",
                 )
 
-        elif request.method == 'POST':
+        elif request.method == "POST":
             # Client sending data via polling
             body = await request.read()
             payload = Payload.decode(body)
             for packet in payload.packets:
                 self.received_messages.append(packet.encode())
-            return web.Response(text='ok')
+            return web.Response(text="ok")
 
         return web.Response(status=400)
 
@@ -94,7 +96,7 @@ class MockEngineIOServer:
         ws = web.WebSocketResponse()
         await ws.prepare(request)
 
-        sid = request.query.get('sid')
+        sid = request.query.get("sid")
 
         if sid is None:
             # Direct websocket connection (no upgrade)
@@ -121,7 +123,10 @@ class MockEngineIOServer:
 
                     packet = Packet.decode(msg.data)
 
-                    if packet.engine_packet_type == EnginePacketType.PING and packet.data == "probe":
+                    if (
+                        packet.engine_packet_type == EnginePacketType.PING
+                        and packet.data == "probe"
+                    ):
                         # Send pong probe
                         pong_packet = Packet(EnginePacketType.PONG, data="probe")
                         await ws.send_str(pong_packet.encode())
@@ -154,7 +159,11 @@ class MockEngineIOServer:
                 elif packet.engine_packet_type == EnginePacketType.MESSAGE:
                     if packet.socket_packet_type == SocketPacketType.EVENT:
                         # Handle socket.io event
-                        event_name = packet.data[0] if isinstance(packet.data, list) else "unknown"
+                        event_name = (
+                            packet.data[0]
+                            if isinstance(packet.data, list)
+                            else "unknown"
+                        )
                         self.emit_events.append((event_name, packet.data))
 
                         # Send ACK if packet has ID
@@ -209,21 +218,21 @@ async def mock_server():
 
     # Combined handler that routes to polling or websocket based on transport parameter
     async def combined_handler(request: web.Request):
-        transport = request.query.get('transport', 'polling')
-        if transport == 'websocket':
+        transport = request.query.get("transport", "polling")
+        if transport == "websocket":
             return await server_instance.handle_websocket(request)
         else:
             return await server_instance.handle_polling(request)
 
     # Setup routes
-    app.router.add_get('/socket.io/', combined_handler)
-    app.router.add_post('/socket.io/', server_instance.handle_polling)
+    app.router.add_get("/socket.io/", combined_handler)
+    app.router.add_post("/socket.io/", server_instance.handle_polling)
 
     # Start server
     runner = web.AppRunner(app)
     await runner.setup()
 
-    site = web.TCPSite(runner, 'localhost', 0)  # Random available port
+    site = web.TCPSite(runner, "localhost", 0)  # Random available port
     await site.start()
 
     port = site._server.sockets[0].getsockname()[1]
@@ -272,41 +281,42 @@ async def mock_connection_state():
 def sample_packets():
     """Provide sample packets for testing."""
     return {
-        'open': Packet(
+        "open": Packet(
             EnginePacketType.OPEN,
             data={
-                'sid': 'test-sid',
-                'upgrades': ['websocket'],
-                'pingInterval': 25000,
-                'pingTimeout': 60000,
-            }
+                "sid": "test-sid",
+                "upgrades": ["websocket"],
+                "pingInterval": 25000,
+                "pingTimeout": 60000,
+            },
         ),
-        'ping': Packet(EnginePacketType.PING),
-        'pong': Packet(EnginePacketType.PONG),
-        'ping_probe': Packet(EnginePacketType.PING, data='probe'),
-        'pong_probe': Packet(EnginePacketType.PONG, data='probe'),
-        'upgrade': Packet(EnginePacketType.UPGRADE),
-        'close': Packet(EnginePacketType.CLOSE),
-        'socket_connect': Packet(EnginePacketType.MESSAGE, SocketPacketType.CONNECT),
-        'socket_disconnect': Packet(EnginePacketType.MESSAGE, SocketPacketType.DISCONNECT),
-        'socket_event': Packet(
+        "ping": Packet(EnginePacketType.PING),
+        "pong": Packet(EnginePacketType.PONG),
+        "ping_probe": Packet(EnginePacketType.PING, data="probe"),
+        "pong_probe": Packet(EnginePacketType.PONG, data="probe"),
+        "upgrade": Packet(EnginePacketType.UPGRADE),
+        "close": Packet(EnginePacketType.CLOSE),
+        "socket_connect": Packet(EnginePacketType.MESSAGE, SocketPacketType.CONNECT),
+        "socket_disconnect": Packet(
+            EnginePacketType.MESSAGE, SocketPacketType.DISCONNECT
+        ),
+        "socket_event": Packet(
             EnginePacketType.MESSAGE,
             SocketPacketType.EVENT,
-            data=['test_event', {'key': 'value'}],
+            data=["test_event", {"key": "value"}],
         ),
-        'socket_event_with_id': Packet(
+        "socket_event_with_id": Packet(
             EnginePacketType.MESSAGE,
             SocketPacketType.EVENT,
-            data=['test_event', {'key': 'value'}],
+            data=["test_event", {"key": "value"}],
             packet_id=1,
         ),
-        'socket_ack': Packet(
+        "socket_ack": Packet(
             EnginePacketType.MESSAGE,
             SocketPacketType.ACK,
             packet_id=1,
         ),
     }
-
 
 
 @pytest_asyncio.fixture
@@ -316,5 +326,3 @@ async def test_session():
     session = aiohttp.ClientSession(connector=connector)
     yield session
     await session.close()
-
-

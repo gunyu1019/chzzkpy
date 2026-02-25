@@ -20,7 +20,9 @@ from chzzkpy.state import ConnectionState
 class TestSocketIOConnection:
     """Test Socket.IO connection and handshake."""
 
-    async def test_socket_connect_event(self, mock_server, mock_connection_state, test_session):
+    async def test_socket_connect_event(
+        self, mock_server, mock_connection_state, test_session
+    ):
         """Test Socket.IO CONNECT packet is received on connection."""
         connect_received = asyncio.Event()
 
@@ -53,7 +55,9 @@ class TestSocketIOConnection:
         assert gateway.is_connected
         await gateway.disconnect()
 
-    async def test_socket_disconnect_event(self, mock_server, mock_connection_state, test_session):
+    async def test_socket_disconnect_event(
+        self, mock_server, mock_connection_state, test_session
+    ):
         """Test Socket.IO DISCONNECT packet handling."""
         disconnect_received = asyncio.Event()
 
@@ -115,7 +119,9 @@ class TestSocketIOEvents:
 
         await gateway.disconnect()
 
-    async def test_receive_event(self, mock_server, mock_connection_state, test_session):
+    async def test_receive_event(
+        self, mock_server, mock_connection_state, test_session
+    ):
         """Test receiving custom events from server."""
         received_events = []
 
@@ -149,7 +155,9 @@ class TestSocketIOEvents:
 
         await gateway.disconnect()
 
-    async def test_event_with_multiple_arguments(self, mock_server, mock_connection_state, test_session):
+    async def test_event_with_multiple_arguments(
+        self, mock_server, mock_connection_state, test_session
+    ):
         """Test events with multiple data arguments."""
         received_events = []
 
@@ -195,7 +203,9 @@ class TestSocketIOEvents:
 class TestSocketIOAcknowledgments:
     """Test Socket.IO acknowledgment (ACK) mechanism."""
 
-    async def test_send_event_with_ack_request(self, mock_server, mock_connection_state, test_session):
+    async def test_send_event_with_ack_request(
+        self, mock_server, mock_connection_state, test_session
+    ):
         """Test sending event that requests acknowledgment."""
         ack_received = asyncio.Event()
 
@@ -234,7 +244,9 @@ class TestSocketIOAcknowledgments:
 
         await gateway.disconnect()
 
-    async def test_auto_ack_on_receive(self, mock_server, mock_connection_state, test_session):
+    async def test_auto_ack_on_receive(
+        self, mock_server, mock_connection_state, test_session
+    ):
         """Test automatic ACK sending when receiving event with ID."""
         gateway = await ChzzkGateway._connect_websocket(
             url=mock_server.url,
@@ -312,8 +324,8 @@ class TestSocketIOStateIntegration:
 
         def mock_dispatch(event: str, *args, **kwargs):
             if event == "socket_event":
-                received_data['event'] = args[0] if args else None
-                received_data['data'] = args[1:] if len(args) > 1 else None
+                received_data["event"] = args[0] if args else None
+                received_data["data"] = args[1:] if len(args) > 1 else None
                 if args and args[0] == "test_custom_event":
                     test_event_received.set()
 
@@ -362,7 +374,9 @@ class TestSocketIOStateIntegration:
 class TestSocketIOPayloadDeserialization:
     """Test Socket.IO payload deserialization."""
 
-    async def test_json_payload_parsing(self, mock_server, mock_connection_state, test_session):
+    async def test_json_payload_parsing(
+        self, mock_server, mock_connection_state, test_session
+    ):
         """Test JSON payload is correctly deserialized."""
         received_payloads = []
 
@@ -404,7 +418,9 @@ class TestSocketIOPayloadDeserialization:
 
         await gateway.disconnect()
 
-    async def test_event_data_type_integrity(self, mock_server, mock_connection_state, test_session):
+    async def test_event_data_type_integrity(
+        self, mock_server, mock_connection_state, test_session
+    ):
         """Test that data types are preserved during serialization/deserialization."""
         test_cases = [
             ("string_event", "simple string"),
@@ -447,7 +463,9 @@ class TestSocketIOPayloadDeserialization:
 class TestSocketIOBroadcast:
     """Test Socket.IO broadcast and room functionality."""
 
-    async def test_broadcast_to_multiple_clients(self, mock_server, mock_connection_state, test_session):
+    async def test_broadcast_to_multiple_clients(
+        self, mock_server, mock_connection_state, test_session
+    ):
         """Test server can broadcast to multiple connected clients."""
         clients = []
         received_counts = []
@@ -487,14 +505,18 @@ class TestSocketIOBroadcast:
             await gateway.disconnect()
 
         # At least one client should have received the event
-        assert any(count > 0 for count in received_counts), "No client received broadcast"
+        assert any(
+            count > 0 for count in received_counts
+        ), "No client received broadcast"
 
 
 @pytest.mark.asyncio
 class TestSocketIOReconnection:
     """Test Socket.IO reconnection behavior."""
 
-    async def test_connection_recovery_after_close(self, mock_server, mock_connection_state, test_session):
+    async def test_connection_recovery_after_close(
+        self, mock_server, mock_connection_state, test_session
+    ):
         """Test client can reconnect after connection is closed."""
         # First connection
         gateway1 = await ChzzkGateway._connect_websocket(
@@ -532,7 +554,9 @@ class TestSocketIOReconnection:
 class TestSocketIOErrorHandling:
     """Test Socket.IO error handling."""
 
-    async def test_connect_error_packet(self, mock_server, mock_connection_state, test_session):
+    async def test_connect_error_packet(
+        self, mock_server, mock_connection_state, test_session
+    ):
         """Test handling of CONNECT_ERROR packet."""
         error_received = asyncio.Event()
 
@@ -564,7 +588,9 @@ class TestSocketIOErrorHandling:
 
         await gateway.disconnect()
 
-    async def test_invalid_event_handling(self, mock_server, mock_connection_state, test_session):
+    async def test_invalid_event_handling(
+        self, mock_server, mock_connection_state, test_session
+    ):
         """Test handling of malformed event packets."""
         received_events = []
         errors = []
@@ -630,7 +656,7 @@ class TestSocketIONamespaces:
     def test_namespace_with_query_params(self):
         """Test namespace with query parameters."""
         # Create packet
-        test_packet_str = "42/namespace?token=abc123,0[\"event\",{}]"
+        test_packet_str = '42/namespace?token=abc123,0["event",{}]'
 
         # Decode
         decoded = Packet.decode(test_packet_str)
