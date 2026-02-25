@@ -606,7 +606,6 @@ class TestSocketIOErrorHandling:
         await gateway.disconnect()
 
 
-@pytest.mark.asyncio
 class TestSocketIONamespaces:
     """Test Socket.IO namespace support."""
 
