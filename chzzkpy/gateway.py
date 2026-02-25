@@ -272,20 +272,7 @@ class ChzzkGateway:
                 raise ChatConnectFailed.websocket_upgrade_failed()
 
             upgrade_packet = Packet(EnginePacketType.UPGRADE)
-            try:
-                await websocket.send_str(upgrade_packet.encode())
-            except (aiohttp.ClientConnectionError, ConnectionError):
-                raise ChatConnectFailed.websocket_upgrade_failed()
-
-            # Wait for upgrade completion or detect connection closure
-            try:
-                upgrade_response = await asyncio.wait_for(websocket.receive(), timeout=2.0)
-                # If we receive a CLOSED message, upgrade failed
-                if upgrade_response.type == aiohttp.WSMsgType.CLOSED:
-                    raise ChatConnectFailed.websocket_upgrade_failed()
-            except asyncio.TimeoutError:
-                # Timeout waiting for response
-                pass
+            await websocket.send_str(upgrade_packet.encode())
         else:
             raw_open_packet = (await websocket.receive()).data
             raw_open_packet = Packet.decode(raw_open_packet)
