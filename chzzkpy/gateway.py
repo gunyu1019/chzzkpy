@@ -307,8 +307,8 @@ class ChzzkGateway:
             "GET", base_url, timeout=max(self.ping_interval, self.ping_timeout) + 5
         )
 
-        if response.status >= 300 and response.status < 200:
-            raise ReceiveErrorPacket(self.current_transport, self.status)
+        if response.status >= 300 or response.status < 200:
+            raise ReceiveErrorPacket(self.current_transport, response.status)
 
         raw_payload = await response.read()
         payload = Payload.decode(raw_payload)
@@ -325,7 +325,7 @@ class ChzzkGateway:
             packet = Packet.decode(data)
             await self.received_message(packet)
         elif message.type == aiohttp.WSMsgType.ERROR:
-            raise ReceiveErrorPacket(self.current_transport, self.data)
+            raise ReceiveErrorPacket(self.current_transport, message.data)
 
     async def _write_polling(self, data: Payload):
         write_response = await self.session.request(
@@ -336,7 +336,9 @@ class ChzzkGateway:
         return
 
     async def _write_websocket(self, data: Payload):
-        await self.websocket.send_bytes(data.encode())
+        # WebSocket transport sends each packet individually as text
+        for packet in data.packets:
+            await self.websocket.send_str(packet.encode())
         return
 
     async def _ping_loop(self):
@@ -350,6 +352,7 @@ class ChzzkGateway:
             except (asyncio.TimeoutError, asyncio.CancelledError):
                 raise ConnectionError("PONG response has not been received.")
             _log.debug("Received Pong packet from server.")
+            self._heartbeat_receive_event.clear()
             await asyncio.sleep(self.ping_interval)
 
     async def read(self):
@@ -407,7 +410,9 @@ class ChzzkGateway:
             and not self._read_background_loop.cancelled()
         ):
             self._read_background_loop.cancel()
-        await self.websocket.close()
+
+        if self.websocket is not None:
+            await self.websocket.close()
 
     async def send_ping(self, message: Optional[str] = None):
         await self.send(Packet(EnginePacketType.PING, data=message))
