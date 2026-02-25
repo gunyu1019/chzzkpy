@@ -128,7 +128,7 @@ class Packet:
         json_serialize = json_serialize or json.dumps
         encoded_packet = str(self.engine_packet_type.value)
         if self.is_socket_packet:
-            encoded_packet += str(self.socket_packet_type)
+            encoded_packet += str(self.socket_packet_type.value)
             encoded_data = []
 
             data = (
