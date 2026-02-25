@@ -231,8 +231,6 @@ class ChzzkGateway:
         )
         for packet in payload.packets:
             await new_cls.received_message(packet)
-        # Start background reading to receive messages from server
-        new_cls.read_in_background()
         return new_cls
 
     @classmethod
@@ -267,8 +265,17 @@ class ChzzkGateway:
             ping_packet = Packet(EnginePacketType.PING, data="probe")
 
             await websocket.send_str(ping_packet.encode())
-            raw_pong_packet = (await websocket.receive()).data
-            pong_packet = Packet.decode(raw_pong_packet)
+
+            # Add timeout to prevent infinite waiting
+            try:
+                raw_pong_packet = await asyncio.wait_for(
+                    websocket.receive(),
+                    timeout=5.0
+                )
+                pong_packet = Packet.decode(raw_pong_packet.data)
+            except asyncio.TimeoutError:
+                await websocket.close()
+                raise ChatConnectFailed.websocket_upgrade_failed()
 
             if (
                 pong_packet.engine_packet_type != EnginePacketType.PONG
@@ -279,9 +286,17 @@ class ChzzkGateway:
             upgrade_packet = Packet(EnginePacketType.UPGRADE)
             await websocket.send_str(upgrade_packet.encode())
         else:
-            raw_open_packet = (await websocket.receive()).data
-            raw_open_packet = Packet.decode(raw_open_packet)
-            open_packet = OpenPacketInfo.model_validate(raw_open_packet.data)
+            # Direct websocket connection - receive OPEN packet
+            try:
+                raw_open_packet = await asyncio.wait_for(
+                    websocket.receive(),
+                    timeout=5.0
+                )
+                raw_open_packet = Packet.decode(raw_open_packet.data)
+                open_packet = OpenPacketInfo.model_validate(raw_open_packet.data)
+            except asyncio.TimeoutError:
+                await websocket.close()
+                raise ChatConnectFailed.websocket_connect_failed()
 
             query = base_url.query.copy()
             query["sid"] = open_packet.sid
@@ -304,8 +319,6 @@ class ChzzkGateway:
             )
         )
         new_cls.websocket = websocket
-        # Start background reading to receive messages from server
-        new_cls.read_in_background()
         return new_cls
 
     async def _read_polling(self):
