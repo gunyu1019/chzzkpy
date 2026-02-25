@@ -35,7 +35,11 @@ T = TypeVar("T")
 
 class ChzzkModel(BaseModel):
     model_config = ConfigDict(
-        alias_generator=to_camel, frozen=True, extra="allow"  # prevent exception.
+        alias_generator=to_camel,
+        frozen=True,
+        extra="allow",
+        validate_by_name=True,
+        validate_by_alias=True  # prevent exception.
     )
 
     @staticmethod
