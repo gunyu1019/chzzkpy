@@ -129,23 +129,19 @@ class Packet:
         encoded_packet = str(self.engine_packet_type.value)
         if self.is_socket_packet:
             encoded_packet += str(self.socket_packet_type.value)
-            encoded_data = []
 
-            data = (
-                json_serialize(self.data, separators=(",", ":"))
-                if self.data is not None
-                else None
-            )
-
+            # Add namespace with trailing comma if present
             if self.namespace is not None:
-                encoded_data.append(self.namespace)
+                encoded_packet += self.namespace + ","
 
+            # Add packet ID if present
             if self.id is not None:
-                encoded_data.append(str(self.id) + data if data is not None else "")
-            elif data is not None:
-                encoded_data.append(data)
+                encoded_packet += str(self.id)
 
-            encoded_packet += ",".join(encoded_data)
+            # Add data if present
+            if self.data is not None:
+                encoded_packet += json_serialize(self.data, separators=(",", ":"))
+
             return encoded_packet
         if isinstance(self.data, str):
             encoded_packet += self.data
