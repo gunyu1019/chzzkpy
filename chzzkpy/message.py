@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import datetime
 
-from pydantic import Field, PrivateAttr
+from pydantic import Field, PrivateAttr, computed_field
 from typing import Any, Literal, Optional, TYPE_CHECKING
 
 from .base_model import ChzzkModel
@@ -33,6 +33,12 @@ from .base_model import ChzzkModel
 if TYPE_CHECKING:
     from .authorization import AccessToken
     from .state import ConnectionState
+
+
+class Emoji(ChzzkModel):
+    id: str
+    url: str = Field(alias="value")
+
 
 
 class Profile(ChzzkModel):
@@ -111,13 +117,25 @@ class Message(Messageable):
     """A message instance received from the live.
     Messages can be received via the `on_chat` event.
     """
+    _raw_emojis: Optional[dict[str, Any]] = PrivateAttr(default=None)
 
     user_id: str = Field(alias="senderChannelId")
 
     profile: Profile
     content: str
     channel: str = Field(alias="channelId")
+    chat_channel: str = Field(alias="chatChannelId")
     created_time: datetime.datetime = Field(alias="messageTime")
+
+    def __init__(self, *args, **kwargs):
+        if "emojis" in kwargs.keys() and "access_token" in kwargs.keys():
+            self._raw_emojis = kwargs.pop("emojis")
+        super().__init__(*args, **kwargs)
+
+    @computed_field
+    @property
+    def emojis(self) -> list[Emoji]:
+        return [Emoji.model_validate(k, v) for k, v in self._raw_emojis.items()]
 
 
 class SentMessage(Messageable):
