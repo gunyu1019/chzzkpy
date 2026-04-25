@@ -420,7 +420,7 @@ class ChzzkOpenAPISession(Session):
 
     @delete(" /open/v1/chats/blind-message", directly_response=True)
     @authorization_configuration(is_client=False, is_user=True)
-    async def hide_chat_message(
+    async def blind_message(
         self,
         token: Annotated[AccessToken, Header],
         chat_channel_id: Annotated[str, BodyJson.to_camel()],

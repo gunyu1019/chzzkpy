@@ -137,6 +137,23 @@ class Message(Messageable):
     def emojis(self) -> list[Emoji]:
         return [Emoji.model_validate(k, v) for k, v in self._raw_emojis.items()]
 
+    def __str__(self) -> str:
+        return self.content
+
+    async def blind(self) -> None:
+        """TODO()"""
+        if self._state is None or self._access_token is None:
+            raise RuntimeError(
+                f"This {self.__class__.__name__} is intended to store data only."
+                f"Or don't have the authentication token to send the message."
+            )
+        await self._state.http.blind_message(
+            token=self._access_token,
+            chat_channel_id=self.chat_channel,
+            message_id=self.created_time.timestamp(),
+            sender_channel_id=self.channel,
+        )
+
 
 class SentMessage(Messageable):
     """Represents a message sent by client.send() method"""
