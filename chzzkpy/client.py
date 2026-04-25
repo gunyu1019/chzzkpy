@@ -988,7 +988,7 @@ class UserClient:
         user_id : str
             A channel id of user to add restrict activity.
         """
-        await self.http.add_restrcit_user(
+        await self.http.add_restrict_user(
             token=self.access_token, target_channel_id=user_id
         )
         return
@@ -1002,7 +1002,7 @@ class UserClient:
         user_id : str
             A channel id of user to remove restrict activity.
         """
-        await self.http.remove_restrcit_user(
+        await self.http.remove_restrict_user(
             token=self.access_token, target_channel_id=user_id
         )
         return
@@ -1016,9 +1016,9 @@ class UserClient:
         size : Optional[int], optional
             A number of lives to load at once, by default 20
         """
-        result = await self.http.get_restrcit_users(token=self.access_token, size=size)
+        result = await self.http.get_restrict_users(token=self.access_token, size=size)
         data = result.content
-        data._next_method = self.http.get_restrcit_users
+        data._next_method = self.http.get_restrict_users
         data._next_method_key_argument = {"size": size}
         return data
 
