@@ -77,11 +77,14 @@ class Messageable(ChzzkModel):
                 f"This {self.__class__.__name__} is intended to store data only."
                 f"Or don't have the authentication token to send the message."
             )
-        message = await self._state.http.create_message(
+        response = await self._state.http.create_message(
             message=content, token=self._access_token
         )
-        message._state = self._state
-        message._access_token = self._access_token
+
+        message_id = response.content["messageId"]
+        message = SentMessage(id=message_id, content=content)
+        message._access_token = self.access_token
+        message._state = self._connection
         return message
 
 
