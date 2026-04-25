@@ -38,7 +38,7 @@ from .error import ChatConnectFailed, ForbiddenException
 from .gateway import ChzzkGateway
 from .http import ChzzkOpenAPISession
 from .live import BrodecastSetting, Live
-from .message import SentMessage
+from .message import SentMessage, Message
 from .oauth2 import ChzzkOAuth2Client
 from .state import ConnectionState
 
@@ -1078,3 +1078,18 @@ class UserClient:
             "token": self.access_token,
         }
         return result.content
+
+    @refreshable
+    async def add_temporary_restrict(self, user_id: str, chat_channel_id: str) -> None:
+        """Add a temporary ban to a user. TODO()"""
+        pass
+
+    @refreshable
+    async def remove_temporary_restrict(self, user_id: str, chat_channel_id: str) -> None:
+        """Remove a temporary ban from a user. TODO()"""
+        pass
+
+    @refreshable
+    async def blind_message(self, chat_channel_id: str, user_id: str, message_time: datetime.datetime) -> None:
+        """Blind the message from the channel. TODO()"""
+        pass

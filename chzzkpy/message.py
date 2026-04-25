@@ -144,7 +144,7 @@ class Message(Messageable):
         return self.content
 
     async def blind(self) -> None:
-        """TODO()"""
+        """Blind the message from the channel."""
         if self._state is None or self._access_token is None:
             raise RuntimeError(
                 f"This {self.__class__.__name__} is intended to store data only."
