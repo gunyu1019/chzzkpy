@@ -418,13 +418,13 @@ class ChzzkOpenAPISession(Session):
     ) -> None:
         pass
 
-    @delete(" /open/v1/chats/blind-message", directly_response=True)
+    @post(" /open/v1/chats/blind-message", directly_response=True)
     @authorization_configuration(is_client=False, is_user=True)
     async def blind_message(
         self,
         token: Annotated[AccessToken, Header],
         chat_channel_id: Annotated[str, BodyJson.to_camel()],
-        message_time: Annotated[int, BodyJson.to_camel()],
+        message_time: Annotated[float, BodyJson.to_camel()],
         sender_channel_id: Annotated[str, BodyJson.to_camel()],
     ) -> None:
         pass
