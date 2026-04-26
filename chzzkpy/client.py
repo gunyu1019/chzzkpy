@@ -1081,15 +1081,55 @@ class UserClient:
 
     @refreshable
     async def add_temporary_restrict(self, user_id: str, chat_channel_id: str) -> None:
-        """Add a temporary ban to a user. TODO()"""
-        pass
+        """Add a temporary ban to a user.
+
+        Parameters
+        ----------
+        user_id : str
+            A channel id of user to add temporary ban.
+        chat_channel_id : str
+            A id of current broadcast id to add temporary ban.
+            Once the broadcast ends, a chat channel id will reset, allowing the user to chat again.
+        """
+        await self.http.add_temporary_restrict_user(
+            token=self.access_token, target_channel_id=user_id, chat_channel_id=chat_channel_id
+        )
+        return None
 
     @refreshable
     async def remove_temporary_restrict(self, user_id: str, chat_channel_id: str) -> None:
-        """Remove a temporary ban from a user. TODO()"""
-        pass
+        """Remove a temporary ban from a user.
+
+        Parameters
+        ----------
+        user_id : str
+            A channel id of user to remove temporary ban.
+        chat_channel_id : str
+            A id of current broadcast id to remove temporary ban.
+            Once the broadcast ends, a chat channel id will reset, allowing the user to chat again.
+        """
+        await self.http.remove_temporary_restrict_user(
+            token=self.access_token, target_channel_id=user_id, chat_channel_id=chat_channel_id
+        )
+        return None
 
     @refreshable
     async def blind_message(self, chat_channel_id: str, user_id: str, message_time: datetime.datetime) -> None:
-        """Blind the message from the channel. TODO()"""
-        pass
+        """Blind the message from the channel.
+
+        Parameters
+        ----------
+        chat_channel_id : str
+            A id of current broadcast to blind the message.
+        user_id : str
+            A channel id of user to blind the message.
+        message_time : datetime.datetime
+            A time of message to blind.
+        """
+        await self.http.blind_message(
+            token=self.access_token,
+            chat_channel_id=chat_channel_id,
+            message_time=message_time.timestamp(),
+            sender_channel_id=user_id,
+        )
+        return None
