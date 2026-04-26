@@ -40,7 +40,6 @@ class Emoji(ChzzkModel):
     url: str = Field(alias="value")
 
 
-
 class Profile(ChzzkModel):
     nickname: str
     badges: list[Any]
@@ -83,7 +82,7 @@ class Messageable(ChzzkModel):
 
         message_id = response.content["messageId"]
         message = SentMessage(id=message_id, content=content)
-        message._access_token = self.access_token
+        message._access_token = self._access_token
         message._state = self._connection
         return message
 
@@ -131,14 +130,16 @@ class Message(Messageable):
     created_time: datetime.datetime = Field(alias="messageTime")
 
     def __init__(self, *args, **kwargs):
-        if "emojis" in kwargs.keys() and "access_token" in kwargs.keys():
-            self._raw_emojis = kwargs.pop("emojis")
+        _raw_emojis = dict()
+        if "emojis" in kwargs.keys():
+            _raw_emojis = kwargs.pop("emojis", dict())
         super().__init__(*args, **kwargs)
+        self._raw_emojis = _raw_emojis
 
     @computed_field
     @property
     def emojis(self) -> list[Emoji]:
-        return [Emoji.model_validate(k, v) for k, v in self._raw_emojis.items()]
+        return [Emoji(id=k, value=v) for k, v in self._raw_emojis.items()]
 
     def __str__(self) -> str:
         return self.content
@@ -153,7 +154,7 @@ class Message(Messageable):
         await self._state.http.blind_message(
             token=self._access_token,
             chat_channel_id=self.chat_channel,
-            message_id=self.created_time.timestamp(),
+            message_time=self.created_time.timestamp(),
             sender_channel_id=self.channel,
         )
 
