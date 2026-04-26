@@ -158,6 +158,59 @@ class Message(Messageable):
             sender_channel_id=self.channel,
         )
 
+    async def add_temporal_restrict(self) -> None:
+        """Temporarily restrict user of the message from chatting."""
+        if self._state is None or self._access_token is None:
+            raise RuntimeError(
+                f"This {self.__class__.__name__} is intended to store data only."
+                f"Or don't have the authentication token to send the message."
+            )
+        await self._state.http.add_temporary_restrict_user(
+            token=self._access_token,
+            target_channel_id=self.channel,
+            chat_channel_id=self.chat_channel,
+        )
+        return None
+
+    async def remove_temporal_restrict(self) -> None:
+        """Remove temporary restriction of user of the message."""
+        if self._state is None or self._access_token is None:
+            raise RuntimeError(
+                f"This {self.__class__.__name__} is intended to store data only."
+                f"Or don't have the authentication token to send the message."
+            )
+        await self._state.http.remove_temporary_restrict_user(
+            token=self._access_token,
+            target_channel_id=self.channel,
+            chat_channel_id=self.chat_channel,
+        )
+
+    async def add_permanent_restrict(self) -> None:
+        """Permanently restrict user of the message from chatting."""
+        if self._state is None or self._access_token is None:
+            raise RuntimeError(
+                f"This {self.__class__.__name__} is intended to store data only."
+                f"Or don't have the authentication token to send the message."
+            )
+        await self._state.http.add_restrict_user(
+            token=self._access_token,
+            target_channel_id=self.channel,
+        )
+        return None
+
+    async def remove_permanent_restrict(self) -> None:
+        """Remove permanent restriction of user of the message."""
+        if self._state is None or self._access_token is None:
+            raise RuntimeError(
+                f"This {self.__class__.__name__} is intended to store data only."
+                f"Or don't have the authentication token to send the message."
+            )
+        await self._state.http.remove_restrict_user(
+            token=self._access_token,
+            target_channel_id=self.channel,
+        )
+        return None
+
 
 class SentMessage(Messageable):
     """Represents a message sent by client.send() method"""
