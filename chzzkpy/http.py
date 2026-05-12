@@ -418,7 +418,7 @@ class ChzzkOpenAPISession(Session):
     ) -> None:
         pass
 
-    @post(" /open/v1/chats/blind-message", directly_response=True)
+    @post("/open/v1/chats/blind-message", directly_response=True)
     @authorization_configuration(is_client=False, is_user=True)
     async def blind_message(
         self,

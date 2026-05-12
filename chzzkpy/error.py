@@ -100,7 +100,7 @@ class ChatConnectFailed(ChzzkpyException):
     @classmethod
     def websocket_connect_failed(cls):
         return cls(
-            "Unexpected error occurred while connecting to WebSocket: no PING packet"
+            "Unexpected error occurred while connecting to WebSocket: missing or timed out waiting for initial OPEN packet"
         )
 
     @classmethod
