@@ -156,7 +156,7 @@ class Message(Messageable):
             token=self._access_token,
             chat_channel_id=self.chat_channel,
             message_time=self.created_time.timestamp(),
-            sender_channel_id=self.channel,
+            sender_channel_id=self.user_id,
         )
 
     async def add_temporal_restrict(self) -> None:
