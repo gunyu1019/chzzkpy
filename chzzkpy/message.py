@@ -168,7 +168,7 @@ class Message(Messageable):
             )
         await self._state.http.add_temporary_restrict_user(
             token=self._access_token,
-            target_channel_id=self.channel,
+            target_channel_id=self.user_id,
             chat_channel_id=self.chat_channel,
         )
         return None
@@ -182,7 +182,7 @@ class Message(Messageable):
             )
         await self._state.http.remove_temporary_restrict_user(
             token=self._access_token,
-            target_channel_id=self.channel,
+            target_channel_id=self.user_id,
             chat_channel_id=self.chat_channel,
         )
 
@@ -195,7 +195,7 @@ class Message(Messageable):
             )
         await self._state.http.add_restrict_user(
             token=self._access_token,
-            target_channel_id=self.channel,
+            target_channel_id=self.user_id,
         )
         return None
 
@@ -208,7 +208,7 @@ class Message(Messageable):
             )
         await self._state.http.remove_restrict_user(
             token=self._access_token,
-            target_channel_id=self.channel,
+            target_channel_id=self.user_id,
         )
         return None
 
