@@ -36,7 +36,6 @@ from .manage.manage_client import ManageClient
 
 from ..client import _LoopSentinel
 
-
 if TYPE_CHECKING:
     from .channel import Channel
     from types import TracebackType

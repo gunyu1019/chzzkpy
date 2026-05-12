@@ -40,7 +40,7 @@ class ChzzkModel(BaseModel):
         extra="allow",  # prevent exception.
         validate_by_name=True,
         validate_by_alias=True,
-        serialize_by_alias=True
+        serialize_by_alias=True,
     )
 
     @staticmethod

@@ -31,7 +31,6 @@ from .error import *
 from .flags import UserPermission
 from .message import Donation, Profile, Message
 
-
 __title__ = "chzzkpy"
 __author__ = "gunyu1019"
 __license__ = "MIT"

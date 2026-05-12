@@ -269,8 +269,7 @@ class ChzzkGateway:
             # Add timeout to prevent infinite waiting
             try:
                 raw_pong_packet = await asyncio.wait_for(
-                    websocket.receive(),
-                    timeout=5.0
+                    websocket.receive(), timeout=5.0
                 )
                 pong_packet = Packet.decode(raw_pong_packet.data)
             except asyncio.TimeoutError:
@@ -289,8 +288,7 @@ class ChzzkGateway:
             # Direct websocket connection - receive OPEN packet
             try:
                 raw_open_packet = await asyncio.wait_for(
-                    websocket.receive(),
-                    timeout=5.0
+                    websocket.receive(), timeout=5.0
                 )
                 raw_open_packet = Packet.decode(raw_open_packet.data)
                 open_packet = OpenPacketInfo.model_validate(raw_open_packet.data)

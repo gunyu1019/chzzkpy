@@ -99,7 +99,9 @@ class ChatConnectFailed(ChzzkpyException):
 
     @classmethod
     def websocket_connect_failed(cls):
-        return cls("Unexpected error occurred while connecting to WebSocket: no PING packet")
+        return cls(
+            "Unexpected error occurred while connecting to WebSocket: no PING packet"
+        )
 
     @classmethod
     def websocket_upgrade_failed(cls):

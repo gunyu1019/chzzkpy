@@ -119,6 +119,7 @@ class Message(Messageable):
     """A message instance received from the live.
     Messages can be received via the `on_chat` event.
     """
+
     _raw_emojis: Optional[dict[str, Any]] = PrivateAttr(default=None)
 
     user_id: str = Field(alias="senderChannelId")

@@ -42,7 +42,6 @@ from .message import SentMessage, Message
 from .oauth2 import ChzzkOAuth2Client
 from .state import ConnectionState
 
-
 if TYPE_CHECKING:
     from aiohttp.web import Response as webResponse
     from typing import Self, Literal, Optional, Callable, Coroutine
@@ -1092,12 +1091,16 @@ class UserClient:
             Once the broadcast ends, a chat channel id will reset, allowing the user to chat again.
         """
         await self.http.add_temporary_restrict_user(
-            token=self.access_token, target_channel_id=user_id, chat_channel_id=chat_channel_id
+            token=self.access_token,
+            target_channel_id=user_id,
+            chat_channel_id=chat_channel_id,
         )
         return None
 
     @refreshable
-    async def remove_temporary_restrict(self, user_id: str, chat_channel_id: str) -> None:
+    async def remove_temporary_restrict(
+        self, user_id: str, chat_channel_id: str
+    ) -> None:
         """Remove a temporary ban from a user.
 
         Parameters
@@ -1109,12 +1112,16 @@ class UserClient:
             Once the broadcast ends, a chat channel id will reset, allowing the user to chat again.
         """
         await self.http.remove_temporary_restrict_user(
-            token=self.access_token, target_channel_id=user_id, chat_channel_id=chat_channel_id
+            token=self.access_token,
+            target_channel_id=user_id,
+            chat_channel_id=chat_channel_id,
         )
         return None
 
     @refreshable
-    async def blind_message(self, chat_channel_id: str, user_id: str, message_time: datetime.datetime) -> None:
+    async def blind_message(
+        self, chat_channel_id: str, user_id: str, message_time: datetime.datetime
+    ) -> None:
         """Blind the message from the channel.
 
         Parameters

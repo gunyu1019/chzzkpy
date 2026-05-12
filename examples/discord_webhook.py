@@ -4,7 +4,6 @@ import discord
 import aiohttp
 from chzzkpy.unofficial.chat import ChatClient, ChatMessage
 
-
 # Configuration
 channel_id = "channel_id"
 
