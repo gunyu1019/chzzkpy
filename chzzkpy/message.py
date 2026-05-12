@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import datetime
 
-from pydantic import Field, PrivateAttr
+from pydantic import Field, PrivateAttr, computed_field
 from typing import Any, Literal, Optional, TYPE_CHECKING
 
 from .base_model import ChzzkModel
@@ -33,6 +33,11 @@ from .base_model import ChzzkModel
 if TYPE_CHECKING:
     from .authorization import AccessToken
     from .state import ConnectionState
+
+
+class Emoji(ChzzkModel):
+    id: str
+    url: str = Field(alias="value")
 
 
 class Profile(ChzzkModel):
@@ -71,11 +76,14 @@ class Messageable(ChzzkModel):
                 f"This {self.__class__.__name__} is intended to store data only."
                 f"Or don't have the authentication token to send the message."
             )
-        message = await self._state.http.create_message(
+        response = await self._state.http.create_message(
             message=content, token=self._access_token
         )
-        message._state = self._state
+
+        message_id = response.content["messageId"]
+        message = SentMessage(id=message_id, content=content)
         message._access_token = self._access_token
+        message._state = self._state
         return message
 
 
@@ -112,12 +120,97 @@ class Message(Messageable):
     Messages can be received via the `on_chat` event.
     """
 
+    _raw_emojis: Optional[dict[str, Any]] = PrivateAttr(default=None)
+
     user_id: str = Field(alias="senderChannelId")
 
     profile: Profile
     content: str
     channel: str = Field(alias="channelId")
+    chat_channel: str = Field(alias="chatChannelId")
     created_time: datetime.datetime = Field(alias="messageTime")
+
+    def __init__(self, *args, **kwargs):
+        _raw_emojis = dict()
+        if "emojis" in kwargs.keys():
+            _raw_emojis = kwargs.pop("emojis", dict())
+        super().__init__(*args, **kwargs)
+        self._raw_emojis = _raw_emojis
+
+    @computed_field
+    @property
+    def emojis(self) -> list[Emoji]:
+        return [Emoji(id=k, value=v) for k, v in self._raw_emojis.items()]
+
+    def __str__(self) -> str:
+        return self.content
+
+    async def blind(self) -> None:
+        """Blind the message from the channel."""
+        if self._state is None or self._access_token is None:
+            raise RuntimeError(
+                f"This {self.__class__.__name__} is intended to store data only."
+                f"Or don't have the authentication token to send the message."
+            )
+        await self._state.http.blind_message(
+            token=self._access_token,
+            chat_channel_id=self.chat_channel,
+            message_time=self.created_time.timestamp(),
+            sender_channel_id=self.user_id,
+        )
+
+    async def add_temporal_restrict(self) -> None:
+        """Temporarily restrict user of the message from chatting."""
+        if self._state is None or self._access_token is None:
+            raise RuntimeError(
+                f"This {self.__class__.__name__} is intended to store data only."
+                f"Or don't have the authentication token to send the message."
+            )
+        await self._state.http.add_temporary_restrict_user(
+            token=self._access_token,
+            target_channel_id=self.user_id,
+            chat_channel_id=self.chat_channel,
+        )
+        return None
+
+    async def remove_temporal_restrict(self) -> None:
+        """Remove temporary restriction of user of the message."""
+        if self._state is None or self._access_token is None:
+            raise RuntimeError(
+                f"This {self.__class__.__name__} is intended to store data only."
+                f"Or don't have the authentication token to send the message."
+            )
+        await self._state.http.remove_temporary_restrict_user(
+            token=self._access_token,
+            target_channel_id=self.user_id,
+            chat_channel_id=self.chat_channel,
+        )
+
+    async def add_permanent_restrict(self) -> None:
+        """Permanently restrict user of the message from chatting."""
+        if self._state is None or self._access_token is None:
+            raise RuntimeError(
+                f"This {self.__class__.__name__} is intended to store data only."
+                f"Or don't have the authentication token to send the message."
+            )
+        await self._state.http.add_restrict_user(
+            token=self._access_token,
+            target_channel_id=self.user_id,
+        )
+        return None
+
+    async def remove_permanent_restrict(self) -> None:
+        """Remove permanent restriction of user of the message."""
+        if self._state is None or self._access_token is None:
+            raise RuntimeError(
+                f"This {self.__class__.__name__} is intended to store data only."
+                f"Or don't have the authentication token to send the message."
+            )
+        await self._state.http.remove_restrict_user(
+            token=self._access_token,
+            target_channel_id=self.user_id,
+        )
+        return None
 
 
 class SentMessage(Messageable):

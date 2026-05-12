@@ -1,3 +1,25 @@
+## v2.2.0 - May 12th, 2026
+* Add `emojis` field and `chat_channel` attribute in `Message` class.
+* Add `blind()` method in `Message` to blind the message directly.
+* Add `add_temporal_restrict()` / `remove_temporal_restrict()` method in `Message` to temporarily restrict the message sender.
+* Add `add_permanent_restrict()` / `remove_permanent_restrict()` method in `Message` to permanently restrict the message sender.
+* Add `add_temporary_restrict()` / `remove_temporary_restrict()` method in `UserClient` to manage temporary chat restrictions by user.
+* Add `blind_message()` method in `UserClient` to blind a specific chat message.
+* Add `ssl` parameter to gateway connection methods for SSL configuration.
+* [Fix] Correct typo in HTTP method names: `restrcit` → `restrict` (`add_restrict_user`, `remove_restrict_user`, `get_restrict_users`).
+* [Fix] Add timeout handling (5 seconds) for WebSocket message reception to prevent infinite waiting.
+* [Fix] Handle `asyncio.CancelledError` in heartbeat and read loops to ensure proper task cancellation on disconnect.
+* [Fix] Correct invalid response status code condition in polling read.
+* [Fix] Fix incorrect arguments passed to `ReceiveErrorPacket` (`self.data` → `message.data`, `self.status` → `response.status`).
+* [Fix] Skip `websocket.close()` when websocket is `None` to prevent `AttributeError` on disconnect.
+* [Fix] `_write_websocket` now sends each packet individually as text instead of bytes.
+* [Fix] Add missing `await` on `received_message()` calls during polling connection setup.
+* [Fix] Add `_heartbeat_receive_event.clear()` after each PONG to prevent false heartbeat timeouts.
+* [Fix] Correct `socket_packet_type` encoding to use `.value` in `Packet.encode()`.
+* [Fix] Properly construct `SentMessage` from `messageId` in the response of `create_message`.
+* [Fix] Add `ChatConnectFailed.websocket_connect_failed()` factory for missing PING packet on direct WebSocket connection.
+* [Fix] Initialize event hooks with all enum values before applying provided hooks in `ChzzkGateway`.
+
 ## v2.1.5 - Dec 20th, 2025
 * Add new attribute in `FollowingPeriod` integer enumeration object to follow the [official chzzk API updates](https://chzzk.gitbook.io/chzzk/introduction/updates).
 * [Fix] Missing provided `page` attribute in `UserClient.get_followers` and `UserClient.get_subscribers` method.

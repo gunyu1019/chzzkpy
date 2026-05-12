@@ -371,7 +371,7 @@ class ChzzkOpenAPISession(Session):
 
     @post("/open/v1/restrict-channels", directly_response=True)
     @authorization_configuration(is_client=False, is_user=True)
-    async def add_restrcit_user(
+    async def add_restrict_user(
         self,
         token: Annotated[AccessToken, Header],
         target_channel_id: Annotated[str, BodyJson.to_camel()],
@@ -380,7 +380,7 @@ class ChzzkOpenAPISession(Session):
 
     @delete("/open/v1/restrict-channels", directly_response=True)
     @authorization_configuration(is_client=False, is_user=True)
-    async def remove_restrcit_user(
+    async def remove_restrict_user(
         self,
         token: Annotated[AccessToken, Header],
         target_channel_id: Annotated[str, BodyJson.to_camel()],
@@ -390,10 +390,41 @@ class ChzzkOpenAPISession(Session):
     @pydantic_response_model()
     @get("/open/v1/restrict-channels", directly_response=True)
     @authorization_configuration(is_client=False, is_user=True)
-    async def get_restrcit_users(
+    async def get_restrict_users(
         self,
         token: Annotated[AccessToken, Header],
         size: Annotated[Optional[int], Query] = 20,
         next: Annotated[Optional[str], Query] = None,
     ) -> Content[SearchResult[RestrictUser]]:
+        pass
+
+    @post("/open/v1/temporary-restrict-channels", directly_response=True)
+    @authorization_configuration(is_client=False, is_user=True)
+    async def add_temporary_restrict_user(
+        self,
+        token: Annotated[AccessToken, Header],
+        target_channel_id: Annotated[str, BodyJson.to_camel()],
+        chat_channel_id: Annotated[str, BodyJson.to_camel()],
+    ) -> None:
+        pass
+
+    @delete("/open/v1/temporary-restrict-channels", directly_response=True)
+    @authorization_configuration(is_client=False, is_user=True)
+    async def remove_temporary_restrict_user(
+        self,
+        token: Annotated[AccessToken, Header],
+        target_channel_id: Annotated[str, BodyJson.to_camel()],
+        chat_channel_id: Annotated[str, BodyJson.to_camel()],
+    ) -> None:
+        pass
+
+    @post("/open/v1/chats/blind-message", directly_response=True)
+    @authorization_configuration(is_client=False, is_user=True)
+    async def blind_message(
+        self,
+        token: Annotated[AccessToken, Header],
+        chat_channel_id: Annotated[str, BodyJson.to_camel()],
+        message_time: Annotated[float, BodyJson.to_camel()],
+        sender_channel_id: Annotated[str, BodyJson.to_camel()],
+    ) -> None:
         pass

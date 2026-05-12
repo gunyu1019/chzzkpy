@@ -26,7 +26,6 @@ from typing import Literal, Optional
 
 from .base_model import ChzzkModel
 
-
 CATEGORY_TYPE = Literal["GAME", "SPORTS", "ETC"]
 
 

@@ -38,10 +38,9 @@ from .error import ChatConnectFailed, ForbiddenException
 from .gateway import ChzzkGateway
 from .http import ChzzkOpenAPISession
 from .live import BrodecastSetting, Live
-from .message import SentMessage
+from .message import SentMessage, Message
 from .oauth2 import ChzzkOAuth2Client
 from .state import ConnectionState
-
 
 if TYPE_CHECKING:
     from aiohttp.web import Response as webResponse
@@ -988,7 +987,7 @@ class UserClient:
         user_id : str
             A channel id of user to add restrict activity.
         """
-        await self.http.add_restrcit_user(
+        await self.http.add_restrict_user(
             token=self.access_token, target_channel_id=user_id
         )
         return
@@ -1002,7 +1001,7 @@ class UserClient:
         user_id : str
             A channel id of user to remove restrict activity.
         """
-        await self.http.remove_restrcit_user(
+        await self.http.remove_restrict_user(
             token=self.access_token, target_channel_id=user_id
         )
         return
@@ -1016,9 +1015,9 @@ class UserClient:
         size : Optional[int], optional
             A number of lives to load at once, by default 20
         """
-        result = await self.http.get_restrcit_users(token=self.access_token, size=size)
+        result = await self.http.get_restrict_users(token=self.access_token, size=size)
         data = result.content
-        data._next_method = self.http.get_restrcit_users
+        data._next_method = self.http.get_restrict_users
         data._next_method_key_argument = {"size": size}
         return data
 
@@ -1078,3 +1077,66 @@ class UserClient:
             "token": self.access_token,
         }
         return result.content
+
+    @refreshable
+    async def add_temporary_restrict(self, user_id: str, chat_channel_id: str) -> None:
+        """Add a temporary ban to a user.
+
+        Parameters
+        ----------
+        user_id : str
+            A channel id of user to add temporary ban.
+        chat_channel_id : str
+            A id of current broadcast id to add temporary ban.
+            Once the broadcast ends, a chat channel id will reset, allowing the user to chat again.
+        """
+        await self.http.add_temporary_restrict_user(
+            token=self.access_token,
+            target_channel_id=user_id,
+            chat_channel_id=chat_channel_id,
+        )
+        return None
+
+    @refreshable
+    async def remove_temporary_restrict(
+        self, user_id: str, chat_channel_id: str
+    ) -> None:
+        """Remove a temporary ban from a user.
+
+        Parameters
+        ----------
+        user_id : str
+            A channel id of user to remove temporary ban.
+        chat_channel_id : str
+            A id of current broadcast id to remove temporary ban.
+            Once the broadcast ends, a chat channel id will reset, allowing the user to chat again.
+        """
+        await self.http.remove_temporary_restrict_user(
+            token=self.access_token,
+            target_channel_id=user_id,
+            chat_channel_id=chat_channel_id,
+        )
+        return None
+
+    @refreshable
+    async def blind_message(
+        self, chat_channel_id: str, user_id: str, message_time: datetime.datetime
+    ) -> None:
+        """Blind the message from the channel.
+
+        Parameters
+        ----------
+        chat_channel_id : str
+            A id of current broadcast to blind the message.
+        user_id : str
+            A channel id of user to blind the message.
+        message_time : datetime.datetime
+            A time of message to blind.
+        """
+        await self.http.blind_message(
+            token=self.access_token,
+            chat_channel_id=chat_channel_id,
+            message_time=message_time.timestamp(),
+            sender_channel_id=user_id,
+        )
+        return None

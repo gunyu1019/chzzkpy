@@ -31,12 +31,11 @@ from .error import *
 from .flags import UserPermission
 from .message import Donation, Profile, Message
 
-
 __title__ = "chzzkpy"
 __author__ = "gunyu1019"
 __license__ = "MIT"
 __copyright__ = "Copyright 2024-present gunyu1019"
-__version__ = "2.1.5"  # version_info.to_string()
+__version__ = "2.2.0"  # version_info.to_string()
 
 
 class VersionInfo(NamedTuple):
@@ -54,5 +53,5 @@ class VersionInfo(NamedTuple):
 
 
 version_info: VersionInfo = VersionInfo(
-    major=2, minor=1, micro=5, release_level=None, serial=0
+    major=2, minor=2, micro=0, release_level=None, serial=0
 )

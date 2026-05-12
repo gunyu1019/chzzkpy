@@ -98,6 +98,13 @@ class ChatConnectFailed(ChzzkpyException):
         super(ChatConnectFailed, self).__init__(message)
 
     @classmethod
+    def websocket_connect_failed(cls):
+        return cls(
+            "Unexpected error occurred while connecting to WebSocket: "
+            "missing or timed out waiting for initial OPEN packet"
+        )
+
+    @classmethod
     def websocket_upgrade_failed(cls):
         return cls("WebSocket upgrade failed: no PONG packet")
 
