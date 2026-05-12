@@ -13,7 +13,7 @@ if not version:
 
 
 extras_require = {
-    "test": ["pytest", "pytest-cov"],
+    "test": ["pytest", "pytest-cov", "pytest-asyncio"],
     "lint": ["pycodestyle", "black"],
     "docs": ["Sphinx", "sphinxawesome-theme", "sphinx-intl"],
 }
