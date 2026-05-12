@@ -83,7 +83,7 @@ class Messageable(ChzzkModel):
         message_id = response.content["messageId"]
         message = SentMessage(id=message_id, content=content)
         message._access_token = self._access_token
-        message._state = self._connection
+        message._state = self._state
         return message
 
 
