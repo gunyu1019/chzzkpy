@@ -349,7 +349,7 @@ class ChzzkGateway:
         write_response = await self.session.request(
             "POST", self.base_url, data=data.encode()
         )
-        if write_response.status < 200 and write_response.status >= 300:
+        if 200 < write_response.status or write_response.status >= 300:
             raise HTTPException(write_response.status)
         return
 
