@@ -28,7 +28,7 @@ import aiohttp
 import datetime
 import logging
 
-from functools import wraps
+from functools import partial, wraps
 from typing import Any, overload, TYPE_CHECKING
 from yarl import URL
 
@@ -91,6 +91,28 @@ async def _close_gateway(gateway: ChzzkGateway) -> None:
         await gateway.disconnect()
     finally:
         await gateway.session.close()
+
+
+def _close_gateway_in_background(
+    gateway: ChzzkGateway, tasks: set[asyncio.Task]
+) -> None:
+    """Closes ``gateway`` in a task that is kept in ``tasks`` until it's done."""
+
+    async def close():
+        try:
+            await _close_gateway(gateway)
+        except Exception:
+            _log.exception("Failed to close the connection.")
+
+    task = gateway.loop.create_task(close())
+    tasks.add(task)
+    task.add_done_callback(tasks.discard)
+
+
+async def _wait_closed(tasks: set[asyncio.Task]) -> None:
+    """Waits until the gateways closed by :func:`_close_gateway_in_background` are closed."""
+    if len(tasks) > 0:
+        await asyncio.wait(set(tasks))
 
 
 async def _wait_until_ready(ready: asyncio.Future, read_task: asyncio.Task) -> Any:
@@ -265,6 +287,7 @@ class Client(BaseEventManager):
 
         self._gateway: dict[str, ChzzkGateway] = dict()
         self._gateway_ready = asyncio.Event()
+        self._closing_tasks: set[asyncio.Task] = set()
 
         # On a client session, a "subscribed" event is attributed to the one pending subscription.
         self._subscription_lock = asyncio.Lock()
@@ -603,7 +626,8 @@ class Client(BaseEventManager):
     async def wait_until_connect(self):
         """Waits until a client session connected by :meth:`connect` is ready.
         It returns immediately while a client session is connected,
-        and waits again after all client sessions are disconnected by :meth:`disconnect`.
+        and waits again after all client sessions are disconnected by :meth:`disconnect`
+        or their connections have ended.
         """
         await self._gateway_ready.wait()
         return
@@ -613,11 +637,16 @@ class Client(BaseEventManager):
         """Connect to session to handle donation or chatting
         A Client session can have more than one connection. (Maximum Connection: 10)
 
+        When the connection of a client session ends by itself (e.g. the server closes it),
+        the session is removed and no longer counts toward the maximum.
+        It isn't reconnected automatically.
+
         Parameters
         ----------
         addition_connect : Optional[bool]
             This parameter used for multiple connections, by default False
             If addition_connect is False, the connection is completed and a main task is blocked to wait for a response.
+            The main task is released when the connection ends.
             However addition_connect is True, a task waiting for a response is processed in the background.
 
         Returns
@@ -656,9 +685,39 @@ class Client(BaseEventManager):
             raise
         self._gateway[session_id] = gateway
         self._gateway_ready.set()
+        task.add_done_callback(partial(self._on_connection_closed, session_id, gateway))
         if not addition_connect:
-            await task
+            try:
+                await task
+            finally:
+                await _wait_closed(self._closing_tasks)
         return session_id
+
+    def _on_connection_closed(
+        self, session_id: str, gateway: ChzzkGateway, read_task: asyncio.Task
+    ) -> None:
+        """Called when the read task of a connected client session finishes.
+
+        Unless :meth:`disconnect` has removed the session already, its connection
+        ended by itself: the session is removed and its gateway is closed.
+        """
+        reason = None if read_task.cancelled() else read_task.exception()
+        if self._gateway.get(session_id) is not gateway:
+            return
+        _log.warning(
+            "The connection of client session %s has ended.",
+            session_id,
+            exc_info=reason,
+        )
+        self._remove_gateway(session_id)
+        _close_gateway_in_background(gateway, self._closing_tasks)
+
+    def _remove_gateway(self, session_id: str) -> ChzzkGateway:
+        gateway = self._gateway.pop(session_id)
+        self._ambiguous_sessions.discard(session_id)
+        if len(self._gateway) <= 0:
+            self._gateway_ready.clear()
+        return gateway
 
     async def disconnect(self, session_id: Optional[str] = None):
         """Disconnect from session.
@@ -668,18 +727,15 @@ class Client(BaseEventManager):
         session_id : Optional[str]
             A session ID returned by :meth:`connect` to disconnect from session.
             When session parameter is empty, all client sessions are disconnected.
+            A session whose connection has already ended is ignored.
         """
-        if len(self._gateway) <= 0:
-            return
-
         session_ids = list(self._gateway.keys()) if session_id is None else [session_id]
-        gateways = [self._gateway.pop(key) for key in session_ids]
-        self._ambiguous_sessions.difference_update(session_ids)
-        if len(self._gateway) <= 0:
-            self._gateway_ready.clear()
-
+        gateways = [
+            self._remove_gateway(key) for key in session_ids if key in self._gateway
+        ]
         for gateway in gateways:
             await _close_gateway(gateway)
+        await _wait_closed(self._closing_tasks)
 
 
 class UserClient:
@@ -704,6 +760,8 @@ class UserClient:
         self._gateway_ready = asyncio.Event()
         self._gateway_id: Optional[str] = None
         self._session_id: Optional[str] = None
+        self._connect_lock = asyncio.Lock()
+        self._closing_tasks: set[asyncio.Task] = set()
 
         self.channel_id: Optional[str] = None
         self.channel_name: Optional[str] = None
@@ -829,6 +887,11 @@ class UserClient:
     @refreshable
     async def connect(self, permission: UserPermission, addition_connect: bool = False):
         """Connect to user session to handle donation or chatting
+        If the user client is already connected, the previous connection is disconnected first.
+
+        When the connection ends by itself (e.g. the server closes it),
+        the user client is reset, so :attr:`is_connected` returns False and it can connect again.
+        It isn't reconnected automatically.
 
         Parameters
         ----------
@@ -838,6 +901,7 @@ class UserClient:
         addition_connect : Optional[bool]
             This parameter used for multiple connections, by default False
             If addition_connect is False, the connection is completed and a main task is blocked to wait for a response.
+            The main task is released when the connection ends.
             However addition_connect is True, a task waiting for a response is processed in the background.
 
         Returns
@@ -857,39 +921,67 @@ class UserClient:
         ChatConnectFailed.session_closed_before_ready
             The connection was closed before the session became ready.
         """
-        session_key = await self.http.generate_user_session(token=self.access_token)
-        self._session_id = None
-        self._gateway_ready.clear()
-        self._gateway = await _connect_gateway(
-            session_key.content.url, self._connection, self.loop
-        )
-        task = self._gateway.read_in_background()
-        ready = self.loop.create_task(self._gateway_ready.wait())
-        try:
-            await _wait_until_ready(ready, task)
-        except BaseException:
+        # The connections share the state of this user client, so they're made one at a time.
+        async with self._connect_lock:
             await self.disconnect()
-            raise
-        finally:
-            ready.cancel()
-        self._gateway_id = self._gateway.session_id
-        session_id = self._session_id
-        await self.subscribe(permission, session_id)
+            session_key = await self.http.generate_user_session(token=self.access_token)
+            self._session_id = None
+            self._gateway_ready.clear()
+            gateway = self._gateway = await _connect_gateway(
+                session_key.content.url, self._connection, self.loop
+            )
+            task = gateway.read_in_background()
+            ready = self.loop.create_task(self._gateway_ready.wait())
+            try:
+                await _wait_until_ready(ready, task)
+            except BaseException:
+                await self.disconnect()
+                raise
+            finally:
+                ready.cancel()
+            self._gateway_id = gateway.session_id
+            task.add_done_callback(partial(self._on_connection_closed, gateway))
+            session_id = self._session_id
+            await self.subscribe(permission, session_id)
         if not addition_connect:
-            await task
+            try:
+                await task
+            finally:
+                await _wait_closed(self._closing_tasks)
         return session_id
 
-    async def disconnect(self):
-        """Disconnect from session."""
-        if self._gateway is None:
-            return
-        gateway = self._gateway
+    def _on_connection_closed(
+        self, gateway: ChzzkGateway, read_task: asyncio.Task
+    ) -> None:
+        """Called when the read task of the connected user session finishes.
 
+        Unless :meth:`disconnect` has removed the gateway already, its connection
+        ended by itself: the user client is reset and the gateway is closed.
+        """
+        reason = None if read_task.cancelled() else read_task.exception()
+        if self._gateway is not gateway:
+            return
+        _log.warning(
+            "The connection of user session %s has ended.",
+            self._session_id,
+            exc_info=reason,
+        )
+        self._remove_gateway()
+        _close_gateway_in_background(gateway, self._closing_tasks)
+
+    def _remove_gateway(self) -> None:
         self._gateway = None
         self._gateway_id = None
         self._session_id = None
         self._gateway_ready.clear()
-        await _close_gateway(gateway)
+
+    async def disconnect(self):
+        """Disconnect from session."""
+        gateway = self._gateway
+        if gateway is not None:
+            self._remove_gateway()
+            await _close_gateway(gateway)
+        await _wait_closed(self._closing_tasks)
 
     @refreshable
     async def subscribe(
