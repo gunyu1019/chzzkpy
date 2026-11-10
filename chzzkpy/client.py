@@ -286,6 +286,8 @@ class Client(BaseEventManager):
         self.user_client: list[UserClient] = []
 
         self._gateway: dict[str, ChzzkGateway] = dict()
+        # Number of connect() calls that haven't registered their session yet.
+        self._connecting = 0
         self._gateway_ready = asyncio.Event()
         self._closing_tasks: set[asyncio.Task] = set()
 
@@ -666,24 +668,30 @@ class Client(BaseEventManager):
         ChatConnectFailed.max_connection
             A Client Session can connect up to 10 sessions.
             When connection request more than 10 sessions, ChatConnectFailed exception raised.
+            A connection that is still being established counts toward the maximum.
         ChatConnectFailed.session_closed_before_ready
             The connection was closed before the session became ready.
         """
-        if len(self._gateway) >= 10:
+        # A connection being established takes a slot until its session is registered.
+        if len(self._gateway) + self._connecting >= 10:
             raise ChatConnectFailed.max_connection()
 
-        session_key = await self.http.generate_client_session()
-        ready = self.loop.create_future()
-        gateway = await _connect_gateway(
-            session_key.content.url, self._create_connection_state(ready), self.loop
-        )
-        task = gateway.read_in_background()
+        self._connecting += 1
         try:
-            session_id = await _wait_until_ready(ready, task)
-        except BaseException:
-            await _close_gateway(gateway)
-            raise
-        self._gateway[session_id] = gateway
+            session_key = await self.http.generate_client_session()
+            ready = self.loop.create_future()
+            gateway = await _connect_gateway(
+                session_key.content.url, self._create_connection_state(ready), self.loop
+            )
+            task = gateway.read_in_background()
+            try:
+                session_id = await _wait_until_ready(ready, task)
+            except BaseException:
+                await _close_gateway(gateway)
+                raise
+            self._gateway[session_id] = gateway
+        finally:
+            self._connecting -= 1
         self._gateway_ready.set()
         task.add_done_callback(partial(self._on_connection_closed, session_id, gateway))
         if not addition_connect:
