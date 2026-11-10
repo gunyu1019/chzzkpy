@@ -11,10 +11,32 @@ import asyncio
 import pytest
 
 from chzzkpy.enums import EnginePacketType, SocketPacketType
-from chzzkpy.error import ChatConnectFailed
+from chzzkpy.error import ChatConnectFailed, ReceiveErrorPacket
 from chzzkpy.gateway import ChzzkGateway
 from chzzkpy.packet import Packet
 from chzzkpy.payload import Payload
+
+
+def guard_read_loop_spinning(gateway: ChzzkGateway, limit: int = 100):
+    """Make a read loop that keeps reading a closed websocket fail.
+
+    receive() on a closed websocket returns without yielding, so such a loop freezes
+    the event loop (asyncio.wait_for can't time out) instead of failing the test.
+    """
+    read_loop = gateway._read_loop
+    closed_reads = 0
+
+    async def guarded_read_loop():
+        nonlocal closed_reads
+        if gateway.websocket is not None and gateway.websocket.closed:
+            closed_reads += 1
+            if closed_reads > limit:
+                raise AssertionError(
+                    f"read loop kept reading a closed websocket {closed_reads} times"
+                )
+        await read_loop()
+
+    gateway._read_loop = guarded_read_loop
 
 
 @pytest.mark.asyncio
@@ -98,6 +120,29 @@ class TestEngineIOPolling:
         await asyncio.sleep(0.1)
 
         assert gateway.is_connected
+        await gateway.disconnect()
+
+    @pytest.mark.parametrize("upgrades", [["websocket"], []])
+    async def test_handshake_packets_reach_state_hooks(
+        self, mock_server, mock_connection_state, test_session, upgrades
+    ):
+        """Test packets bundled in the polling handshake reach the state's hooks."""
+        mock_server.upgrades = upgrades
+
+        gateway = await ChzzkGateway.connect(
+            url=mock_server.url,
+            state=mock_connection_state,
+            loop=asyncio.get_running_loop(),
+            session=test_session,
+            ssl=False,
+        )
+
+        # OPEN and socket.io CONNECT arrive with the handshake, before any read loop
+        event_names = [event[0] for event in mock_connection_state.dispatched_events]
+        assert event_names.count("engine_connect") == 1
+        assert "socket_connect" in event_names
+        assert mock_connection_state.gateway_id == mock_server.sid
+
         await gateway.disconnect()
 
 
@@ -525,6 +570,160 @@ class TestEngineIOErrorHandling:
                 session=test_session,
                 ssl=False,
             )
+
+    async def test_receive_error_packet_message(self):
+        """Test ReceiveErrorPacket can be raised with the received data."""
+        error = ReceiveErrorPacket("websocket", "broken frame")
+
+        assert error.current_transport == "websocket"
+        assert error.data == "broken frame"
+        assert "broken frame" in str(error)
+
+
+@pytest.mark.asyncio
+class TestEngineIOConnectionClose:
+    """Test the connection ends cleanly however it is closed."""
+
+    async def test_server_close_ends_read_loop(self, mock_server, test_session):
+        """Test the read loop ends when the server closes the websocket silently."""
+        loop = asyncio.get_running_loop()
+        gateway = await ChzzkGateway._connect_websocket(
+            url=mock_server.url,
+            engine_path="socket.io",
+            loop=loop,
+            session=test_session,
+            ssl=False,
+        )
+        server_websocket = mock_server.connections[mock_server.sid]
+        other_gateway = await ChzzkGateway._connect_websocket(
+            url=mock_server.url,
+            engine_path="socket.io",
+            loop=loop,
+            session=test_session,
+            ssl=False,
+        )
+        guard_read_loop_spinning(gateway)
+        guard_read_loop_spinning(other_gateway)
+        read_task = gateway.read_in_background()
+        other_gateway.read_in_background()
+
+        # Close from the server side, as on a gateway restart or network drop
+        await server_websocket.close()
+
+        # A server-side close is a normal disconnection
+        await asyncio.wait_for(read_task, timeout=2.0)
+        assert not gateway.is_connected
+        assert gateway.websocket.closed
+        await asyncio.sleep(0)
+        assert gateway._ping_loop_task.done()
+
+        # The event loop is not blocked: the other connection still gets PONG
+        other_gateway._heartbeat_receive_event.clear()
+        await other_gateway.send_ping()
+        await asyncio.wait_for(
+            other_gateway._heartbeat_receive_event.wait(), timeout=2.0
+        )
+        assert other_gateway.is_connected
+
+        # Disconnecting a closed connection is a no-op, also twice
+        await gateway.disconnect()
+        await gateway.disconnect()
+        await other_gateway.disconnect()
+
+    async def test_disconnect_after_server_close(self, mock_server, test_session):
+        """Test disconnect() is safe after the server closed the websocket."""
+        gateway = await ChzzkGateway._connect_websocket(
+            url=mock_server.url,
+            engine_path="socket.io",
+            loop=asyncio.get_running_loop(),
+            session=test_session,
+            ssl=False,
+        )
+
+        # No read loop is running, so the gateway hasn't noticed the close yet
+        await mock_server.connections[mock_server.sid].close()
+        await asyncio.sleep(0.1)
+
+        await gateway.disconnect()
+        assert not gateway.is_connected
+        assert gateway.websocket.closed
+        await gateway.disconnect()
+
+    async def test_close_packet_disconnects_from_read_loop(
+        self, mock_server, test_session
+    ):
+        """Test a CLOSE packet disconnects without cancelling the read loop midway."""
+        close_received = asyncio.Event()
+
+        async def close_handler(data):
+            close_received.set()
+
+        gateway = await ChzzkGateway._connect_websocket(
+            url=mock_server.url,
+            engine_path="socket.io",
+            loop=asyncio.get_running_loop(),
+            session=test_session,
+            event_hook={EnginePacketType.CLOSE: close_handler},
+            ssl=False,
+        )
+        guard_read_loop_spinning(gateway)
+        read_task = gateway.read_in_background()
+
+        await mock_server.send_custom_packet(Packet(EnginePacketType.CLOSE))
+
+        # disconnect() runs inside the read task; the CLOSE hook still runs after it
+        await asyncio.wait_for(read_task, timeout=2.0)
+        assert close_received.is_set()
+        assert not gateway.is_connected
+        assert gateway.websocket.closed
+
+        await gateway.disconnect()
+
+    async def test_pong_timeout_closes_connection(self, mock_server, test_session):
+        """Test the connection is closed when no PONG arrives within ping timeout."""
+        mock_server._auto_pong = False
+        mock_server.ping_interval = 1000
+        mock_server.ping_timeout = 200
+
+        gateway = await ChzzkGateway._connect_websocket(
+            url=mock_server.url,
+            engine_path="socket.io",
+            loop=asyncio.get_running_loop(),
+            session=test_session,
+            ssl=False,
+        )
+        guard_read_loop_spinning(gateway)
+        read_task = gateway.read_in_background()
+
+        # The ping loop closes the connection instead of raising in its own task
+        await asyncio.wait_for(gateway._ping_loop_task, timeout=2.0)
+        await asyncio.wait_for(read_task, timeout=2.0)
+        assert not gateway.is_connected
+        assert gateway.websocket.closed
+
+    async def test_read_error_closes_connection(self, mock_server, test_session):
+        """Test a failed poll closes the connection and is raised from the read task."""
+        mock_server.upgrades = []
+        gateway = await ChzzkGateway._connect_polling(
+            url=mock_server.url,
+            engine_path="socket.io",
+            loop=asyncio.get_running_loop(),
+            session=test_session,
+            ssl=False,
+        )
+        assert gateway.current_transport == "polling"
+
+        mock_server._poll_error_status = 500
+        read_task = gateway.read_in_background()
+
+        with pytest.raises(ReceiveErrorPacket) as error:
+            await asyncio.wait_for(read_task, timeout=2.0)
+        assert error.value.data == 500
+        assert not gateway.is_connected
+        await asyncio.sleep(0)
+        assert gateway._ping_loop_task.done()
+
+        await gateway.disconnect()
 
 
 @pytest.mark.asyncio

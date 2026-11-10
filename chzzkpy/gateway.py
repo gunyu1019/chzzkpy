@@ -154,13 +154,15 @@ class ChzzkGateway:
         ssl: bool = True,
     ):
         engine_path = engine_path or "socket.io"
-        gateway = await cls._connect_polling(url, engine_path, loop, session, ssl=ssl)
-
-        for event, parsing_func in state.gateway_parsers.items():
-            if parsing_func is None:
-                continue
-            gateway.set_hook(event, parsing_func)
-
+        # The handshake already delivers packets, so hooks must be attached before it.
+        event_hook = {
+            event: parsing_func
+            for event, parsing_func in state.gateway_parsers.items()
+            if parsing_func is not None
+        }
+        gateway = await cls._connect_polling(
+            url, engine_path, loop, session, event_hook=event_hook, ssl=ssl
+        )
         return gateway
 
     @classmethod
@@ -344,6 +346,14 @@ class ChzzkGateway:
             await self.received_message(packet)
         elif message.type == aiohttp.WSMsgType.ERROR:
             raise ReceiveErrorPacket(self.current_transport, message.data)
+        elif message.type in (
+            aiohttp.WSMsgType.CLOSE,
+            aiohttp.WSMsgType.CLOSING,
+            aiohttp.WSMsgType.CLOSED,
+        ):
+            # receive() returns immediately once the websocket is closed.
+            _log.warning("Websocket connection has been closed, close connection.")
+            await self._close()
 
     async def _write_polling(self, data: Payload):
         write_response = await self.session.request(
@@ -362,13 +372,20 @@ class ChzzkGateway:
     async def _ping_loop(self):
         while self.is_connected:
             _log.debug("Send Ping packet to server for heartbeat")
-            await self.send_ping()
+            try:
+                await self.send_ping()
+            except (aiohttp.ClientError, ConnectionError, HTTPException):
+                _log.warning("Failed to send Ping packet, close connection.")
+                await self._close()
+                return
             try:
                 await asyncio.wait_for(
                     self._heartbeat_receive_event.wait(), timeout=self.ping_timeout
                 )
             except asyncio.TimeoutError:
-                raise ConnectionError("PONG response has not been received.")
+                _log.warning("PONG response has not been received, close connection.")
+                await self._close()
+                return
             except asyncio.CancelledError:
                 # Exit the loop if the task is cancelled (e.g., during disconnect)
                 return
@@ -377,12 +394,15 @@ class ChzzkGateway:
             await asyncio.sleep(self.ping_interval)
 
     async def read(self):
-        while self.is_connected:
-            try:
+        try:
+            while self.is_connected:
                 await self._read_loop()
-            except asyncio.CancelledError:
-                # Exit the loop if the task is cancelled (e.g., during disconnect)
-                return
+        except asyncio.CancelledError:
+            # Exit the loop if the task is cancelled (e.g., during disconnect)
+            return
+        finally:
+            # Errors are re-raised after cleanup, so they stay observable on the task.
+            await self._close()
 
     def read_in_background(self) -> asyncio.Task:
         task = self.loop.create_task(self.read())
@@ -427,16 +447,25 @@ class ChzzkGateway:
             return
 
         self._ping_loop_task.cancel()
-        await self.send_disconnet()
+        try:
+            await self.send_disconnet()
+        except (aiohttp.ClientError, ConnectionError, HTTPException):
+            # The server may have closed the connection already.
+            _log.debug("Failed to send disconnect packet.")
+        await self._close()
+
+    async def _close(self):
+        if not self.is_connected:
+            return
         self.is_connected = False
 
-        if (
-            self._read_background_loop is not None
-            and not self._read_background_loop.cancelled()
-        ):
-            self._read_background_loop.cancel()
+        # Don't cancel the running task: disconnect() may be called from the read task.
+        current_task = asyncio.current_task()
+        for task in (self._ping_loop_task, self._read_background_loop):
+            if task is not None and task is not current_task:
+                task.cancel()
 
-        if self.websocket is not None:
+        if self.websocket is not None and not self.websocket.closed:
             await self.websocket.close()
 
     async def send_ping(self, message: Optional[str] = None):

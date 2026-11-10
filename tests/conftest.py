@@ -40,6 +40,7 @@ class MockEngineIOServer:
         self.emit_events: List[tuple[str, Any]] = []
         self._auto_pong = True
         self._accept_upgrade = True
+        self._poll_error_status: Optional[int] = None
 
     def _create_open_packet(self) -> Packet:
         """Create engine.io OPEN packet."""
@@ -73,6 +74,9 @@ class MockEngineIOServer:
                     content_type="application/octet-stream",
                 )
             else:
+                if self._poll_error_status is not None:
+                    return web.Response(status=self._poll_error_status)
+
                 # Polling for messages
                 # Return empty or pending messages
                 payload = Payload(packets=[Packet(EnginePacketType.NOOP)])
