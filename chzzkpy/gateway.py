@@ -184,6 +184,7 @@ class ChzzkGateway:
         connection_response = await session.request("GET", base_url)
 
         if connection_response.status < 200 or connection_response.status >= 300:
+            connection_response.release()
             raise ChatConnectFailed.polling_connect_failed(connection_response.status)
 
         raw_payload = await connection_response.read()
@@ -277,11 +278,15 @@ class ChzzkGateway:
             except asyncio.TimeoutError:
                 await websocket.close()
                 raise ChatConnectFailed.websocket_upgrade_failed()
+            except Exception:
+                await websocket.close()
+                raise
 
             if (
                 pong_packet.engine_packet_type != EnginePacketType.PONG
                 or pong_packet.data != "probe"
             ):
+                await websocket.close()
                 raise ChatConnectFailed.websocket_upgrade_failed()
 
             upgrade_packet = Packet(EnginePacketType.UPGRADE)
@@ -297,6 +302,9 @@ class ChzzkGateway:
             except asyncio.TimeoutError:
                 await websocket.close()
                 raise ChatConnectFailed.websocket_connect_failed()
+            except Exception:
+                await websocket.close()
+                raise
 
             query = base_url.query.copy()
             query["sid"] = open_packet.sid
@@ -328,6 +336,7 @@ class ChzzkGateway:
         )
 
         if response.status >= 300 or response.status < 200:
+            response.release()
             raise ReceiveErrorPacket(self.current_transport, response.status)
 
         raw_payload = await response.read()
@@ -359,7 +368,9 @@ class ChzzkGateway:
         write_response = await self.session.request(
             "POST", self.base_url, data=data.encode()
         )
-        if 200 < write_response.status or write_response.status >= 300:
+        # The body is never read, so give the connection back on every path.
+        write_response.release()
+        if write_response.status < 200 or write_response.status >= 300:
             raise HTTPException(write_response.status)
         return
 

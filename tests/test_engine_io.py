@@ -8,11 +8,12 @@ Tests low-level communication integrity and connection processes.
 
 import asyncio
 
+import aiohttp
 import pytest
 
 from chzzkpy.enums import EnginePacketType, SocketPacketType
-from chzzkpy.error import ChatConnectFailed, ReceiveErrorPacket
-from chzzkpy.gateway import ChzzkGateway
+from chzzkpy.error import ChatConnectFailed, HTTPException, ReceiveErrorPacket
+from chzzkpy.gateway import ChzzkGateway, OpenPacketInfo
 from chzzkpy.packet import Packet
 from chzzkpy.payload import Payload
 
@@ -37,6 +38,25 @@ def guard_read_loop_spinning(gateway: ChzzkGateway, limit: int = 100):
         await read_loop()
 
     gateway._read_loop = guarded_read_loop
+
+
+def acquired_connections(session: aiohttp.ClientSession) -> int:
+    """Count the connections of the session that haven't been given back."""
+    return len(session.connector._acquired)
+
+
+def track_websockets(monkeypatch) -> list[aiohttp.ClientWebSocketResponse]:
+    """Record the websockets opened by aiohttp, even if the connect then fails."""
+    websockets = []
+    ws_connect = aiohttp.ClientSession.ws_connect
+
+    async def tracked_ws_connect(self, *args, **kwargs):
+        websocket = await ws_connect(self, *args, **kwargs)
+        websockets.append(websocket)
+        return websocket
+
+    monkeypatch.setattr(aiohttp.ClientSession, "ws_connect", tracked_ws_connect)
+    return websockets
 
 
 @pytest.mark.asyncio
@@ -777,3 +797,201 @@ class TestEngineIOTransportUpgrade:
         assert gateway.current_transport == "websocket"
 
         await gateway.disconnect()
+
+
+@pytest.mark.asyncio
+class TestEngineIOPollingResponses:
+    """Test the HTTP responses of the polling transport are judged and released."""
+
+    @staticmethod
+    async def connect_polling(mock_server, session) -> ChzzkGateway:
+        mock_server.upgrades = []
+        gateway = await ChzzkGateway._connect_polling(
+            url=mock_server.url,
+            engine_path="socket.io",
+            loop=asyncio.get_running_loop(),
+            session=session,
+            ssl=False,
+        )
+        assert gateway.current_transport == "polling"
+        return gateway
+
+    @pytest.mark.parametrize("status", [201, 202, 204])
+    async def test_write_accepts_any_2xx_status(
+        self, mock_server, test_session, status
+    ):
+        """Test a polling write answered with a 2xx status other than 200 succeeds."""
+        mock_server._post_status = status
+        gateway = await self.connect_polling(mock_server, test_session)
+
+        # The heartbeat ping is answered the same way and must not end the connection
+        await asyncio.sleep(0.1)
+        assert gateway.is_connected
+
+        mock_server.received_messages.clear()
+        await gateway.send(
+            Packet(
+                EnginePacketType.MESSAGE,
+                SocketPacketType.EVENT,
+                data=["test_event", {"key": "value"}],
+            )
+        )
+        assert len(mock_server.received_messages) == 1
+        assert acquired_connections(test_session) == 0
+
+        await gateway.disconnect()
+
+    @pytest.mark.parametrize("status", [400, 500])
+    async def test_write_rejects_error_status(self, mock_server, test_session, status):
+        """Test a failed polling write raises and releases its response."""
+        gateway = await self.connect_polling(mock_server, test_session)
+        await asyncio.sleep(0.1)
+
+        mock_server._post_status = status
+        mock_server._error_body_size = 1024 * 1024
+        with pytest.raises(HTTPException) as error:
+            await gateway.send(Packet(EnginePacketType.PING))
+        assert str(status) in str(error.value)
+
+        # The traceback still refers to the response, so only release() frees it
+        assert acquired_connections(test_session) == 0
+
+        mock_server._post_status = None
+        await gateway.disconnect()
+
+    async def test_read_error_releases_response(self, mock_server, test_session):
+        """Test a failed poll releases its response before raising."""
+        gateway = await self.connect_polling(mock_server, test_session)
+        await asyncio.sleep(0.1)
+
+        mock_server._poll_error_status = 500
+        mock_server._error_body_size = 1024 * 1024
+        with pytest.raises(ReceiveErrorPacket) as error:
+            await gateway._read_polling()
+        assert error.value.data == 500
+        assert acquired_connections(test_session) == 0
+
+        mock_server._poll_error_status = None
+        await gateway.disconnect()
+
+    async def test_handshake_error_releases_response(self, mock_server, test_session):
+        """Test a failed polling handshake releases its response before raising."""
+        mock_server._handshake_error_status = 503
+        mock_server._error_body_size = 1024 * 1024
+
+        with pytest.raises(ChatConnectFailed) as error:
+            await ChzzkGateway._connect_polling(
+                url=mock_server.url,
+                engine_path="socket.io",
+                loop=asyncio.get_running_loop(),
+                session=test_session,
+                ssl=False,
+            )
+        assert "503" in str(error.value)
+        assert acquired_connections(test_session) == 0
+
+
+@pytest.mark.asyncio
+class TestEngineIOHandshakeCleanup:
+    """Test a websocket is closed when its connect handshake fails."""
+
+    @staticmethod
+    def upgrade_open_packet(mock_server) -> OpenPacketInfo:
+        return OpenPacketInfo(
+            sid=mock_server.sid,
+            upgrades=["websocket"],
+            ping_interval=int(mock_server.ping_interval),
+            ping_timeout=int(mock_server.ping_timeout),
+        )
+
+    @pytest.mark.parametrize(
+        "reply",
+        [
+            Packet(EnginePacketType.PONG, data="not-probe"),
+            Packet(EnginePacketType.PONG),
+            Packet(EnginePacketType.NOOP),
+        ],
+        ids=["wrong_data", "no_data", "other_packet"],
+    )
+    async def test_wrong_probe_reply_closes_websocket(
+        self, mock_server, test_session, monkeypatch, reply
+    ):
+        """Test the websocket is closed when the upgrade probe isn't answered."""
+        websockets = track_websockets(monkeypatch)
+        mock_server._probe_reply = reply.encode()
+
+        with pytest.raises(ChatConnectFailed):
+            await ChzzkGateway._connect_websocket(
+                url=mock_server.url,
+                engine_path="socket.io",
+                loop=asyncio.get_running_loop(),
+                session=test_session,
+                open_packet=self.upgrade_open_packet(mock_server),
+                ssl=False,
+            )
+
+        assert len(websockets) == 1
+        assert websockets[0].closed
+
+    async def test_malformed_probe_reply_closes_websocket(
+        self, mock_server, test_session, monkeypatch
+    ):
+        """Test the websocket is closed when the probe reply isn't a packet."""
+        websockets = track_websockets(monkeypatch)
+        mock_server._probe_reply = "not a packet"
+
+        with pytest.raises(ValueError):
+            await ChzzkGateway._connect_websocket(
+                url=mock_server.url,
+                engine_path="socket.io",
+                loop=asyncio.get_running_loop(),
+                session=test_session,
+                open_packet=self.upgrade_open_packet(mock_server),
+                ssl=False,
+            )
+
+        assert len(websockets) == 1
+        assert websockets[0].closed
+
+    async def test_failed_upgrade_falls_back_to_polling(
+        self, mock_server, test_session, monkeypatch
+    ):
+        """Test a failed probe leaves no websocket behind and keeps polling."""
+        websockets = track_websockets(monkeypatch)
+        mock_server._probe_reply = Packet(EnginePacketType.NOOP).encode()
+
+        gateway = await ChzzkGateway._connect_polling(
+            url=mock_server.url,
+            engine_path="socket.io",
+            loop=asyncio.get_running_loop(),
+            session=test_session,
+            ssl=False,
+        )
+
+        assert gateway.current_transport == "polling"
+        assert gateway.is_connected
+        assert [websocket.closed for websocket in websockets] == [True]
+
+        await gateway.disconnect()
+
+    @pytest.mark.parametrize(
+        "reply", ["not a packet", Packet(EnginePacketType.NOOP).encode()]
+    )
+    async def test_invalid_open_packet_closes_websocket(
+        self, mock_server, test_session, monkeypatch, reply
+    ):
+        """Test the websocket is closed when a direct connection gets no OPEN packet."""
+        websockets = track_websockets(monkeypatch)
+        mock_server._open_reply = reply
+
+        with pytest.raises(ValueError):
+            await ChzzkGateway._connect_websocket(
+                url=mock_server.url,
+                engine_path="socket.io",
+                loop=asyncio.get_running_loop(),
+                session=test_session,
+                ssl=False,
+            )
+
+        assert len(websockets) == 1
+        assert websockets[0].closed

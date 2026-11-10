@@ -41,6 +41,13 @@ class MockEngineIOServer:
         self._auto_pong = True
         self._accept_upgrade = True
         self._poll_error_status: Optional[int] = None
+        self._handshake_error_status: Optional[int] = None
+        self._post_status: Optional[int] = None
+        # A body the client can't buffer at once keeps its connection busy until the
+        # response is released.
+        self._error_body_size = 0
+        self._probe_reply: Optional[str] = None
+        self._open_reply: Optional[str] = None
 
     def _create_open_packet(self) -> Packet:
         """Create engine.io OPEN packet."""
@@ -56,6 +63,10 @@ class MockEngineIOServer:
         """Create socket.io CONNECT packet."""
         return Packet(EnginePacketType.MESSAGE, SocketPacketType.CONNECT)
 
+    def _status_response(self, status: int) -> web.Response:
+        """Create a response with only a status and an optional unread body."""
+        return web.Response(status=status, body=b"x" * self._error_body_size)
+
     async def handle_polling(self, request: web.Request) -> web.Response:
         """Handle engine.io polling transport."""
         sid = request.query.get("sid")
@@ -63,6 +74,9 @@ class MockEngineIOServer:
         if request.method == "GET":
             if sid is None:
                 # Initial handshake
+                if self._handshake_error_status is not None:
+                    return self._status_response(self._handshake_error_status)
+
                 payload = Payload(
                     packets=[
                         self._create_open_packet(),
@@ -75,7 +89,7 @@ class MockEngineIOServer:
                 )
             else:
                 if self._poll_error_status is not None:
-                    return web.Response(status=self._poll_error_status)
+                    return self._status_response(self._poll_error_status)
 
                 # Polling for messages
                 # Return empty or pending messages
@@ -91,6 +105,8 @@ class MockEngineIOServer:
             payload = Payload.decode(body)
             for packet in payload.packets:
                 self.received_messages.append(packet.encode())
+            if self._post_status is not None:
+                return self._status_response(self._post_status)
             return web.Response(text="ok")
 
         return web.Response(status=400)
@@ -104,8 +120,11 @@ class MockEngineIOServer:
 
         if sid is None:
             # Direct websocket connection (no upgrade)
-            open_packet = self._create_open_packet()
-            await ws.send_str(open_packet.encode())
+            if self._open_reply is not None:
+                await ws.send_str(self._open_reply)
+            else:
+                open_packet = self._create_open_packet()
+                await ws.send_str(open_packet.encode())
 
             # Send socket.io CONNECT
             connect_packet = self._create_socket_connect_packet()
@@ -131,9 +150,12 @@ class MockEngineIOServer:
                         packet.engine_packet_type == EnginePacketType.PING
                         and packet.data == "probe"
                     ):
-                        # Send pong probe
-                        pong_packet = Packet(EnginePacketType.PONG, data="probe")
-                        await ws.send_str(pong_packet.encode())
+                        # Send pong probe (or the configured reply instead)
+                        if self._probe_reply is not None:
+                            await ws.send_str(self._probe_reply)
+                        else:
+                            pong_packet = Packet(EnginePacketType.PONG, data="probe")
+                            await ws.send_str(pong_packet.encode())
 
                         if not self._accept_upgrade:
                             await ws.close()
