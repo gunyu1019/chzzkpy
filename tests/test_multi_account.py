@@ -26,7 +26,7 @@ import pytest
 import pytest_asyncio
 from aiohttp import web
 
-from chzzkpy import AccessToken, Client, UserPermission
+from chzzkpy import AccessToken, Client, UserClient, UserPermission
 from chzzkpy.enums import EnginePacketType, SocketPacketType
 from chzzkpy.error import ChatConnectFailed
 from chzzkpy.gateway import ChzzkGateway
@@ -70,6 +70,14 @@ class MockChzzkServer:
         self.ping_timeout_ms = 20000
         # Sessions of these accounts are closed right after the upgrade, before "connected".
         self.close_before_ready: set[str] = set()
+        # Statuses the next session requests are answered with, one per request, by
+        # account name (None for client sessions).
+        self.session_errors: dict[Optional[str], list[int]] = dict()
+        # A status every session request is answered with, by account name.
+        self.reject_sessions: dict[Optional[str], int] = dict()
+        # When False, the probe of a websocket upgrade is left unanswered.
+        self.answer_probe = True
+        self.probes = 0
 
         self._sessions_by_auth: dict[str, MockSession] = dict()
         self._sessions_by_sid: dict[str, MockSession] = dict()
@@ -129,6 +137,14 @@ class MockChzzkServer:
                 return session
         raise AssertionError(f"No session was issued for {owner_name!r}")
 
+    def sessions_of(self, owner_name: Optional[str]) -> list[MockSession]:
+        """Every session issued for an account (None means client sessions), oldest first."""
+        return [
+            session
+            for session in self.sessions.values()
+            if (session.owner.name if session.owner is not None else None) == owner_name
+        ]
+
     def requests_to(self, path_prefix: str) -> list[dict[str, Any]]:
         return [r for r in self.requests if r["path"].startswith(path_prefix)]
 
@@ -172,9 +188,16 @@ class MockChzzkServer:
             "query": dict(request.query),
             "token": request.headers.get("Authorization", "").partition(" ")[2],
             "body": body,
+            "time": asyncio.get_running_loop().time(),
         }
         self.requests.append(record)
         return record
+
+    def _session_error(self, owner_name: Optional[str]) -> Optional[int]:
+        queued = self.session_errors.get(owner_name)
+        if queued:
+            return queued.pop(0)
+        return self.reject_sessions.get(owner_name)
 
     def _new_session(self, owner: Optional[MockAccount]) -> MockSession:
         number = next(self._ids)
@@ -201,6 +224,9 @@ class MockChzzkServer:
         account = self._account_of(request)
         if account is None:
             return self._content(code=401, message="INVALID_TOKEN")
+        error = self._session_error(account.name)
+        if error is not None:
+            return self._content(code=error, message="SESSION_ERROR")
         session = self._new_session(owner=account)
         return self._content({"url": f"{self.url}/?auth={session.auth}"})
 
@@ -211,6 +237,9 @@ class MockChzzkServer:
             or request.headers.get("Client-Secret") != CLIENT_SECRET
         ):
             return self._content(code=401, message="INVALID_CLIENT")
+        error = self._session_error(None)
+        if error is not None:
+            return self._content(code=error, message="SESSION_ERROR")
         session = self._new_session(owner=None)
         return self._content({"url": f"{self.url}/?auth={session.auth}"})
 
@@ -333,7 +362,11 @@ class MockChzzkServer:
             packet = Packet.decode(message.data)
 
             if packet.engine_packet_type == EnginePacketType.PING:
-                if packet.data != "probe":
+                if packet.data == "probe":
+                    self.probes += 1
+                    if not self.answer_probe:
+                        continue
+                else:
                     session.pings += 1
                 await ws.send_str(
                     Packet(EnginePacketType.PONG, data=packet.data).encode()
@@ -509,7 +542,14 @@ async def client(server, monitor):
 
     yield instance
 
-    await instance.http.close()
+    # Disconnecting stops reconnecting, so no connection outlives the test. The methods
+    # of the class are called, as a test may have replaced them on the instance.
+    try:
+        await Client.disconnect(instance)
+        for user_client in instance.user_client:
+            await UserClient.disconnect(user_client)
+    finally:
+        await instance.http.close()
 
 
 @pytest.fixture
@@ -975,7 +1015,9 @@ class TestMultiAccountConcurrency:
     ):
         alice = await client.get_user_client(server.add_account("alice"))
         bob = await client.get_user_client(server.add_account("bob"))
-        await alice.connect(UserPermission(chat=True), addition_connect=True)
+        await alice.connect(
+            UserPermission(chat=True), addition_connect=True, reconnect=False
+        )
         await bob.connect(UserPermission(chat=True), addition_connect=True)
 
         await server.drop(server.session_of("alice"))

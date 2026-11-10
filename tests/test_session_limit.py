@@ -107,8 +107,8 @@ def hold(monkeypatch, server, client):
         instance.release()
 
 
-async def connect_sessions(client, count: int) -> list[str]:
-    return [await client.connect(addition_connect=True) for _ in range(count)]
+async def connect_sessions(client, count: int, **kwargs) -> list[str]:
+    return [await client.connect(addition_connect=True, **kwargs) for _ in range(count)]
 
 
 def is_max_connection(error: BaseException) -> bool:
@@ -304,7 +304,7 @@ class TestSlotRelease:
         await assert_has_room_for(client, 10)
 
     async def test_session_ended_by_itself_frees_a_slot(self, server, client):
-        await connect_sessions(client, 10)
+        await connect_sessions(client, 10, reconnect=False)
         await assert_full(client)
 
         await server.drop(server.session_of(None))
@@ -315,7 +315,7 @@ class TestSlotRelease:
     async def test_ended_session_frees_one_slot_while_connect_in_flight(
         self, server, client, hold
     ):
-        session_ids = await connect_sessions(client, 9)
+        session_ids = await connect_sessions(client, 9, reconnect=False)
         held = hold("handshake")
         first = asyncio.ensure_future(client.connect(addition_connect=True))
         await wait_until(lambda: held.arrived == 1)

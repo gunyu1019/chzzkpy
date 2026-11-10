@@ -5,7 +5,8 @@ Copyright (c) 2024-2025 gunyu1019
 Connection cleanup tests for the official chzzkpy package: what is left of a client
 session or a user session after its connection ends by itself (the server closes it or
 reading fails), when that races with `disconnect()`, and when a connected user client
-connects again.
+connects again. Tests of what remains after a connection ended connect with
+`reconnect=False`; reconnecting is tested in `test_reconnect.py`.
 
 The mock Chzzk server and fixtures are shared with `test_multi_account.py`.
 """
@@ -114,8 +115,8 @@ async def race_drop_with_disconnect(race, server, mock_session, gateway, disconn
 @pytest.mark.asyncio
 class TestClientSessionEnded:
     async def test_dropped_session_is_removed_and_closed(self, server, client):
-        first = await client.connect(addition_connect=True)
-        second = await client.connect(addition_connect=True)
+        first = await client.connect(addition_connect=True, reconnect=False)
+        second = await client.connect(addition_connect=True, reconnect=False)
         gateways = dict(client._gateway)
 
         await server.drop(server.sessions[first])
@@ -155,7 +156,7 @@ class TestClientSessionEnded:
 
     async def test_connect_succeeds_after_ten_drops(self, server, client):
         for _ in range(10):
-            session_id = await client.connect(addition_connect=True)
+            session_id = await client.connect(addition_connect=True, reconnect=False)
             gateway = client._gateway[session_id]
             await server.drop(server.sessions[session_id])
             await wait_ended(gateway)
@@ -169,7 +170,7 @@ class TestClientSessionEnded:
     async def test_blocking_connect_returns_after_drop(
         self, server, client, session_closes
     ):
-        blocking_connect = asyncio.ensure_future(client.connect())
+        blocking_connect = asyncio.ensure_future(client.connect(reconnect=False))
         await wait_until(lambda: len(client._gateway) == 1)
         session_id, gateway = next(iter(client._gateway.items()))
 
@@ -185,7 +186,7 @@ class TestClientSessionEnded:
     async def test_read_error_ends_blocking_connect_and_cleans_up(
         self, monkeypatch, server, client
     ):
-        blocking_connect = asyncio.ensure_future(client.connect())
+        blocking_connect = asyncio.ensure_future(client.connect(reconnect=False))
         await wait_until(lambda: len(client._gateway) == 1)
         session_id, gateway = next(iter(client._gateway.items()))
 
@@ -226,7 +227,9 @@ class TestClientSessionEnded:
 class TestUserSessionEnded:
     async def test_dropped_session_resets_user_client(self, server, client, events):
         alice = await client.get_user_client(server.add_account("alice"))
-        await alice.connect(UserPermission(chat=True), addition_connect=True)
+        await alice.connect(
+            UserPermission(chat=True), addition_connect=True, reconnect=False
+        )
         gateway = alice._gateway
         dropped = server.session_of("alice")
 
@@ -256,7 +259,7 @@ class TestUserSessionEnded:
         alice = await client.get_user_client(server.add_account("alice"))
         subscribed = notify_subscribed(monkeypatch, alice)
         blocking_connect = asyncio.ensure_future(
-            alice.connect(UserPermission(chat=True))
+            alice.connect(UserPermission(chat=True), reconnect=False)
         )
         await asyncio.wait_for(subscribed.wait(), timeout=2.0)
         gateway = alice._gateway

@@ -264,51 +264,47 @@ class ChzzkGateway:
 
         websocket = await session.ws_connect(base_url)
 
-        if upgrade:
-            ping_packet = Packet(EnginePacketType.PING, data="probe")
+        # The websocket is closed whenever the handshake fails, also when it's cancelled.
+        try:
+            if upgrade:
+                ping_packet = Packet(EnginePacketType.PING, data="probe")
 
-            await websocket.send_str(ping_packet.encode())
+                await websocket.send_str(ping_packet.encode())
 
-            # Add timeout to prevent infinite waiting
-            try:
-                raw_pong_packet = await asyncio.wait_for(
-                    websocket.receive(), timeout=5.0
-                )
+                # Add timeout to prevent infinite waiting
+                try:
+                    raw_pong_packet = await asyncio.wait_for(
+                        websocket.receive(), timeout=5.0
+                    )
+                except asyncio.TimeoutError:
+                    raise ChatConnectFailed.websocket_upgrade_failed()
                 pong_packet = Packet.decode(raw_pong_packet.data)
-            except asyncio.TimeoutError:
-                await websocket.close()
-                raise ChatConnectFailed.websocket_upgrade_failed()
-            except Exception:
-                await websocket.close()
-                raise
 
-            if (
-                pong_packet.engine_packet_type != EnginePacketType.PONG
-                or pong_packet.data != "probe"
-            ):
-                await websocket.close()
-                raise ChatConnectFailed.websocket_upgrade_failed()
+                if (
+                    pong_packet.engine_packet_type != EnginePacketType.PONG
+                    or pong_packet.data != "probe"
+                ):
+                    raise ChatConnectFailed.websocket_upgrade_failed()
 
-            upgrade_packet = Packet(EnginePacketType.UPGRADE)
-            await websocket.send_str(upgrade_packet.encode())
-        else:
-            # Direct websocket connection - receive OPEN packet
-            try:
-                raw_open_packet = await asyncio.wait_for(
-                    websocket.receive(), timeout=5.0
-                )
+                upgrade_packet = Packet(EnginePacketType.UPGRADE)
+                await websocket.send_str(upgrade_packet.encode())
+            else:
+                # Direct websocket connection - receive OPEN packet
+                try:
+                    raw_open_packet = await asyncio.wait_for(
+                        websocket.receive(), timeout=5.0
+                    )
+                except asyncio.TimeoutError:
+                    raise ChatConnectFailed.websocket_connect_failed()
                 raw_open_packet = Packet.decode(raw_open_packet.data)
                 open_packet = OpenPacketInfo.model_validate(raw_open_packet.data)
-            except asyncio.TimeoutError:
-                await websocket.close()
-                raise ChatConnectFailed.websocket_connect_failed()
-            except Exception:
-                await websocket.close()
-                raise
 
-            query = base_url.query.copy()
-            query["sid"] = open_packet.sid
-            base_url = base_url.with_query(query)
+                query = base_url.query.copy()
+                query["sid"] = open_packet.sid
+                base_url = base_url.with_query(query)
+        except BaseException:
+            await websocket.close()
+            raise
 
         session_id = open_packet.sid
 

@@ -27,6 +27,7 @@ import asyncio
 import aiohttp
 import datetime
 import logging
+import random
 
 from functools import partial, wraps
 from typing import Any, overload, TYPE_CHECKING
@@ -34,7 +35,8 @@ from yarl import URL
 
 from .authorization import AccessToken
 from .chat import ChatSetting
-from .error import ChatConnectFailed, ForbiddenException
+from .error import ChatConnectFailed, ForbiddenException, UnauthorizedException
+from .flags import UserPermission
 from .gateway import ChzzkGateway
 from .http import ChzzkOpenAPISession
 from .live import BrodecastSetting, Live
@@ -51,7 +53,6 @@ if TYPE_CHECKING:
     from .channel import Channel, ChannelPermission, FollowerInfo, SubscriberInfo
     from .category import Category
     from .enums import FollowingPeriod
-    from .flags import UserPermission
     from .restriction import RestrictUser
     from .session import EventSubscribeMessage
 
@@ -70,6 +71,20 @@ class _LoopSentinel:
 _log = logging.getLogger(__name__)
 
 _SUBSCRIBED_EVENT_TIMEOUT = 10.0
+# The wait before a reconnection attempt starts at the initial delay and doubles up to the maximum.
+_RECONNECT_INITIAL_DELAY = 1.0
+_RECONNECT_MAX_DELAY = 60.0
+
+
+def _reconnect_delay(delay: float) -> float:
+    """Returns how long to wait before a reconnection attempt: ``delay`` with jitter."""
+    return random.uniform(delay / 2, delay)
+
+
+def _consume_exception(future: asyncio.Future) -> None:
+    # The exception is raised by a blocking connect() if one is waiting for it.
+    if not future.cancelled():
+        future.exception()
 
 
 async def _connect_gateway(
@@ -95,8 +110,9 @@ async def _close_gateway(gateway: ChzzkGateway) -> None:
 
 def _close_gateway_in_background(
     gateway: ChzzkGateway, tasks: set[asyncio.Task]
-) -> None:
-    """Closes ``gateway`` in a task that is kept in ``tasks`` until it's done."""
+) -> asyncio.Task:
+    """Closes ``gateway`` in a task that is kept in ``tasks`` until it's done.
+    Cancelling whoever waits for the task doesn't stop the closing."""
 
     async def close():
         try:
@@ -107,6 +123,7 @@ def _close_gateway_in_background(
     task = gateway.loop.create_task(close())
     tasks.add(task)
     task.add_done_callback(tasks.discard)
+    return task
 
 
 async def _wait_closed(tasks: set[asyncio.Task]) -> None:
@@ -122,6 +139,26 @@ async def _wait_until_ready(ready: asyncio.Future, read_task: asyncio.Task) -> A
         reason = None if read_task.cancelled() else read_task.exception()
         raise ChatConnectFailed.session_closed_before_ready() from reason
     return ready.result()
+
+
+class _ClientSession:
+    """A client session connected by :meth:`Client.connect`, kept across its reconnections."""
+
+    def __init__(
+        self, key: str, ssl: bool, reconnect: bool, loop: asyncio.AbstractEventLoop
+    ):
+        # The current session key, or the last one while reconnecting.
+        self.key = key
+        self.keys: list[str] = [key]
+        self.ssl = ssl
+        self.reconnect = reconnect
+        # Events subscribed by user clients, subscribed again after reconnecting.
+        self.subscriptions: dict[UserClient, UserPermission] = dict()
+        self.reconnect_timer: Optional[asyncio.TimerHandle] = None
+        self.reconnect_task: Optional[asyncio.Task] = None
+        # Done when the session has ended for good.
+        self.ended: asyncio.Future = loop.create_future()
+        self.ended.add_done_callback(_consume_exception)
 
 
 class BaseEventManager:
@@ -179,6 +216,9 @@ class BaseEventManager:
         A list of events that the client can listen to.
         * `on_chat`: Called when a Message is created and sent.
         * `on_connect`: Called when the client is done preparing the data received from Chzzk.
+          It's called with the session key, again with the new key after reconnecting.
+        * `on_disconnect`: Called with the session key when the connection of a session ends,
+          either by itself (before reconnecting) or by `disconnect()`.
         * `on_donation`: Called when a listener donates
         * `on_error`: Called when event raise exception
 
@@ -285,7 +325,12 @@ class Client(BaseEventManager):
         self.http: Optional[ChzzkOpenAPISession] = None
         self.user_client: list[UserClient] = []
 
+        # The connected client sessions by their current session key.
         self._gateway: dict[str, ChzzkGateway] = dict()
+        # Client sessions that haven't ended, including the ones reconnecting.
+        self._client_sessions: list[_ClientSession] = []
+        # Every session key a client session has had, so that the old keys keep working.
+        self._session_keys: dict[str, _ClientSession] = dict()
         # Number of connect() calls that haven't registered their session yet.
         self._connecting = 0
         self._gateway_ready = asyncio.Event()
@@ -331,23 +376,46 @@ class Client(BaseEventManager):
         user_client.channel_id = channel_id
         subscribed.set_result(None)
 
+    def _client_session_of(self, session_id: str) -> Optional[_ClientSession]:
+        """Returns the client session that has had ``session_id`` as its session key."""
+        return self._session_keys.get(session_id)
+
     async def _subscribe_on_client_session(
-        self, user_client: UserClient, permission: UserPermission, session_id: str
+        self,
+        user_client: UserClient,
+        permission: UserPermission,
+        session_id: str,
+        subscribed_events: Optional[UserPermission] = None,
     ):
         async with self._subscription_lock:
             subscribed = self.loop.create_future()
             learnable = session_id not in self._ambiguous_sessions
             if learnable:
                 self._pending_subscription = (session_id, user_client, subscribed)
+            gateway = None
             try:
-                requested = await user_client._subscribe_events(permission, session_id)
+                requested = await user_client._subscribe_events(
+                    permission, session_id, subscribed_events
+                )
+                gateway = self._gateway.get(session_id)
                 # The event may arrive before or after the response of the subscription.
-                if learnable and requested and session_id in self._gateway:
-                    await asyncio.wait((subscribed,), timeout=_SUBSCRIBED_EVENT_TIMEOUT)
+                if learnable and requested and gateway is not None:
+                    # Stops waiting at once when the connection of the session ends.
+                    await asyncio.wait(
+                        (subscribed, gateway._read_background_loop),
+                        timeout=_SUBSCRIBED_EVENT_TIMEOUT,
+                        return_when=asyncio.FIRST_COMPLETED,
+                    )
             finally:
                 self._pending_subscription = None
 
-            if subscribed.done() or not requested or session_id not in self._gateway:
+            if (
+                subscribed.done()
+                or not requested
+                or gateway is None
+                or gateway._read_background_loop.done()
+                or self._gateway.get(session_id) is not gateway
+            ):
                 return
             # A late "subscribed" event can't be told apart from another account's.
             self._ambiguous_sessions.add(session_id)
@@ -638,30 +706,50 @@ class Client(BaseEventManager):
     async def wait_until_connect(self):
         """Waits until a client session connected by :meth:`connect` is ready.
         It returns immediately while a client session is connected,
-        and waits again after all client sessions are disconnected by :meth:`disconnect`
-        or their connections have ended.
+        and waits again after all client sessions are disconnected by :meth:`disconnect`,
+        their connections have ended or they're reconnecting.
         """
         await self._gateway_ready.wait()
         return
 
     @initial_async_setup
-    async def connect(self, addition_connect: bool = False, ssl: bool = True) -> str:
+    async def connect(
+        self,
+        addition_connect: bool = False,
+        ssl: bool = True,
+        *,
+        reconnect: bool = True,
+    ) -> str:
         """Connect to session to handle donation or chatting
         A Client session can have more than one connection. (Maximum Connection: 10)
 
-        When the connection of a client session ends by itself (e.g. the server closes it),
-        the session is removed and no longer counts toward the maximum.
-        It isn't reconnected automatically.
+        When the connection of a client session ends by itself (e.g. the server closes it
+        or the network drops), the session is reconnected automatically, unless reconnect is False.
+        A reconnected session has a new session key, but the session key returned by this method
+        (and every key the session has had) keeps working with :meth:`disconnect`,
+        :meth:`UserClient.subscribe` and :meth:`UserClient.unsubscribe`.
+        The events user clients have subscribed on the session are subscribed on the new session.
+        A session being reconnected keeps counting toward the maximum.
 
         Parameters
         ----------
         addition_connect : Optional[bool]
             This parameter used for multiple connections, by default False
             If addition_connect is False, the connection is completed and a main task is blocked to wait for a response.
-            The main task is released when the connection ends.
+            The main task is released when the session is disconnected by :meth:`disconnect`,
+            or when its connection ends and it isn't reconnected.
+            With reconnect, it stays blocked while the session is reconnected.
+            Cancelling the main task disconnects the session and raises :exc:`asyncio.CancelledError`.
             However addition_connect is True, a task waiting for a response is processed in the background.
         ssl : bool
             Whether to use a secure connection (wss/https) to the session server, by default True.
+        reconnect : bool
+            Whether to reconnect the session when its connection ends by itself, by default True.
+            Reconnecting is retried, waiting from 1 second doubling up to 60 seconds (with jitter)
+            between attempts, until it succeeds or the session is disconnected by :meth:`disconnect`.
+            It stops when creating a new session is rejected (401 or 403).
+            When reconnect is False, a session whose connection has ended is removed
+            and no longer counts toward the maximum.
 
         Returns
         -------
@@ -683,38 +771,70 @@ class Client(BaseEventManager):
             A connection that is still being established counts toward the maximum.
         ChatConnectFailed.session_closed_before_ready
             The connection was closed before the session became ready.
+        UnauthorizedException
+            Raised by a blocking connect when reconnecting stopped because creating a session
+            was rejected (401). ForbiddenException is raised for 403.
         """
         # A connection being established takes a slot until its session is registered.
-        if len(self._gateway) + self._connecting >= 10:
+        if len(self._client_sessions) + self._connecting >= 10:
             raise ChatConnectFailed.max_connection()
 
         self._connecting += 1
         try:
-            session_key = await self.http.generate_client_session()
-            ready = self.loop.create_future()
-            gateway = await _connect_gateway(
-                session_key.content.url,
-                self._create_connection_state(ready),
-                self.loop,
-                ssl=ssl,
-            )
-            task = gateway.read_in_background()
-            try:
-                session_id = await _wait_until_ready(ready, task)
-            except BaseException:
-                await _close_gateway(gateway)
-                raise
-            self._gateway[session_id] = gateway
+            session_id, gateway, task = await self._open_client_session(ssl)
+            session = _ClientSession(session_id, ssl, reconnect, self.loop)
+            self._client_sessions.append(session)
+            self._register_gateway(session, session_id, gateway)
         finally:
             self._connecting -= 1
-        self._gateway_ready.set()
         task.add_done_callback(partial(self._on_connection_closed, session_id, gateway))
         if not addition_connect:
-            try:
-                await task
-            finally:
-                await _wait_closed(self._closing_tasks)
+            await self._wait_until_ended(session)
         return session_id
+
+    async def _open_client_session(
+        self, ssl: bool
+    ) -> tuple[str, ChzzkGateway, asyncio.Task]:
+        """Connects a new client session and waits until it's ready."""
+        session_key = await self.http.generate_client_session()
+        ready = self.loop.create_future()
+        gateway = await _connect_gateway(
+            session_key.content.url,
+            self._create_connection_state(ready),
+            self.loop,
+            ssl=ssl,
+        )
+        task = gateway.read_in_background()
+        try:
+            session_id = await _wait_until_ready(ready, task)
+        except BaseException:
+            await asyncio.wait(
+                (_close_gateway_in_background(gateway, self._closing_tasks),)
+            )
+            raise
+        return session_id, gateway, task
+
+    def _register_gateway(
+        self, session: _ClientSession, session_id: str, gateway: ChzzkGateway
+    ) -> None:
+        session.key = session_id
+        if session_id not in session.keys:
+            session.keys.append(session_id)
+        self._session_keys[session_id] = session
+        self._gateway[session_id] = gateway
+        self._gateway_ready.set()
+
+    async def _wait_until_ended(self, session: _ClientSession) -> None:
+        """Waits for a blocking connect() until the client session has ended for good."""
+        try:
+            # The read task isn't awaited: it would swallow the cancellation of the caller.
+            await asyncio.wait((session.ended,))
+        except asyncio.CancelledError:
+            await self._disconnect_sessions([session])
+            raise
+        finally:
+            await _wait_closed(self._closing_tasks)
+        session.ended.result()
 
     def _on_connection_closed(
         self, session_id: str, gateway: ChzzkGateway, read_task: asyncio.Task
@@ -722,11 +842,13 @@ class Client(BaseEventManager):
         """Called when the read task of a connected client session finishes.
 
         Unless :meth:`disconnect` has removed the session already, its connection
-        ended by itself: the session is removed and its gateway is closed.
+        ended by itself: its gateway is removed and closed, and the session is reconnected
+        or, without reconnect, removed.
         """
         reason = None if read_task.cancelled() else read_task.exception()
         if self._gateway.get(session_id) is not gateway:
             return
+        session = self._session_keys[session_id]
         _log.warning(
             "The connection of client session %s has ended.",
             session_id,
@@ -734,6 +856,99 @@ class Client(BaseEventManager):
         )
         self._remove_gateway(session_id)
         _close_gateway_in_background(gateway, self._closing_tasks)
+        self.dispatch("disconnect", session_id)
+        if session.reconnect:
+            # The first wait is a timer, not a task: a task made while the event loop
+            # shuts down (it cancels the read tasks) would be left pending.
+            session.reconnect_timer = self.loop.call_later(
+                _reconnect_delay(_RECONNECT_INITIAL_DELAY),
+                self._start_reconnecting,
+                session,
+            )
+        else:
+            self._forget_session(session)
+            self._release_session(session, reason)
+
+    def _start_reconnecting(self, session: _ClientSession) -> None:
+        session.reconnect_timer = None
+        session.reconnect_task = self.loop.create_task(self._reconnect(session))
+
+    async def _reconnect(self, session: _ClientSession) -> None:
+        """Connects a client session whose connection has ended by itself again."""
+        previous_id = session.key
+        delay = _RECONNECT_INITIAL_DELAY
+        try:
+            while True:
+                try:
+                    session_id, gateway, task = await self._reconnect_once(session)
+                except (UnauthorizedException, ForbiddenException) as exc:
+                    _log.error(
+                        "Stopped reconnecting client session %s: creating a session was rejected.",
+                        session.key,
+                        exc_info=exc,
+                    )
+                    session.reconnect_task = None
+                    self._forget_session(session)
+                    self._release_session(session, exc)
+                    return
+                except Exception:
+                    _log.warning(
+                        "Failed to reconnect client session %s, retrying.",
+                        session.key,
+                        exc_info=True,
+                    )
+                    delay = min(delay * 2, _RECONNECT_MAX_DELAY)
+                    await asyncio.sleep(_reconnect_delay(delay))
+                    continue
+                break
+        except asyncio.CancelledError:
+            if session.reconnect_task is asyncio.current_task():
+                # Cancelled by something else than disconnect(): it can't reconnect any more.
+                session.reconnect_task = None
+                self._forget_session(session)
+                self._release_session(session)
+            raise
+        session.reconnect_task = None
+        task.add_done_callback(partial(self._on_connection_closed, session_id, gateway))
+        _log.info(
+            "Client session %s has been reconnected as %s.", previous_id, session_id
+        )
+
+    async def _reconnect_once(
+        self, session: _ClientSession
+    ) -> tuple[str, ChzzkGateway, asyncio.Task]:
+        session_id, gateway, task = await self._open_client_session(session.ssl)
+        self._register_gateway(session, session_id, gateway)
+        try:
+            await self._subscribe_again(session, session_id)
+        except BaseException:
+            # disconnect() closes the gateway itself if it has removed it.
+            if self._gateway.get(session_id) is gateway:
+                self._remove_gateway(session_id)
+                _close_gateway_in_background(gateway, self._closing_tasks)
+                self.dispatch("disconnect", session_id)
+            raise
+        return session_id, gateway, task
+
+    async def _subscribe_again(self, session: _ClientSession, session_id: str) -> None:
+        """Subscribes the events user clients have subscribed on a client session
+        on its new session."""
+        for user_client, permission in list(session.subscriptions.items()):
+            if not permission:
+                continue
+            try:
+                await user_client._subscribe_again(
+                    UserPermission(permission.value), session_id
+                )
+            except (UnauthorizedException, ForbiddenException):
+                # Other user clients mustn't lose their events because of one access token.
+                _log.error(
+                    "Failed to subscribe events of a user client again on client session %s. "
+                    "Its events are no longer received on the session.",
+                    session_id,
+                    exc_info=True,
+                )
+                session.subscriptions.pop(user_client, None)
 
     def _remove_gateway(self, session_id: str) -> ChzzkGateway:
         gateway = self._gateway.pop(session_id)
@@ -742,22 +957,79 @@ class Client(BaseEventManager):
             self._gateway_ready.clear()
         return gateway
 
+    def _forget_session(self, session: _ClientSession) -> bool:
+        """Removes a client session that has ended for good, with every key it has had.
+        Returns False if it has been removed already."""
+        if session not in self._client_sessions:
+            return False
+        self._client_sessions.remove(session)
+        for key in session.keys:
+            if self._session_keys.get(key) is session:
+                del self._session_keys[key]
+        return True
+
+    @staticmethod
+    def _release_session(
+        session: _ClientSession, reason: Optional[BaseException] = None
+    ) -> None:
+        """Releases a blocking connect() of the session, raising ``reason`` from it."""
+        if session.ended.done():
+            return
+        if reason is None:
+            session.ended.set_result(None)
+        else:
+            session.ended.set_exception(reason)
+
+    def _stop_session(
+        self, session: _ClientSession
+    ) -> tuple[Optional[ChzzkGateway], Optional[asyncio.Task]]:
+        """Removes a client session and stops reconnecting it.
+        Returns its gateway to close and its cancelled reconnection to wait for."""
+        if not self._forget_session(session):
+            return None, None
+        if session.reconnect_timer is not None:
+            session.reconnect_timer.cancel()
+            session.reconnect_timer = None
+        reconnect_task, session.reconnect_task = session.reconnect_task, None
+        if reconnect_task is not None:
+            reconnect_task.cancel()
+        gateway = self._gateway.get(session.key)
+        if gateway is not None:
+            self._remove_gateway(session.key)
+            self.dispatch("disconnect", session.key)
+        return gateway, reconnect_task
+
+    async def _disconnect_sessions(self, sessions: list[_ClientSession]) -> None:
+        stopped = [self._stop_session(session) for session in sessions]
+        try:
+            for gateway, reconnect_task in stopped:
+                if gateway is not None:
+                    await _close_gateway(gateway)
+                if reconnect_task is not None:
+                    # A cancelled reconnection closes the connection it was making.
+                    await asyncio.wait((reconnect_task,))
+        finally:
+            for session in sessions:
+                self._release_session(session)
+
     async def disconnect(self, session_id: Optional[str] = None):
         """Disconnect from session.
+        It also stops reconnecting the session, even during an attempt.
 
         Parameters
         ----------
         session_id : Optional[str]
             A session ID returned by :meth:`connect` to disconnect from session.
+            Any session key the session has had after reconnecting can be used too.
             When session parameter is empty, all client sessions are disconnected.
             A session whose connection has already ended is ignored.
         """
-        session_ids = list(self._gateway.keys()) if session_id is None else [session_id]
-        gateways = [
-            self._remove_gateway(key) for key in session_ids if key in self._gateway
-        ]
-        for gateway in gateways:
-            await _close_gateway(gateway)
+        if session_id is None:
+            sessions = list(self._client_sessions)
+        else:
+            session = self._client_session_of(session_id)
+            sessions = [] if session is None else [session]
+        await self._disconnect_sessions(sessions)
         await _wait_closed(self._closing_tasks)
 
 
@@ -785,6 +1057,16 @@ class UserClient:
         self._session_id: Optional[str] = None
         self._connect_lock = asyncio.Lock()
         self._closing_tasks: set[asyncio.Task] = set()
+
+        # Options of the connection made by connect().
+        self._ssl = True
+        self._reconnect = True
+        self._reconnect_timer: Optional[asyncio.TimerHandle] = None
+        self._reconnect_task: Optional[asyncio.Task] = None
+        # Done when the connection made by connect() has ended for good.
+        self._ended: Optional[asyncio.Future] = None
+        # Events subscribed on the user session, subscribed again after reconnecting.
+        self._subscribed_events = UserPermission()
 
         self.channel_id: Optional[str] = None
         self.channel_name: Optional[str] = None
@@ -913,13 +1195,20 @@ class UserClient:
         permission: UserPermission,
         addition_connect: bool = False,
         ssl: bool = True,
+        *,
+        reconnect: bool = True,
     ):
         """Connect to user session to handle donation or chatting
         If the user client is already connected, the previous connection is disconnected first.
 
-        When the connection ends by itself (e.g. the server closes it),
-        the user client is reset, so :attr:`is_connected` returns False and it can connect again.
-        It isn't reconnected automatically.
+        When the connection ends by itself (e.g. the server closes it or the network drops),
+        the user client is reconnected automatically, unless reconnect is False.
+        A reconnected user session has a new session ID, and the events this user client has
+        subscribed on its user session (``permission`` and later :meth:`subscribe` and
+        :meth:`unsubscribe` calls) are subscribed on it.
+        While reconnecting, :attr:`is_connected` returns False.
+        Without reconnect, the user client is reset, so :attr:`is_connected` returns False
+        and it can connect again.
 
         Parameters
         ----------
@@ -929,10 +1218,19 @@ class UserClient:
         addition_connect : Optional[bool]
             This parameter used for multiple connections, by default False
             If addition_connect is False, the connection is completed and a main task is blocked to wait for a response.
-            The main task is released when the connection ends.
+            The main task is released when the user client is disconnected by :meth:`disconnect`
+            (or connects again), or when the connection ends and it isn't reconnected.
+            With reconnect, it stays blocked while the user client is reconnected.
+            Cancelling the main task disconnects the user client and raises :exc:`asyncio.CancelledError`.
             However addition_connect is True, a task waiting for a response is processed in the background.
         ssl : bool
             Whether to use a secure connection (wss/https) to the session server, by default True.
+        reconnect : bool
+            Whether to reconnect when the connection ends by itself, by default True.
+            Reconnecting is retried, waiting from 1 second doubling up to 60 seconds (with jitter)
+            between attempts, until it succeeds or the user client is disconnected by :meth:`disconnect`.
+            When the access token is rejected (401 or 403), it's refreshed once by :meth:`refresh`;
+            if it's still rejected, reconnecting stops.
 
         Returns
         -------
@@ -950,35 +1248,76 @@ class UserClient:
         ------
         ChatConnectFailed.session_closed_before_ready
             The connection was closed before the session became ready.
+        UnauthorizedException
+            Raised by a blocking connect when reconnecting stopped because the access token
+            was rejected (401). ForbiddenException is raised for 403.
         """
         # The connections share the state of this user client, so they're made one at a time.
         async with self._connect_lock:
             await self.disconnect()
-            session_key = await self.http.generate_user_session(token=self.access_token)
-            self._session_id = None
-            self._gateway_ready.clear()
-            gateway = self._gateway = await _connect_gateway(
-                session_key.content.url, self._connection, self.loop, ssl=ssl
-            )
-            task = gateway.read_in_background()
-            ready = self.loop.create_task(self._gateway_ready.wait())
+            self._ssl = ssl
+            self._reconnect = reconnect
+            self._subscribed_events = UserPermission()
+            gateway, task = await self._open_connection()
+            session_id = self._session_id
+            ended = self._ended = self.loop.create_future()
+            ended.add_done_callback(_consume_exception)
             try:
-                await _wait_until_ready(ready, task)
-            except BaseException:
+                await self.subscribe(permission, session_id)
+            except asyncio.CancelledError:
                 await self.disconnect()
                 raise
             finally:
-                ready.cancel()
-            self._gateway_id = gateway.session_id
-            task.add_done_callback(partial(self._on_connection_closed, gateway))
-            session_id = self._session_id
-            await self.subscribe(permission, session_id)
+                # Attached once subscribed, so reconnecting knows the subscribed events.
+                task.add_done_callback(partial(self._on_connection_closed, gateway))
         if not addition_connect:
-            try:
-                await task
-            finally:
-                await _wait_closed(self._closing_tasks)
+            await self._wait_until_ended(ended)
         return session_id
+
+    async def _open_connection(self) -> tuple[ChzzkGateway, asyncio.Task]:
+        """Connects a new user session and waits until it's ready."""
+        session_key = await self.http.generate_user_session(token=self.access_token)
+        self._session_id = None
+        self._gateway_ready.clear()
+        gateway = self._gateway = await _connect_gateway(
+            session_key.content.url, self._connection, self.loop, ssl=self._ssl
+        )
+        task = gateway.read_in_background()
+        ready = self.loop.create_task(self._gateway_ready.wait())
+        try:
+            await _wait_until_ready(ready, task)
+        except BaseException:
+            await self._discard_gateway(gateway)
+            raise
+        finally:
+            ready.cancel()
+        self._gateway_id = gateway.session_id
+        return gateway, task
+
+    async def _discard_gateway(self, gateway: ChzzkGateway) -> None:
+        """Closes a connection that failed to be set up, unless :meth:`disconnect` has
+        closed it already."""
+        if self._gateway is not gateway:
+            return
+        session_id = self._session_id
+        self._remove_gateway()
+        self._dispatch_disconnect(session_id)
+        await asyncio.wait(
+            (_close_gateway_in_background(gateway, self._closing_tasks),)
+        )
+
+    async def _wait_until_ended(self, ended: asyncio.Future) -> None:
+        """Waits for a blocking connect() until the connection has ended for good."""
+        try:
+            # The read task isn't awaited: it would swallow the cancellation of the caller.
+            await asyncio.wait((ended,))
+        except asyncio.CancelledError:
+            if self._ended is ended:
+                await self.disconnect()
+            raise
+        finally:
+            await _wait_closed(self._closing_tasks)
+        ended.result()
 
     def _on_connection_closed(
         self, gateway: ChzzkGateway, read_task: asyncio.Task
@@ -986,18 +1325,121 @@ class UserClient:
         """Called when the read task of the connected user session finishes.
 
         Unless :meth:`disconnect` has removed the gateway already, its connection
-        ended by itself: the user client is reset and the gateway is closed.
+        ended by itself: the user client is reset, the gateway is closed and,
+        with reconnect, it's reconnected.
         """
         reason = None if read_task.cancelled() else read_task.exception()
         if self._gateway is not gateway:
             return
+        session_id = self._session_id
         _log.warning(
             "The connection of user session %s has ended.",
-            self._session_id,
+            session_id,
             exc_info=reason,
         )
         self._remove_gateway()
         _close_gateway_in_background(gateway, self._closing_tasks)
+        self._dispatch_disconnect(session_id)
+        if self._reconnect:
+            # The first wait is a timer, not a task: a task made while the event loop
+            # shuts down (it cancels the read tasks) would be left pending.
+            self._reconnect_timer = self.loop.call_later(
+                _reconnect_delay(_RECONNECT_INITIAL_DELAY), self._start_reconnecting
+            )
+        else:
+            self._end_connection(reason)
+
+    def _start_reconnecting(self) -> None:
+        self._reconnect_timer = None
+        self._reconnect_task = self.loop.create_task(self._reconnect_session())
+
+    async def _reconnect_session(self) -> None:
+        """Connects the user session again after its connection has ended by itself."""
+        delay = _RECONNECT_INITIAL_DELAY
+        refreshed = False
+        try:
+            while True:
+                try:
+                    try:
+                        gateway, task = await self._reconnect_once()
+                    except (UnauthorizedException, ForbiddenException) as exc:
+                        if refreshed:
+                            raise
+                        refreshed = True
+                        try:
+                            await self.refresh()
+                        except Exception:
+                            _log.warning(
+                                "Failed to refresh the access token.", exc_info=True
+                            )
+                            raise exc
+                        gateway, task = await self._reconnect_once()
+                except (UnauthorizedException, ForbiddenException) as exc:
+                    _log.error(
+                        "Stopped reconnecting the user session: the access token was rejected.",
+                        exc_info=exc,
+                    )
+                    self._reconnect_task = None
+                    self._end_connection(exc)
+                    return
+                except Exception:
+                    _log.warning(
+                        "Failed to reconnect the user session, retrying.", exc_info=True
+                    )
+                    delay = min(delay * 2, _RECONNECT_MAX_DELAY)
+                    await asyncio.sleep(_reconnect_delay(delay))
+                    continue
+                break
+        except asyncio.CancelledError:
+            if self._reconnect_task is asyncio.current_task():
+                # Cancelled by something else than disconnect(): it can't reconnect any more.
+                self._reconnect_task = None
+                self._end_connection()
+            raise
+        self._reconnect_task = None
+        task.add_done_callback(partial(self._on_connection_closed, gateway))
+        _log.info("User session has been reconnected as %s.", self._session_id)
+
+    async def _reconnect_once(self) -> tuple[ChzzkGateway, asyncio.Task]:
+        gateway, task = await self._open_connection()
+        try:
+            await self._subscribe_events(
+                UserPermission(self._subscribed_events.value), self._session_id
+            )
+        except BaseException:
+            await self._discard_gateway(gateway)
+            raise
+        return gateway, task
+
+    async def _subscribe_again(
+        self, permission: UserPermission, session_id: str
+    ) -> None:
+        """Subscribes events again on a reconnected client session.
+        A rejected access token is refreshed once."""
+        try:
+            await self.subscribe(permission, session_id)
+        except (UnauthorizedException, ForbiddenException) as exc:
+            try:
+                await self.refresh()
+            except Exception:
+                _log.warning("Failed to refresh the access token.", exc_info=True)
+                raise exc
+            await self.subscribe(permission, session_id)
+
+    def _dispatch_disconnect(self, session_id: Optional[str]) -> None:
+        # A connection that never became ready had no session.
+        if session_id is not None:
+            self.dispatch("disconnect", session_id)
+
+    def _end_connection(self, reason: Optional[BaseException] = None) -> None:
+        """Releases a blocking connect(), raising ``reason`` from it."""
+        ended, self._ended = self._ended, None
+        if ended is None or ended.done():
+            return
+        if reason is None:
+            ended.set_result(None)
+        else:
+            ended.set_exception(reason)
 
     def _remove_gateway(self) -> None:
         self._gateway = None
@@ -1006,12 +1448,42 @@ class UserClient:
         self._gateway_ready.clear()
 
     async def disconnect(self):
-        """Disconnect from session."""
+        """Disconnect from session.
+        It also stops reconnecting, even during an attempt."""
+        if self._reconnect_timer is not None:
+            self._reconnect_timer.cancel()
+            self._reconnect_timer = None
+        reconnect_task, self._reconnect_task = self._reconnect_task, None
+        if reconnect_task is not None:
+            reconnect_task.cancel()
         gateway = self._gateway
-        if gateway is not None:
-            self._remove_gateway()
-            await _close_gateway(gateway)
+        try:
+            if gateway is not None:
+                session_id = self._session_id
+                self._remove_gateway()
+                self._dispatch_disconnect(session_id)
+                await _close_gateway(gateway)
+            if reconnect_task is not None:
+                # A cancelled reconnection closes the connection it was making.
+                await asyncio.wait((reconnect_task,))
+        finally:
+            self._end_connection()
         await _wait_closed(self._closing_tasks)
+
+    def _subscriptions_of(
+        self, session_id: str
+    ) -> tuple[str, Optional[UserPermission]]:
+        """Returns the current key of a session and the events this user client has
+        subscribed on it, if they're subscribed again after reconnecting."""
+        client_session = self.parent_client._client_session_of(session_id)
+        if client_session is not None:
+            subscribed_events = client_session.subscriptions.setdefault(
+                self, UserPermission()
+            )
+            return client_session.key, subscribed_events
+        if session_id == self._session_id:
+            return session_id, self._subscribed_events
+        return session_id, None
 
     @refreshable
     async def subscribe(
@@ -1022,6 +1494,8 @@ class UserClient:
 
         If the channel ID of this client is unknown (without "유저 정보 조회" API Scope),
         it's obtained from the subscription event of the session.
+
+        The subscribed events are subscribed again when the session is reconnected.
 
         Parameters
         ----------
@@ -1037,16 +1511,20 @@ class UserClient:
                 "A session_id is not filled. Connect to session using UserClient.connect() method or Client.connect()."
             )
 
+        session_id, subscribed_events = self._subscriptions_of(session_id)
         if self.channel_id is None and session_id != self._session_id:
             await self.parent_client._subscribe_on_client_session(
-                self, permission, session_id
+                self, permission, session_id, subscribed_events
             )
             return
-        await self._subscribe_events(permission, session_id)
+        await self._subscribe_events(permission, session_id, subscribed_events)
         return
 
     async def _subscribe_events(
-        self, permission: UserPermission, session_id: str
+        self,
+        permission: UserPermission,
+        session_id: str,
+        subscribed_events: Optional[UserPermission] = None,
     ) -> bool:
         requested = False
         for permission_name, condition in permission:
@@ -1055,6 +1533,8 @@ class UserClient:
             await self.http.subcribe_event(
                 event=permission_name, session_key=session_id, token=self.access_token
             )
+            if subscribed_events is not None:
+                setattr(subscribed_events, permission_name, True)
             _log.debug(f"Subscribe {permission_name.upper()} Event")
             requested = True
         return requested
@@ -1079,6 +1559,7 @@ class UserClient:
                 "A session_id is not filled. Connect to session using UserClient.connect() method or Client.connect()."
             )
 
+        session_id, subscribed_events = self._subscriptions_of(session_id)
         for permission_name, condition in permission:
             if not condition:
                 continue
@@ -1086,6 +1567,8 @@ class UserClient:
             await self.http.unsubcribe_event(
                 event=permission_name, session_key=session_id, token=self.access_token
             )
+            if subscribed_events is not None:
+                setattr(subscribed_events, permission_name, False)
             _log.debug(f"Unsubscribe {permission_name.upper()} Event")
         return
 
