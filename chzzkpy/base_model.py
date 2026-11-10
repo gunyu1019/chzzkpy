@@ -109,10 +109,6 @@ class ChannelSearchResult(SearchResult, Generic[T]):
     total_count: int
     total_pages: int
 
-    def __init__(self, *args, **kwargs):
-        print(kwargs)
-        super().__init__(*args, **kwargs)
-
     async def next(self) -> Optional[ChannelSearchResult]:
         if self._page + 1 >= self.total_pages:
             raise TypeError("This is the last page of search result.")

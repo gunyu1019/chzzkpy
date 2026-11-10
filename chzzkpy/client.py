@@ -44,6 +44,7 @@ from .state import ConnectionState
 
 if TYPE_CHECKING:
     from aiohttp.web import Response as webResponse
+    from types import TracebackType
     from typing import Self, Literal, Optional, Callable, Coroutine
 
     from .base_model import SearchResult, ChannelSearchResult
@@ -334,6 +335,20 @@ class Client(BaseEventManager):
     async def __aenter__(self) -> Self:
         await self._async_setup_hook()
         return self
+
+    async def __aexit__(
+        self,
+        exc_type: Optional[type[BaseException]],
+        exc_value: Optional[BaseException],
+        traceback: Optional[TracebackType],
+    ) -> None:
+        try:
+            await self.disconnect()
+            for user_client in self.user_client:
+                await user_client.disconnect()
+        finally:
+            if self.http is not None:
+                await self.http.close()
 
     async def _async_setup_hook(self) -> None:
         if isinstance(self.loop, _LoopSentinel):
@@ -716,9 +731,8 @@ class UserClient:
     def is_expired(self) -> bool:
         """An access token for user expires after a certain amount of time.
         Returns status that an access token had been expired."""
-        return (
-            datetime.datetime.now() - self._token_generated_at
-        ).hours > self.access_token.expires_in
+        elapsed = datetime.datetime.now() - self._token_generated_at
+        return elapsed.total_seconds() > self.access_token.expires_in
 
     @staticmethod
     def refreshable(func):
