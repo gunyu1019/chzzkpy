@@ -75,6 +75,8 @@ class MockChzzkServer:
         self.session_errors: dict[Optional[str], list[int]] = dict()
         # A status every session request is answered with, by account name.
         self.reject_sessions: dict[Optional[str], int] = dict()
+        # Statuses the next subscription requests are answered with, one per request.
+        self.subscribe_errors: list[int] = []
         # When False, the probe of a websocket upgrade is left unanswered.
         self.answer_probe = True
         self.probes = 0
@@ -257,6 +259,11 @@ class MockChzzkServer:
             )
         if session.owner is not None and session.owner is not account:
             return self._content(code=403, message="NOT_SESSION_OWNER")
+
+        if subscribe and self.subscribe_errors:
+            return self._content(
+                code=self.subscribe_errors.pop(0), message="SUBSCRIBE_ERROR"
+            )
 
         event = request.match_info["event"]
         if subscribe:

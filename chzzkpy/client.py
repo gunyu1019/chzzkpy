@@ -141,19 +141,65 @@ async def _wait_until_ready(ready: asyncio.Future, read_task: asyncio.Task) -> A
     return ready.result()
 
 
+class _Subscriptions:
+    """The events a user client has subscribed on a session (its user session or a client
+    session), kept across the reconnections of the session."""
+
+    def __init__(self, session_id: Optional[str] = None):
+        # Subscribed again on the new session after reconnecting.
+        self.events = UserPermission()
+        self.start(session_id)
+
+    def start(self, session_id: Optional[str]) -> None:
+        """Starts over on a new session, which has nothing subscribed yet."""
+        self._session_id = session_id
+        self._subscribed = UserPermission()
+        self._requests: dict[str, asyncio.Future] = dict()
+
+    async def begin(self, event: str, session_id: str) -> Optional[asyncio.Future]:
+        """Returns None if ``event`` is subscribed on the session already. Otherwise
+        returns the request to subscribe it, which is in flight until :meth:`end`."""
+        while self._session_id == session_id:
+            if getattr(self._subscribed, event):
+                return None
+            request = self._requests.get(event)
+            if request is None:
+                request = asyncio.get_running_loop().create_future()
+                self._requests[event] = request
+                return request
+            # It's requested here if the request in flight fails.
+            await asyncio.wait((request,))
+        # The session isn't the current one (any more): requested without being tracked.
+        return asyncio.get_running_loop().create_future()
+
+    def end(
+        self, event: str, session_id: str, request: asyncio.Future, subscribed: bool
+    ) -> None:
+        if self._session_id == session_id and self._requests.get(event) is request:
+            del self._requests[event]
+            if subscribed:
+                setattr(self._subscribed, event, True)
+        if subscribed:
+            setattr(self.events, event, True)
+        request.set_result(None)
+
+    def unsubscribed(self, event: str, session_id: str) -> None:
+        setattr(self.events, event, False)
+        if self._session_id == session_id:
+            setattr(self._subscribed, event, False)
+
+
 class _ClientSession:
     """A client session connected by :meth:`Client.connect`, kept across its reconnections."""
 
-    def __init__(
-        self, key: str, ssl: bool, reconnect: bool, loop: asyncio.AbstractEventLoop
-    ):
+    def __init__(self, ssl: bool, reconnect: bool, loop: asyncio.AbstractEventLoop):
         # The current session key, or the last one while reconnecting.
-        self.key = key
-        self.keys: list[str] = [key]
+        self.key: Optional[str] = None
+        self.keys: list[str] = []
         self.ssl = ssl
         self.reconnect = reconnect
         # Events subscribed by user clients, subscribed again after reconnecting.
-        self.subscriptions: dict[UserClient, UserPermission] = dict()
+        self.subscriptions: dict[UserClient, _Subscriptions] = dict()
         self.reconnect_timer: Optional[asyncio.TimerHandle] = None
         self.reconnect_task: Optional[asyncio.Task] = None
         # Done when the session has ended for good.
@@ -349,10 +395,15 @@ class Client(BaseEventManager):
             return user_client.access_token
         return None
 
-    def _create_connection_state(self, ready: asyncio.Future) -> ConnectionState:
+    def _create_connection_state(
+        self, ready: asyncio.Future, session: _ClientSession
+    ) -> ConnectionState:
         def on_connected(session_id: str):
-            if not ready.done():
-                ready.set_result(session_id)
+            if ready.done():
+                return
+            # Before the on_connect handlers run, so that they can subscribe on the session.
+            self._add_session_key(session, session_id)
+            ready.set_result(session_id)
 
         def on_subscribed(message: EventSubscribeMessage):
             if ready.done():
@@ -380,12 +431,21 @@ class Client(BaseEventManager):
         """Returns the client session that has had ``session_id`` as its session key."""
         return self._session_keys.get(session_id)
 
+    def _add_session_key(self, session: _ClientSession, session_id: str) -> None:
+        if session_id in session.keys:
+            return
+        session.key = session_id
+        session.keys.append(session_id)
+        self._session_keys[session_id] = session
+        for subscriptions in session.subscriptions.values():
+            subscriptions.start(session_id)
+
     async def _subscribe_on_client_session(
         self,
         user_client: UserClient,
         permission: UserPermission,
         session_id: str,
-        subscribed_events: Optional[UserPermission] = None,
+        subscriptions: Optional[_Subscriptions] = None,
     ):
         async with self._subscription_lock:
             subscribed = self.loop.create_future()
@@ -395,7 +455,7 @@ class Client(BaseEventManager):
             gateway = None
             try:
                 requested = await user_client._subscribe_events(
-                    permission, session_id, subscribed_events
+                    permission, session_id, subscriptions
                 )
                 gateway = self._gateway.get(session_id)
                 # The event may arrive before or after the response of the subscription.
@@ -728,7 +788,9 @@ class Client(BaseEventManager):
         A reconnected session has a new session key, but the session key returned by this method
         (and every key the session has had) keeps working with :meth:`disconnect`,
         :meth:`UserClient.subscribe` and :meth:`UserClient.unsubscribe`.
-        The events user clients have subscribed on the session are subscribed on the new session.
+        The events user clients have subscribed on the session are subscribed on the new session
+        automatically; an `on_connect` handler that subscribes them again sends no requests for
+        the events that are subscribed already (see :meth:`UserClient.subscribe`).
         A session being reconnected keeps counting toward the maximum.
 
         Parameters
@@ -779,10 +841,15 @@ class Client(BaseEventManager):
         if len(self._client_sessions) + self._connecting >= 10:
             raise ChatConnectFailed.max_connection()
 
+        session = _ClientSession(ssl, reconnect, self.loop)
         self._connecting += 1
         try:
-            session_id, gateway, task = await self._open_client_session(ssl)
-            session = _ClientSession(session_id, ssl, reconnect, self.loop)
+            try:
+                session_id, gateway, task = await self._open_client_session(session)
+            except BaseException:
+                # Its key is known once it became ready.
+                self._forget_session(session)
+                raise
             self._client_sessions.append(session)
             self._register_gateway(session, session_id, gateway)
         finally:
@@ -793,16 +860,16 @@ class Client(BaseEventManager):
         return session_id
 
     async def _open_client_session(
-        self, ssl: bool
+        self, session: _ClientSession
     ) -> tuple[str, ChzzkGateway, asyncio.Task]:
-        """Connects a new client session and waits until it's ready."""
+        """Connects a new session for the client session and waits until it's ready."""
         session_key = await self.http.generate_client_session()
         ready = self.loop.create_future()
         gateway = await _connect_gateway(
             session_key.content.url,
-            self._create_connection_state(ready),
+            self._create_connection_state(ready, session),
             self.loop,
-            ssl=ssl,
+            ssl=session.ssl,
         )
         task = gateway.read_in_background()
         try:
@@ -817,10 +884,7 @@ class Client(BaseEventManager):
     def _register_gateway(
         self, session: _ClientSession, session_id: str, gateway: ChzzkGateway
     ) -> None:
-        session.key = session_id
-        if session_id not in session.keys:
-            session.keys.append(session_id)
-        self._session_keys[session_id] = session
+        self._add_session_key(session, session_id)
         self._gateway[session_id] = gateway
         self._gateway_ready.set()
 
@@ -917,7 +981,7 @@ class Client(BaseEventManager):
     async def _reconnect_once(
         self, session: _ClientSession
     ) -> tuple[str, ChzzkGateway, asyncio.Task]:
-        session_id, gateway, task = await self._open_client_session(session.ssl)
+        session_id, gateway, task = await self._open_client_session(session)
         self._register_gateway(session, session_id, gateway)
         try:
             await self._subscribe_again(session, session_id)
@@ -933,13 +997,12 @@ class Client(BaseEventManager):
     async def _subscribe_again(self, session: _ClientSession, session_id: str) -> None:
         """Subscribes the events user clients have subscribed on a client session
         on its new session."""
-        for user_client, permission in list(session.subscriptions.items()):
-            if not permission:
+        for user_client, subscriptions in list(session.subscriptions.items()):
+            events = UserPermission(subscriptions.events.value)
+            if not events:
                 continue
             try:
-                await user_client._subscribe_again(
-                    UserPermission(permission.value), session_id
-                )
+                await user_client._subscribe_again(events, session_id)
             except (UnauthorizedException, ForbiddenException):
                 # Other user clients mustn't lose their events because of one access token.
                 _log.error(
@@ -960,12 +1023,12 @@ class Client(BaseEventManager):
     def _forget_session(self, session: _ClientSession) -> bool:
         """Removes a client session that has ended for good, with every key it has had.
         Returns False if it has been removed already."""
-        if session not in self._client_sessions:
-            return False
-        self._client_sessions.remove(session)
         for key in session.keys:
             if self._session_keys.get(key) is session:
                 del self._session_keys[key]
+        if session not in self._client_sessions:
+            return False
+        self._client_sessions.remove(session)
         return True
 
     @staticmethod
@@ -1066,7 +1129,7 @@ class UserClient:
         # Done when the connection made by connect() has ended for good.
         self._ended: Optional[asyncio.Future] = None
         # Events subscribed on the user session, subscribed again after reconnecting.
-        self._subscribed_events = UserPermission()
+        self._subscriptions = _Subscriptions()
 
         self.channel_id: Optional[str] = None
         self.channel_name: Optional[str] = None
@@ -1084,6 +1147,8 @@ class UserClient:
 
     def __on_connected(self, session_id: str):
         self._session_id = session_id
+        # Before the on_connect handlers run, so that they can subscribe on the session.
+        self._subscriptions.start(session_id)
         self._gateway_ready.set()
         return
 
@@ -1205,7 +1270,9 @@ class UserClient:
         the user client is reconnected automatically, unless reconnect is False.
         A reconnected user session has a new session ID, and the events this user client has
         subscribed on its user session (``permission`` and later :meth:`subscribe` and
-        :meth:`unsubscribe` calls) are subscribed on it.
+        :meth:`unsubscribe` calls) are subscribed on it automatically.
+        An `on_connect` handler doesn't need to subscribe them again; if it does,
+        the events that are subscribed already are skipped (see :meth:`subscribe`).
         While reconnecting, :attr:`is_connected` returns False.
         Without reconnect, the user client is reset, so :attr:`is_connected` returns False
         and it can connect again.
@@ -1251,25 +1318,27 @@ class UserClient:
         UnauthorizedException
             Raised by a blocking connect when reconnecting stopped because the access token
             was rejected (401). ForbiddenException is raised for 403.
+        ChzzkpyException
+            Subscribing to ``permission`` failed, e.g. the access token lacks its API scope.
+            The connection is closed before the exception is raised.
         """
         # The connections share the state of this user client, so they're made one at a time.
         async with self._connect_lock:
             await self.disconnect()
             self._ssl = ssl
             self._reconnect = reconnect
-            self._subscribed_events = UserPermission()
+            self._subscriptions = _Subscriptions()
             gateway, task = await self._open_connection()
             session_id = self._session_id
             ended = self._ended = self.loop.create_future()
             ended.add_done_callback(_consume_exception)
             try:
                 await self.subscribe(permission, session_id)
-            except asyncio.CancelledError:
+            except BaseException:
                 await self.disconnect()
                 raise
-            finally:
-                # Attached once subscribed, so reconnecting knows the subscribed events.
-                task.add_done_callback(partial(self._on_connection_closed, gateway))
+            # Attached once subscribed, so reconnecting knows the subscribed events.
+            task.add_done_callback(partial(self._on_connection_closed, gateway))
         if not addition_connect:
             await self._wait_until_ended(ended)
         return session_id
@@ -1404,7 +1473,9 @@ class UserClient:
         gateway, task = await self._open_connection()
         try:
             await self._subscribe_events(
-                UserPermission(self._subscribed_events.value), self._session_id
+                UserPermission(self._subscriptions.events.value),
+                self._session_id,
+                self._subscriptions,
             )
         except BaseException:
             await self._discard_gateway(gateway)
@@ -1472,17 +1543,17 @@ class UserClient:
 
     def _subscriptions_of(
         self, session_id: str
-    ) -> tuple[str, Optional[UserPermission]]:
+    ) -> tuple[str, Optional[_Subscriptions]]:
         """Returns the current key of a session and the events this user client has
-        subscribed on it, if they're subscribed again after reconnecting."""
+        subscribed on it, if the session is its user session or a client session."""
         client_session = self.parent_client._client_session_of(session_id)
         if client_session is not None:
-            subscribed_events = client_session.subscriptions.setdefault(
-                self, UserPermission()
+            subscriptions = client_session.subscriptions.setdefault(
+                self, _Subscriptions(client_session.key)
             )
-            return client_session.key, subscribed_events
+            return client_session.key, subscriptions
         if session_id == self._session_id:
-            return session_id, self._subscribed_events
+            return session_id, self._subscriptions
         return session_id, None
 
     @refreshable
@@ -1495,7 +1566,13 @@ class UserClient:
         If the channel ID of this client is unknown (without "유저 정보 조회" API Scope),
         it's obtained from the subscription event of the session.
 
-        The subscribed events are subscribed again when the session is reconnected.
+        Events this user client has subscribed on the session already are skipped,
+        so subscribing the same event twice sends one request,
+        also when both run at the same time. An event is subscribed again after
+        :meth:`unsubscribe`. On the user session of this client and on client sessions,
+        the subscribed events are subscribed again automatically when the session is
+        reconnected; an `on_connect` handler that subscribes them too sends no requests
+        for the events that are subscribed already, whichever comes first.
 
         Parameters
         ----------
@@ -1511,30 +1588,43 @@ class UserClient:
                 "A session_id is not filled. Connect to session using UserClient.connect() method or Client.connect()."
             )
 
-        session_id, subscribed_events = self._subscriptions_of(session_id)
+        session_id, subscriptions = self._subscriptions_of(session_id)
         if self.channel_id is None and session_id != self._session_id:
             await self.parent_client._subscribe_on_client_session(
-                self, permission, session_id, subscribed_events
+                self, permission, session_id, subscriptions
             )
             return
-        await self._subscribe_events(permission, session_id, subscribed_events)
+        await self._subscribe_events(permission, session_id, subscriptions)
         return
 
     async def _subscribe_events(
         self,
         permission: UserPermission,
         session_id: str,
-        subscribed_events: Optional[UserPermission] = None,
+        subscriptions: Optional[_Subscriptions] = None,
     ) -> bool:
+        """Returns whether a subscription was requested."""
         requested = False
         for permission_name, condition in permission:
             if not condition:
                 continue
-            await self.http.subcribe_event(
-                event=permission_name, session_key=session_id, token=self.access_token
-            )
-            if subscribed_events is not None:
-                setattr(subscribed_events, permission_name, True)
+            request = None
+            if subscriptions is not None:
+                request = await subscriptions.begin(permission_name, session_id)
+                if request is None:
+                    continue
+            try:
+                await self.http.subcribe_event(
+                    event=permission_name,
+                    session_key=session_id,
+                    token=self.access_token,
+                )
+            except BaseException:
+                if request is not None:
+                    subscriptions.end(permission_name, session_id, request, False)
+                raise
+            if request is not None:
+                subscriptions.end(permission_name, session_id, request, True)
             _log.debug(f"Subscribe {permission_name.upper()} Event")
             requested = True
         return requested
@@ -1559,7 +1649,7 @@ class UserClient:
                 "A session_id is not filled. Connect to session using UserClient.connect() method or Client.connect()."
             )
 
-        session_id, subscribed_events = self._subscriptions_of(session_id)
+        session_id, subscriptions = self._subscriptions_of(session_id)
         for permission_name, condition in permission:
             if not condition:
                 continue
@@ -1567,8 +1657,8 @@ class UserClient:
             await self.http.unsubcribe_event(
                 event=permission_name, session_key=session_id, token=self.access_token
             )
-            if subscribed_events is not None:
-                setattr(subscribed_events, permission_name, False)
+            if subscriptions is not None:
+                subscriptions.unsubscribed(permission_name, session_id)
             _log.debug(f"Unsubscribe {permission_name.upper()} Event")
         return
 
