@@ -137,7 +137,7 @@ class BaseEventManager:
             raise TypeError("function must be a coroutine.")
 
         event_name = coro.__name__
-        if event_name not in self._listeners.keys():
+        if event_name not in self._extra_event.keys():
             self._extra_event[event_name] = list()
         self._extra_event[event_name].append(coro)
         return coro
@@ -151,8 +151,9 @@ class BaseEventManager:
             listeners = self._listeners[event]
             _new_listeners = []
 
-            for index, (future, condition) in enumerate(listeners):
-                if future.cancelled():
+            for future, condition in listeners:
+                # Drop listeners that were already resolved or cancelled (e.g. timed out).
+                if future.done():
                     continue
 
                 try:
@@ -160,16 +161,18 @@ class BaseEventManager:
                 except Exception as e:
                     future.set_exception(e)
                     continue
-                if result:
-                    match len(args):
-                        case 0:
-                            future.set_result(None)
-                        case 1:
-                            future.set_result(args[0])
-                        case _:
-                            future.set_result(args)
 
-                _new_listeners.append((future, condition))
+                if not result:
+                    _new_listeners.append((future, condition))
+                    continue
+
+                match len(args):
+                    case 0:
+                        future.set_result(None)
+                    case 1:
+                        future.set_result(args[0])
+                    case _:
+                        future.set_result(args)
             self._listeners[event] = _new_listeners
 
         # event-listener
