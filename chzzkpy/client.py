@@ -73,13 +73,13 @@ _SUBSCRIBED_EVENT_TIMEOUT = 10.0
 
 
 async def _connect_gateway(
-    url: str, state: ConnectionState, loop: asyncio.AbstractEventLoop
+    url: str, state: ConnectionState, loop: asyncio.AbstractEventLoop, ssl: bool = True
 ) -> ChzzkGateway:
     # The gateway doesn't close its aiohttp session; _close_gateway() does.
     session = aiohttp.ClientSession(loop=loop)
     try:
         return await ChzzkGateway.connect(
-            url=url, state=state, loop=loop, session=session
+            url=url, state=state, loop=loop, session=session, ssl=ssl
         )
     except BaseException:
         await session.close()
@@ -477,6 +477,10 @@ class Client(BaseEventManager):
         """Get :class:`UserClient` instance with oauth2 login process.
         This :meth:`login` provides a convenient login method using the aiohttp web server.
 
+        Concurrent logins that use the same remote_port run one after another:
+        a login starts its web server after the previous one has finished.
+        If the code exchange fails, the login ends with its exception instead of waiting forever.
+
         Parameters
         ----------
         state: Optional[str]
@@ -494,6 +498,12 @@ class Client(BaseEventManager):
             A content to be displayed on the website after successful login.
         ssl: bool
             Whether to use http(s) during opening the web browser.
+
+        Raises
+        ------
+        ChzzkpyException
+            The code exchange failed, e.g. the Chzzk server rejected the code.
+            The exception is raised as it is, and the login must be run again.
         """
         remote_scheme = "https" if ssl else "http"
         oauth2_client = ChzzkOAuth2Client(
@@ -635,7 +645,7 @@ class Client(BaseEventManager):
         return
 
     @initial_async_setup
-    async def connect(self, addition_connect: bool = False) -> str:
+    async def connect(self, addition_connect: bool = False, ssl: bool = True) -> str:
         """Connect to session to handle donation or chatting
         A Client session can have more than one connection. (Maximum Connection: 10)
 
@@ -650,6 +660,8 @@ class Client(BaseEventManager):
             If addition_connect is False, the connection is completed and a main task is blocked to wait for a response.
             The main task is released when the connection ends.
             However addition_connect is True, a task waiting for a response is processed in the background.
+        ssl : bool
+            Whether to use a secure connection (wss/https) to the session server, by default True.
 
         Returns
         -------
@@ -681,7 +693,10 @@ class Client(BaseEventManager):
             session_key = await self.http.generate_client_session()
             ready = self.loop.create_future()
             gateway = await _connect_gateway(
-                session_key.content.url, self._create_connection_state(ready), self.loop
+                session_key.content.url,
+                self._create_connection_state(ready),
+                self.loop,
+                ssl=ssl,
             )
             task = gateway.read_in_background()
             try:
@@ -893,7 +908,12 @@ class UserClient:
         return
 
     @refreshable
-    async def connect(self, permission: UserPermission, addition_connect: bool = False):
+    async def connect(
+        self,
+        permission: UserPermission,
+        addition_connect: bool = False,
+        ssl: bool = True,
+    ):
         """Connect to user session to handle donation or chatting
         If the user client is already connected, the previous connection is disconnected first.
 
@@ -911,6 +931,8 @@ class UserClient:
             If addition_connect is False, the connection is completed and a main task is blocked to wait for a response.
             The main task is released when the connection ends.
             However addition_connect is True, a task waiting for a response is processed in the background.
+        ssl : bool
+            Whether to use a secure connection (wss/https) to the session server, by default True.
 
         Returns
         -------
@@ -936,7 +958,7 @@ class UserClient:
             self._session_id = None
             self._gateway_ready.clear()
             gateway = self._gateway = await _connect_gateway(
-                session_key.content.url, self._connection, self.loop
+                session_key.content.url, self._connection, self.loop, ssl=ssl
             )
             task = gateway.read_in_background()
             ready = self.loop.create_task(self._gateway_ready.wait())
