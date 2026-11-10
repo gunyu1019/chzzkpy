@@ -116,6 +116,10 @@ class ChatConnectFailed(ChzzkpyException):
     def max_connection(cls):
         return cls("Maximum number of sessions allowed to connect has been exceeded.")
 
+    @classmethod
+    def session_closed_before_ready(cls):
+        return cls("The connection was closed before the session became ready.")
+
 
 class ReceiveErrorPacket(ChzzkpyException):
     def __init__(self, transport: Literal["polling", "websocket"], data: Any):

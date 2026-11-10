@@ -52,6 +52,7 @@ if TYPE_CHECKING:
     from .enums import FollowingPeriod
     from .flags import UserPermission
     from .restriction import RestrictUser
+    from .session import EventSubscribeMessage
 
 
 class _LoopSentinel:
@@ -66,6 +67,38 @@ class _LoopSentinel:
 
 
 _log = logging.getLogger(__name__)
+
+_SUBSCRIBED_EVENT_TIMEOUT = 10.0
+
+
+async def _connect_gateway(
+    url: str, state: ConnectionState, loop: asyncio.AbstractEventLoop
+) -> ChzzkGateway:
+    # The gateway doesn't close its aiohttp session; _close_gateway() does.
+    session = aiohttp.ClientSession(loop=loop)
+    try:
+        return await ChzzkGateway.connect(
+            url=url, state=state, loop=loop, session=session
+        )
+    except BaseException:
+        await session.close()
+        raise
+
+
+async def _close_gateway(gateway: ChzzkGateway) -> None:
+    try:
+        await gateway.disconnect()
+    finally:
+        await gateway.session.close()
+
+
+async def _wait_until_ready(ready: asyncio.Future, read_task: asyncio.Task) -> Any:
+    """Waits until ``ready`` is done, unless the connection read by ``read_task`` ends first."""
+    await asyncio.wait((ready, read_task), return_when=asyncio.FIRST_COMPLETED)
+    if read_task.done():
+        reason = None if read_task.cancelled() else read_task.exception()
+        raise ChatConnectFailed.session_closed_before_ready() from reason
+    return ready.result()
 
 
 class BaseEventManager:
@@ -229,22 +262,74 @@ class Client(BaseEventManager):
         self.http: Optional[ChzzkOpenAPISession] = None
         self.user_client: list[UserClient] = []
 
-        handler = {"connect": lambda _: self._gateway_ready.set()}
-        self._connection = ConnectionState(
-            dispatch=self.dispatch,
-            handler=handler,
-            http=self.http,
-            variable_access_token=self.__variable_access_token,
-        )
-
         self._gateway: dict[str, ChzzkGateway] = dict()
         self._gateway_ready = asyncio.Event()
+
+        # On a client session, a "subscribed" event is attributed to the one pending subscription.
+        self._subscription_lock = asyncio.Lock()
+        self._pending_subscription: Optional[tuple[str, UserClient, asyncio.Future]] = (
+            None
+        )
+        self._ambiguous_sessions: set[str] = set()
 
     def __variable_access_token(self, channel_id: str) -> Optional[AccessToken]:
         user_client = self.get_user_client_cached(channel_id)
         if user_client is not None:
             return user_client.access_token
         return None
+
+    def _create_connection_state(self, ready: asyncio.Future) -> ConnectionState:
+        def on_connected(session_id: str):
+            if not ready.done():
+                ready.set_result(session_id)
+
+        def on_subscribed(message: EventSubscribeMessage):
+            if ready.done():
+                self.__on_subscribed(ready.result(), message.channel_id)
+
+        return ConnectionState(
+            dispatch=self.dispatch,
+            handler={"connect": on_connected, "subscribed": on_subscribed},
+            http=self.http,
+            variable_access_token=self.__variable_access_token,
+        )
+
+    def __on_subscribed(self, session_id: str, channel_id: str):
+        if self._pending_subscription is None:
+            return
+        pending_session_id, user_client, subscribed = self._pending_subscription
+        if pending_session_id != session_id or subscribed.done():
+            return
+        if self.get_user_client_cached(channel_id) is not None:
+            return
+        user_client.channel_id = channel_id
+        subscribed.set_result(None)
+
+    async def _subscribe_on_client_session(
+        self, user_client: UserClient, permission: UserPermission, session_id: str
+    ):
+        async with self._subscription_lock:
+            subscribed = self.loop.create_future()
+            learnable = session_id not in self._ambiguous_sessions
+            if learnable:
+                self._pending_subscription = (session_id, user_client, subscribed)
+            try:
+                requested = await user_client._subscribe_events(permission, session_id)
+                # The event may arrive before or after the response of the subscription.
+                if learnable and requested and session_id in self._gateway:
+                    await asyncio.wait((subscribed,), timeout=_SUBSCRIBED_EVENT_TIMEOUT)
+            finally:
+                self._pending_subscription = None
+
+            if subscribed.done() or not requested or session_id not in self._gateway:
+                return
+            # A late "subscribed" event can't be told apart from another account's.
+            self._ambiguous_sessions.add(session_id)
+        _log.warning(
+            "Failed to get the channel ID of a user client from the subscribed event "
+            "of the client session. Events of its channel can't be replied to. "
+            "(The access token requires the '유저 정보 조회' API scope.)"
+        )
 
     async def __aenter__(self) -> Self:
         await self._async_setup_hook()
@@ -262,7 +347,6 @@ class Client(BaseEventManager):
         self.http = ChzzkOpenAPISession(
             loop=self.loop, client_id=self.client_id, client_secret=self.client_secret
         )
-        self._connection.http = self.http
 
     @staticmethod
     def initial_async_setup(func):
@@ -502,7 +586,10 @@ class Client(BaseEventManager):
         return data
 
     async def wait_until_connect(self):
-        """Waits until the session connected."""
+        """Waits until a client session connected by :meth:`connect` is ready.
+        It returns immediately while a client session is connected,
+        and waits again after all client sessions are disconnected by :meth:`disconnect`.
+        """
         await self._gateway_ready.wait()
         return
 
@@ -521,8 +608,8 @@ class Client(BaseEventManager):
         Returns
         -------
         str
-            Returns an unique session ID, if the gateway connects succeeds.
-            A session ID used by subscribe, unsubscribe method.
+            Returns the session key of the client session, if the gateway connects succeeds.
+            A session ID used by subscribe, unsubscribe and disconnect method.
 
         Warning
         -------
@@ -535,24 +622,28 @@ class Client(BaseEventManager):
         ChatConnectFailed.max_connection
             A Client Session can connect up to 10 sessions.
             When connection request more than 10 sessions, ChatConnectFailed exception raised.
+        ChatConnectFailed.session_closed_before_ready
+            The connection was closed before the session became ready.
         """
-        if len(self._gateway.keys()) > 10:
+        if len(self._gateway) >= 10:
             raise ChatConnectFailed.max_connection()
 
         session_key = await self.http.generate_client_session()
-        gateway_cls = await ChzzkGateway.connect(
-            url=session_key.content.url,
-            state=self._connection,
-            loop=self.loop,
-            session=aiohttp.ClientSession(loop=self.loop),
+        ready = self.loop.create_future()
+        gateway = await _connect_gateway(
+            session_key.content.url, self._create_connection_state(ready), self.loop
         )
-        task = gateway_cls.read_in_background()
-        await self._gateway_ready.wait()
-        self._gateway[gateway_cls.session_id] = gateway_cls
-        self._gateway_ready.clear()
+        task = gateway.read_in_background()
+        try:
+            session_id = await _wait_until_ready(ready, task)
+        except BaseException:
+            await _close_gateway(gateway)
+            raise
+        self._gateway[session_id] = gateway
+        self._gateway_ready.set()
         if not addition_connect:
             await task
-        return gateway_cls.session_id
+        return session_id
 
     async def disconnect(self, session_id: Optional[str] = None):
         """Disconnect from session.
@@ -560,20 +651,20 @@ class Client(BaseEventManager):
         Parameters
         ----------
         session_id : Optional[str]
-            A session ID to disconnect from session.
+            A session ID returned by :meth:`connect` to disconnect from session.
             When session parameter is empty, all client sessions are disconnected.
         """
         if len(self._gateway) <= 0:
             return
 
-        if session_id is not None:
-            await self._gateway[session_id].disconnect()
-            self._gateway.pop(session_id)
-            return
+        session_ids = list(self._gateway.keys()) if session_id is None else [session_id]
+        gateways = [self._gateway.pop(key) for key in session_ids]
+        self._ambiguous_sessions.difference_update(session_ids)
+        if len(self._gateway) <= 0:
+            self._gateway_ready.clear()
 
-        for gateway in self._gateway.values():
-            await gateway.disconnect()
-        self._gateway = dict()
+        for gateway in gateways:
+            await _close_gateway(gateway)
 
 
 class UserClient:
@@ -746,32 +837,45 @@ class UserClient:
         If the main task is empty,
         as if addition_connect parameter used for all connections is true,
         all connections are aborted.
+
+        Raises
+        ------
+        ChatConnectFailed.session_closed_before_ready
+            The connection was closed before the session became ready.
         """
         session_key = await self.http.generate_user_session(token=self.access_token)
-        self._gateway = await ChzzkGateway.connect(
-            url=session_key.content.url,
-            state=self._connection,
-            loop=self.loop,
-            session=aiohttp.ClientSession(loop=self.loop),
+        self._session_id = None
+        self._gateway_ready.clear()
+        self._gateway = await _connect_gateway(
+            session_key.content.url, self._connection, self.loop
         )
         task = self._gateway.read_in_background()
-        await self._gateway_ready.wait()
+        ready = self.loop.create_task(self._gateway_ready.wait())
+        try:
+            await _wait_until_ready(ready, task)
+        except BaseException:
+            await self.disconnect()
+            raise
+        finally:
+            ready.cancel()
         self._gateway_id = self._gateway.session_id
-        await self.subscribe(permission, self._session_id)
+        session_id = self._session_id
+        await self.subscribe(permission, session_id)
         if not addition_connect:
             await task
-        return self._session_id
+        return session_id
 
     async def disconnect(self):
         """Disconnect from session."""
         if self._gateway is None:
             return
-        await self._gateway.disconnect()
+        gateway = self._gateway
 
         self._gateway = None
         self._gateway_id = None
         self._session_id = None
         self._gateway_ready.clear()
+        await _close_gateway(gateway)
 
     @refreshable
     async def subscribe(
@@ -779,6 +883,9 @@ class UserClient:
     ):
         """Subcribe to events based on UserPermission.
         Subsribed events are recived in the session.
+
+        If the channel ID of this client is unknown (without "유저 정보 조회" API Scope),
+        it's obtained from the subscription event of the session.
 
         Parameters
         ----------
@@ -794,6 +901,18 @@ class UserClient:
                 "A session_id is not filled. Connect to session using UserClient.connect() method or Client.connect()."
             )
 
+        if self.channel_id is None and session_id != self._session_id:
+            await self.parent_client._subscribe_on_client_session(
+                self, permission, session_id
+            )
+            return
+        await self._subscribe_events(permission, session_id)
+        return
+
+    async def _subscribe_events(
+        self, permission: UserPermission, session_id: str
+    ) -> bool:
+        requested = False
         for permission_name, condition in permission:
             if not condition:
                 continue
@@ -801,7 +920,8 @@ class UserClient:
                 event=permission_name, session_key=session_id, token=self.access_token
             )
             _log.debug(f"Subscribe {permission_name.upper()} Event")
-        return
+            requested = True
+        return requested
 
     @refreshable
     async def unsubscribe(
@@ -817,7 +937,7 @@ class UserClient:
         session_id : Optional[str]
             ID of the session to block event, by default None
         """
-        session_id = session_id or self._gateway_id
+        session_id = session_id or self._session_id
         if session_id is None:
             raise TypeError(
                 "A session_id is not filled. Connect to session using UserClient.connect() method or Client.connect()."
