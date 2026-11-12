@@ -355,13 +355,6 @@ class TestHandlerErrors:
         assert handled == ["first", "second"]
         assert len(logged(log_records, "Ignoring exception in on_error")) >= 1
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason=(
-            "An on_error handler that raises is dispatched as on_error again with the new "
-            "exception in front of the arguments, so it's called again and again."
-        ),
-    )
     async def test_failing_error_handler_is_not_called_for_its_own_failure(self):
         manager = create_event_manager()
         calls = []
@@ -382,6 +375,106 @@ class TestHandlerErrors:
         await asyncio.sleep(0.05)
 
         assert len(calls) == 1
+
+    async def test_failing_error_handler_is_logged_once_and_not_dispatched(
+        self, log_records
+    ):
+        manager = create_event_manager()
+        chat_error = ValueError("handler broke")
+        error_handler_error = RuntimeError("error handler broke")
+        calls = []
+
+        @manager.event
+        async def on_chat(message):
+            raise chat_error
+
+        @manager.event
+        async def on_error(exc, *args):
+            calls.append(exc)
+            raise error_handler_error
+
+        manager.dispatch("chat", "hello")
+        await run_scheduled_events()
+        await asyncio.sleep(0.05)
+
+        assert calls == [chat_error]
+        (record,) = logged(log_records, "Ignoring exception in on_error")
+        assert record.levelno == logging.ERROR
+        assert record.exc_info[1] is error_handler_error
+        assert record.exc_info[2] is not None
+        (record,) = logged(log_records, "Ignoring exception in on_chat")
+        assert record.exc_info[1] is chat_error
+        assert scheduled_tasks("chzzk.py: on_error") == []
+
+    async def test_failing_error_handler_does_not_stop_the_other_error_handlers(self):
+        manager = create_event_manager()
+        failures = []
+        received = []
+
+        @manager.event
+        async def on_chat(message):
+            raise ValueError("handler broke")
+
+        @manager.event
+        async def on_error(exc, *args):
+            failures.append(exc)
+            raise RuntimeError("error handler broke")
+
+        @manager.event
+        async def on_error(exc, *args):  # noqa: F811
+            received.append((exc, args))
+
+        manager.dispatch("chat", "hello")
+        await run_scheduled_events()
+        await asyncio.sleep(0.05)
+
+        assert len(failures) == 1 and failures[0] is received[0][0]
+        assert isinstance(received[0][0], ValueError)
+        assert [args for _, args in received] == [("hello",)]
+
+    async def test_failing_error_handler_still_receives_later_errors(self):
+        manager = create_event_manager()
+        errors = []
+
+        @manager.event
+        async def on_chat(message):
+            raise ValueError(message)
+
+        @manager.event
+        async def on_error(exc, *args):
+            errors.append((str(exc), args))
+            if len(errors) == 1:
+                raise RuntimeError("error handler broke")
+
+        for message in ("first", "second"):
+            manager.dispatch("chat", message)
+            await run_scheduled_events()
+            await asyncio.sleep(0.02)
+
+        assert errors == [("first", ("first",)), ("second", ("second",))]
+
+    async def test_failing_error_handler_does_not_dispatch_to_error_listeners(self):
+        manager = create_event_manager()
+        error = ValueError("handler broke")
+
+        @manager.event
+        async def on_chat(message):
+            raise error
+
+        @manager.event
+        async def on_error(exc, *args):
+            raise RuntimeError("error handler broke")
+
+        listener = asyncio.ensure_future(manager.wait_for("error"))
+        manager.dispatch("chat", "hello")
+        await run_scheduled_events()
+
+        # The listener gets the failure of the chat handler, as before.
+        failure, message = await asyncio.wait_for(listener, timeout=1.0)
+        assert failure is error and message == "hello"
+        # Nothing is dispatched for the failure of the error handler.
+        with pytest.raises(asyncio.TimeoutError):
+            await manager.wait_for("error", timeout=0.05)
 
 
 @pytest.mark.asyncio
@@ -1503,14 +1596,6 @@ class TestReconnectBranches:
         assert list(client._session_keys) == [session_id]
         assert client._client_sessions[0].keys == [session_id]
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason=(
-            "Client.disconnect() stops closing the sessions at the first one whose "
-            "close raises; the others have been removed already, so they stay "
-            "connected and can't be disconnected any more."
-        ),
-    )
     async def test_disconnect_closes_every_session_even_when_one_close_fails(
         self, monkeypatch, server, client
     ):
@@ -1530,3 +1615,132 @@ class TestReconnectBranches:
             await client.disconnect()
 
         assert other.session.closed and not other.is_connected
+
+
+def fail_closing(monkeypatch, *failing: ChzzkGateway) -> list[OSError]:
+    """Makes closing each of the gateways raise once it has been disconnected.
+    Returns the errors, in the order of the gateways."""
+    errors = [OSError(f"close failed {number}") for number in range(len(failing))]
+    original_disconnect = ChzzkGateway.disconnect
+
+    async def failing_disconnect(gateway):
+        await original_disconnect(gateway)
+        for failing_gateway, error in zip(failing, errors):
+            if gateway is failing_gateway:
+                raise error
+
+    monkeypatch.setattr(ChzzkGateway, "disconnect", failing_disconnect)
+    return errors
+
+
+@pytest.mark.asyncio
+class TestDisconnectWithFailingClose:
+    """A connection that fails to close is logged, and doesn't keep `disconnect()` from
+    closing the other sessions: they have been removed already, so nothing could
+    disconnect them afterwards."""
+
+    @pytest.mark.parametrize("failing", [(0,), (1,), (2,), (0, 2), (0, 1, 2)])
+    async def test_every_session_is_closed_and_the_failures_are_logged(
+        self, monkeypatch, failing, server, client, session_events, log_records
+    ):
+        keys = [await client.connect(addition_connect=True) for _ in range(3)]
+        gateways = [client._gateway[key] for key in keys]
+        errors = fail_closing(monkeypatch, *(gateways[number] for number in failing))
+
+        await asyncio.wait_for(client.disconnect(), timeout=2.0)
+
+        records = logged(log_records, "Failed to close the connection.")
+        assert [record.exc_info[1] for record in records] == errors
+        assert all(record.levelno == logging.ERROR for record in records)
+        for gateway in gateways:
+            assert gateway.session.closed and not gateway.is_connected
+        assert client._gateway == {}
+        assert client._client_sessions == [] and client._session_keys == {}
+        await wait_until(
+            lambda: {event for event in session_events.log if event[0] == "disconnect"}
+            == {("disconnect", key) for key in keys}
+        )
+
+    async def test_disconnecting_one_session_keeps_the_others(
+        self, monkeypatch, server, client, log_records
+    ):
+        first = await client.connect(addition_connect=True)
+        second = await client.connect(addition_connect=True)
+        failing, other = client._gateway[first], client._gateway[second]
+        (error,) = fail_closing(monkeypatch, failing)
+
+        await client.disconnect(first)
+
+        (record,) = logged(log_records, "Failed to close the connection.")
+        assert record.exc_info[1] is error
+        assert failing.session.closed and not failing.is_connected
+        assert list(client._gateway) == [second]
+        assert other.is_connected and not other.session.closed
+
+    @pytest.mark.parametrize("how", ["disconnect", "cancel"])
+    async def test_blocking_connect_ends_as_usual(
+        self, monkeypatch, how, server, client, log_records
+    ):
+        blocking = asyncio.ensure_future(client.connect())
+        await wait_until(lambda: len(client._gateway) == 1)
+        key, gateway = next(iter(client._gateway.items()))
+        (error,) = fail_closing(monkeypatch, gateway)
+
+        if how == "disconnect":
+            await client.disconnect()
+            assert await asyncio.wait_for(blocking, timeout=1.0) == key
+        else:
+            blocking.cancel()
+            # The failed close doesn't replace the cancellation.
+            with pytest.raises(asyncio.CancelledError):
+                await asyncio.wait_for(blocking, timeout=1.0)
+
+        (record,) = logged(log_records, "Failed to close the connection.")
+        assert record.exc_info[1] is error
+        assert gateway.session.closed
+        assert client._gateway == {} and client._client_sessions == []
+
+    async def test_reconnection_in_progress_is_stopped(
+        self, monkeypatch, server, client, hold, monitor, connections
+    ):
+        first = await client.connect(addition_connect=True)
+        second = await client.connect(addition_connect=True)
+        reached = hold_stage(
+            "session_request", "client", monkeypatch, server, client, hold, second
+        )
+        await server.drop(server.sessions[second])
+        await wait_until(reached)
+        attempt = reconnection("client", client, None, second)
+        assert attempt is not None
+        fail_closing(monkeypatch, client._gateway[first])
+
+        await asyncio.wait_for(client.disconnect(), timeout=2.0)
+
+        # The attempt is cancelled and has finished, although closing the first session failed.
+        assert attempt.done()
+        assert_disconnected("client", client, None, second)
+        assert_nothing_open(client, monitor, connections)
+        requests = len(session_requests(server, None))
+        hold.release()
+        await asyncio.sleep(SETTLE)
+        assert len(session_requests(server, None)) == requests
+
+    async def test_aexit_still_disconnects_user_clients_and_closes_the_http_session(
+        self, monkeypatch, server, client, alice, log_records
+    ):
+        first = await client.connect(addition_connect=True)
+        second = await client.connect(addition_connect=True)
+        await alice.connect(UserPermission(chat=True), addition_connect=True)
+        user_gateway = alice._gateway
+        failing, other = client._gateway[first], client._gateway[second]
+        (error,) = fail_closing(monkeypatch, failing)
+
+        await asyncio.wait_for(client.__aexit__(None, None, None), timeout=2.0)
+
+        (record,) = logged(log_records, "Failed to close the connection.")
+        assert record.exc_info[1] is error
+        assert failing.session.closed and other.session.closed
+        assert not other.is_connected
+        assert client._gateway == {}
+        assert not alice.is_connected and user_gateway.session.closed
+        assert client.http.closed

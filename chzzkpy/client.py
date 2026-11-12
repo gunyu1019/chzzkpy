@@ -338,7 +338,9 @@ class BaseEventManager:
         except Exception as exc:
             try:
                 _log.exception("Ignoring exception in %s", event_name)
-                self.dispatch("error", exc, *args, **kwargs)
+                # Dispatching the failure of an error handler would call it again and again.
+                if event_name != "on_error":
+                    self.dispatch("error", exc, *args, **kwargs)
             except asyncio.CancelledError:
                 pass
 
@@ -1063,11 +1065,17 @@ class Client(BaseEventManager):
         return gateway, reconnect_task
 
     async def _disconnect_sessions(self, sessions: list[_ClientSession]) -> None:
+        """Disconnects the client sessions. The sessions have been removed once they are
+        stopped, so every connection is closed even if closing another one fails.
+        A failure is logged: the caller can't do anything about it."""
         stopped = [self._stop_session(session) for session in sessions]
         try:
             for gateway, reconnect_task in stopped:
                 if gateway is not None:
-                    await _close_gateway(gateway)
+                    try:
+                        await _close_gateway(gateway)
+                    except Exception:
+                        _log.exception("Failed to close the connection.")
                 if reconnect_task is not None:
                     # A cancelled reconnection closes the connection it was making.
                     await asyncio.wait((reconnect_task,))
@@ -1078,6 +1086,8 @@ class Client(BaseEventManager):
     async def disconnect(self, session_id: Optional[str] = None):
         """Disconnect from session.
         It also stops reconnecting the session, even during an attempt.
+        Every session is disconnected even if closing one of them fails;
+        the failure is logged, not raised.
 
         Parameters
         ----------
