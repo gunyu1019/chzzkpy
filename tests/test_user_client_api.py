@@ -16,7 +16,6 @@ import datetime
 import math
 
 import pytest
-from pydantic import ValidationError
 
 from chzzkpy import UserPermission
 from chzzkpy.category import Category
@@ -503,7 +502,7 @@ class TestGetRestriction:
 
 @pytest.mark.asyncio
 class TestChatSettingFollowPeriod:
-    @pytest.mark.parametrize("minutes", [129600, 172800])
+    @pytest.mark.parametrize("minutes", [129600, 172800, 216000, 259200])
     async def test_get_chat_setting_returns_the_follow_period_of_the_channel(
         self, server, client, minutes
     ):
@@ -518,37 +517,10 @@ class TestChatSettingFollowPeriod:
 
         assert setting.min_follower_minute == minutes
 
-    @pytest.mark.xfail(
-        strict=True,
-        raises=ValidationError,
-        reason="FollowingPeriod.FIVE_MONTH and SIX_MONTH are 172800 (an alias of "
-        "FOUR_MONTH) instead of 216000 and 259200, so a channel that only lets "
-        "followers of 5 or 6 months chat can't have its chat setting read",
-    )
-    @pytest.mark.parametrize("minutes", [216000, 259200])
-    async def test_get_chat_setting_of_channel_with_five_or_six_month_period(
-        self, server, client, minutes
-    ):
-        alice = await client.get_user_client(server.add_account("alice"))
-        server.chat_settings["alice"] = {
-            **server.DEFAULT_CHAT_SETTING,
-            "chatAvailableGroup": "FOLLOWER",
-            "minFollowerMinute": minutes,
-        }
-
-        setting = await alice.get_chat_setting()
-
-        assert setting.min_follower_minute == minutes
-
-    @pytest.mark.xfail(
-        strict=True,
-        raises=AssertionError,
-        reason="FollowingPeriod.FIVE_MONTH and SIX_MONTH are 172800 (an alias of "
-        "FOUR_MONTH), so asking for 5 or 6 months silently sets 4 months",
-    )
     @pytest.mark.parametrize(
         "period, minutes",
         [
+            pytest.param(FollowingPeriod.FOUR_MONTH, 172800, id="four-months"),
             pytest.param(FollowingPeriod.FIVE_MONTH, 216000, id="five-months"),
             pytest.param(FollowingPeriod.SIX_MONTH, 259200, id="six-months"),
         ],
@@ -945,21 +917,47 @@ class TestMessageWithoutAuthentication:
         assert send_request["token"] == notice["token"] == "token-alice"
         assert notice["body"]["messageId"] == send_request["message_id"]
 
-    @pytest.mark.xfail(
-        strict=True,
-        raises=AssertionError,
-        reason="Messageable.__init__ hands state and access_token to the pydantic "
-        "constructor before it pops them, so they are kept as extra fields and show "
-        "up in repr() and model_dump()",
+    @pytest.mark.parametrize(
+        "model, payload",
+        [
+            pytest.param(Donation, donation_payload("channel-alice"), id="Donation"),
+            pytest.param(
+                Subscription, subscription_payload("channel-alice"), id="Subscription"
+            ),
+            pytest.param(Message, chat_of("alice"), id="Message"),
+        ],
     )
-    async def test_token_given_to_the_constructor_is_not_exposed(self, server, client):
+    async def test_token_given_to_the_constructor_is_not_exposed(
+        self, server, client, model, payload
+    ):
         token = server.add_account("alice")
         state = ConnectionState(dispatch=client.dispatch, handler={}, http=client.http)
-        donation = Donation(
-            **donation_payload("channel-alice"), state=state, access_token=token
-        )
+        message = model(**payload, state=state, access_token=token)
 
-        assert token.access_token not in repr(donation) + str(donation.model_dump())
+        exposed = repr(message) + str(message.model_dump())
+        assert token.access_token not in exposed
+        assert "state" not in message.model_dump()
+        assert "access_token" not in message.model_dump()
+
+    async def test_message_with_state_and_token_keeps_its_emojis_and_sends(
+        self, server, client
+    ):
+        token = server.add_account("alice")
+        state = ConnectionState(dispatch=client.dispatch, handler={}, http=client.http)
+        payload = chat_of("alice", emojis={"smile": "https://example.com/smile.png"})
+        message = Message(**payload, state=state, access_token=token)
+
+        sent = await message.send("reply")
+
+        assert [(e.id, e.url) for e in message.emojis] == [
+            ("smile", "https://example.com/smile.png")
+        ]
+        [request] = api_requests(server, "POST", SEND_PATH)
+        assert (request["token"], request["body"]) == (
+            "token-alice",
+            {"message": "reply"},
+        )
+        assert sent.id == request["message_id"]
 
 
 @pytest.mark.asyncio
@@ -2250,14 +2248,23 @@ class TestSearchResultNext:
     """`SearchResult.next()` behind `get_live` and `get_restriction`."""
 
     @staticmethod
-    async def first_page(source, server, client):
-        """The first of two pages, and what the pages list together."""
+    async def first_page(source, server, client, size=2):
+        """The first page of a listing of three entries, and what the listing holds."""
         if source == "live":
             server.lives = ["live-0", "live-1", "live-2"]
-            return await client.get_live(size=2), server.lives
+            return await client.get_live(size=size), server.lives
         alice = await client.get_user_client(server.add_account("alice"))
         server.restricted_channels["alice"] = ["troll-0", "troll-1", "troll-2"]
-        return await alice.get_restriction(size=2), server.restricted_channels["alice"]
+        return (
+            await alice.get_restriction(size=size),
+            server.restricted_channels["alice"],
+        )
+
+    @staticmethod
+    def requests(source, server) -> list[dict]:
+        return api_requests(
+            server, "GET", LIVES_PATH if source == "live" else RESTRICTION_PATH
+        )
 
     @staticmethod
     def names(page) -> list[str]:
@@ -2277,26 +2284,54 @@ class TestSearchResultNext:
         assert self.names(first) == everything[:2]
         assert self.names(last) == everything[2:]
 
-    @pytest.mark.xfail(
-        strict=True,
-        raises=AssertionError,
-        reason="SearchResult.next() on the last page (cursor None) requests the first "
-        "page again instead of stopping, so `while True: page = await page.next()` "
-        "never ends",
-    )
     @pytest.mark.parametrize("source", ["live", "restriction"])
-    async def test_next_on_the_last_page_does_not_return_the_first_page_again(
+    async def test_next_on_the_last_page_raises_type_error_without_a_request(
         self, server, client, source
     ):
         first, _ = await self.first_page(source, server, client)
         last = await first.next()
+        requests_before = len(self.requests(source, server))
 
-        try:
-            following = await last.next()
-        except Exception:
-            return  # Raising is a way of stopping.
+        with pytest.raises(
+            TypeError, match=r"^This is the last page of search result\.$"
+        ):
+            await last.next()
 
-        assert following is None or self.names(following) != self.names(first)
+        assert len(self.requests(source, server)) == requests_before
+
+    @pytest.mark.parametrize("source", ["live", "restriction"])
+    async def test_next_on_a_result_of_a_single_page_raises_type_error(
+        self, server, client, source
+    ):
+        only, everything = await self.first_page(source, server, client, size=30)
+        assert self.names(only) == everything
+
+        with pytest.raises(
+            TypeError, match=r"^This is the last page of search result\.$"
+        ):
+            await only.next()
+
+        assert len(self.requests(source, server)) == 1
+
+    @pytest.mark.parametrize("source", ["live", "restriction"])
+    async def test_paging_loop_ends_with_type_error_and_asks_for_each_page_once(
+        self, server, client, source
+    ):
+        first, everything = await self.first_page(source, server, client)
+        pages = [first]
+
+        with pytest.raises(TypeError):
+            # `while True: page = await page.next()` is meant to end by itself. The
+            # bound only keeps a paging that restarts from the first page from hanging.
+            for _ in range(10):
+                pages.append(await pages[-1].next())
+            pytest.fail("The paging never reached the last page.")
+
+        assert [name for page in pages for name in self.names(page)] == everything
+        assert [r["query"] for r in self.requests(source, server)] == [
+            {"size": "2"},
+            {"size": "2", "next": "2"},
+        ]
 
     async def test_result_that_does_not_come_from_a_paging_method_raises_runtime_error(
         self, server, client

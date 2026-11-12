@@ -51,11 +51,15 @@ class Messageable(ChzzkModel):
     _state: Optional[ConnectionState] = PrivateAttr(default=None)
 
     def __init__(self, *args, **kwargs):
+        # The connection is not part of the payload. Take it out before pydantic
+        # sees it, or it is kept as an extra field (shown by `repr()`/`model_dump()`).
+        connection = None
+        if "state" in kwargs.keys() and "access_token" in kwargs.keys():
+            connection = (kwargs.pop("access_token"), kwargs.pop("state"))
         super().__init__(*args, **kwargs)
 
-        if "state" in kwargs.keys() and "access_token" in kwargs.keys():
-            self._access_token = kwargs.pop("access_token")
-            self._state = kwargs.pop("state")
+        if connection is not None:
+            self._access_token, self._state = connection
 
     async def send(self, content: str) -> SentMessage:
         """Send a message to the received channel

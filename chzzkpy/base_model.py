@@ -89,10 +89,27 @@ class SearchResult(ChzzkModel, Generic[T]):
         data._next_method_key_argument = self._next_method_key_argument
         return data
 
-    async def next(self) -> Optional[SearchResult]:
+    async def next(self) -> SearchResult:
+        """Get the next page of the search result.
+
+        Returns
+        -------
+        SearchResult
+            The next page of the search result.
+
+        Raises
+        ------
+        RuntimeError
+            Raised when this search result is not a paged result.
+        TypeError
+            Raised when this is the last page of the search result.
+            No request is sent in this case.
+        """
         if self._page is None or self._next_method is None:
             raise RuntimeError(f"This search result has only one result.")
         next_id = self._page["next"]
+        if next_id is None:
+            raise TypeError("This is the last page of search result.")
         result = await self._next(next=next_id)
         return result
 
