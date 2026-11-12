@@ -36,7 +36,9 @@ class Payload:
     def encode(self, jsonp_index=None):
         encoded_payload = b""
         for packet in self.packets:
-            encoded_packet = packet.encode()
+            # The length is the size in bytes, which differs from the characters
+            # of a text outside ASCII.
+            encoded_packet = packet.encode().encode("utf-8")
             content_length = len(encoded_packet)
             encoded_content_length = b""
             while content_length > 0:
@@ -49,7 +51,7 @@ class Payload:
                 b"\x00"  # Binrary Key
                 + encoded_content_length
                 + b"\xff"
-                + encoded_packet.encode()
+                + encoded_packet
             )
         if jsonp_index is not None:
             encoded_payload = (
@@ -64,7 +66,8 @@ class Payload:
     @classmethod
     def decode(cls, encoded_payload: bytes):
         if len(encoded_payload) == 0:
-            return
+            # Nothing has been sent yet (e.g. a polling response without packets).
+            return cls()
 
         # JSONP POST payload starts with 'd='
         if encoded_payload.startswith(b"d="):
@@ -77,9 +80,20 @@ class Payload:
         if not is_binrary:
             encoded_payload = encoded_payload.decode("utf-8")
             while index < len(encoded_payload):
-                content_length, content = encoded_payload[index:].split(":", maxsplit=1)
-                packets.append(Packet.decode(content[: int(content_length)]))
-                index += int(content_length)
+                separator = encoded_payload.find(":", index)
+                raw_content_length = (
+                    encoded_payload[index:separator] if separator >= 0 else ""
+                )
+                if not raw_content_length.isdigit():
+                    raise ValueError("Invalid payload: missing packet length")
+
+                # The length counts the characters of the packet, not its bytes.
+                index = separator + 1
+                content_length = int(raw_content_length)
+                packets.append(
+                    Packet.decode(encoded_payload[index : index + content_length])
+                )
+                index += content_length
         else:
             while index < len(encoded_payload):
                 is_binrary = int(encoded_payload[index])

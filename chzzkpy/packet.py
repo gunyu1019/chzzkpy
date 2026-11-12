@@ -83,7 +83,7 @@ class Packet:
         # Decode Packet ID
         packet_id = None
         if len(data) > 0 and data[0].isdigit():
-            packet_id = int(data[0])
+            packet_id = 0
             while len(data) > 0 and data[0].isdigit():
                 packet_id *= 10
                 packet_id += int(data[0])

@@ -3,8 +3,9 @@
 Copyright (c) 2024-2025 gunyu1019
 
 Gateway error-path tests.
-Tests how the gateway behaves when the handshake stalls, the polling transport is
-used, frames are broken, or the heartbeat cannot be sent.
+Tests how the gateway behaves when the handshake stalls or is closed, the polling
+transport is used, frames are broken, or the heartbeat cannot be sent. Also the packet
+ids and the payload framing it reads and writes.
 """
 
 import asyncio
@@ -254,6 +255,127 @@ class TestWebSocketHandshakeTimeouts:
         assert websockets[0].closed
 
 
+def replace_receive(monkeypatch, message_type, data):
+    """Make the first frame the websocket receives a message of the given type."""
+    messages = [aiohttp.WSMessage(message_type, data, None)]
+    receive = aiohttp.ClientWebSocketResponse.receive
+
+    async def fake_receive(self, timeout=None):
+        if messages:
+            return messages.pop()
+        return await receive(self, timeout)
+
+    monkeypatch.setattr(aiohttp.ClientWebSocketResponse, "receive", fake_receive)
+
+
+@pytest.mark.asyncio
+class TestWebSocketHandshakeClosed:
+    """Test a handshake that the server answers with a closed or broken websocket
+    fails as a connect error, and closes the websocket.
+    """
+
+    async def test_server_close_during_probe_fails_upgrade(
+        self, mock_server, test_session, monkeypatch
+    ):
+        """Test the upgrade fails when the websocket is closed instead of a PONG."""
+        websockets = track_websockets(monkeypatch)
+        mock_server._close_before_reply = True
+
+        with pytest.raises(ChatConnectFailed) as error:
+            await ChzzkGateway._connect_websocket(
+                url=mock_server.url,
+                engine_path="socket.io",
+                loop=asyncio.get_running_loop(),
+                session=test_session,
+                open_packet=upgrade_open_packet(mock_server),
+                ssl=False,
+            )
+
+        assert str(error.value) == str(ChatConnectFailed.websocket_upgrade_failed())
+        assert [websocket.closed for websocket in websockets] == [True]
+
+    async def test_server_close_during_probe_falls_back_to_polling(
+        self, mock_server, test_session, monkeypatch
+    ):
+        """Test a connection whose upgrade is closed goes on with the polling transport."""
+        websockets = track_websockets(monkeypatch)
+        mock_server._close_before_reply = True
+        opened = Recorder()
+
+        gateway = await ChzzkGateway._connect_polling(
+            url=mock_server.url,
+            engine_path="socket.io",
+            loop=asyncio.get_running_loop(),
+            session=test_session,
+            event_hook={EnginePacketType.OPEN: opened},
+            ssl=False,
+        )
+
+        assert gateway.current_transport == "polling"
+        assert gateway.is_connected
+        assert gateway.session_id == mock_server.sid
+        assert gateway.websocket is None
+        assert [websocket.closed for websocket in websockets] == [True]
+        # The packets of the handshake are delivered once, by the polling gateway
+        assert [call["sid"] for call in opened.calls] == [mock_server.sid]
+
+        await gateway.disconnect()
+
+    async def test_server_close_before_open_packet_fails_connect(
+        self, mock_server, test_session, monkeypatch
+    ):
+        """Test a direct connection fails when the websocket is closed before OPEN."""
+        websockets = track_websockets(monkeypatch)
+        mock_server._close_before_reply = True
+
+        with pytest.raises(ChatConnectFailed) as error:
+            await ChzzkGateway._connect_websocket(
+                url=mock_server.url,
+                engine_path="socket.io",
+                loop=asyncio.get_running_loop(),
+                session=test_session,
+                ssl=False,
+            )
+
+        assert str(error.value) == str(ChatConnectFailed.websocket_connect_failed())
+        assert [websocket.closed for websocket in websockets] == [True]
+
+    @pytest.mark.parametrize(
+        ("message_type", "data"),
+        [
+            (aiohttp.WSMsgType.CLOSED, None),
+            (aiohttp.WSMsgType.ERROR, ConnectionResetError()),
+            (aiohttp.WSMsgType.BINARY, b"3probe"),
+        ],
+        ids=["closed", "error", "binary"],
+    )
+    @pytest.mark.parametrize("upgrade", [True, False], ids=["probe", "open_packet"])
+    async def test_unusable_frame_fails_handshake(
+        self, mock_server, test_session, monkeypatch, upgrade, message_type, data
+    ):
+        """Test any frame that isn't text fails the handshake, whatever it is."""
+        websockets = track_websockets(monkeypatch)
+        replace_receive(monkeypatch, message_type, data)
+
+        with pytest.raises(ChatConnectFailed) as error:
+            await ChzzkGateway._connect_websocket(
+                url=mock_server.url,
+                engine_path="socket.io",
+                loop=asyncio.get_running_loop(),
+                session=test_session,
+                open_packet=upgrade_open_packet(mock_server) if upgrade else None,
+                ssl=False,
+            )
+
+        expected = (
+            ChatConnectFailed.websocket_upgrade_failed()
+            if upgrade
+            else ChatConnectFailed.websocket_connect_failed()
+        )
+        assert str(error.value) == str(expected)
+        assert [websocket.closed for websocket in websockets] == [True]
+
+
 @pytest.mark.asyncio
 class TestPollingTransport:
     """Test the packets received over the polling transport reach the hooks."""
@@ -340,6 +462,45 @@ class TestPollingTransport:
         assert mock_server._poll_raw_bodies == []
         assert not read_task.done()
 
+    async def test_empty_poll_response_does_not_end_the_connection(
+        self, mock_server, connect, wait_until
+    ):
+        """Test a poll answered with nothing at all means there is nothing yet."""
+        events = Recorder()
+        mock_server._poll_raw_bodies = [b""]
+        gateway = await connect.polling(event_hook={SocketPacketType.EVENT: events})
+        read_task = gateway.read_in_background()
+
+        mock_server.queue_polling_packet(event_packet("chat", "after empty"))
+        await wait_until(
+            lambda: events.calls or read_task.done(), message="the next poll"
+        )
+
+        failure = read_task.exception() if read_task.done() else None
+        assert failure is None, repr(failure)
+        assert events.calls == [["chat", "after empty"]]
+        assert mock_server._poll_raw_bodies == []
+        assert gateway.is_connected
+        assert not read_task.done()
+
+    async def test_text_format_poll_response_is_decoded(
+        self, mock_server, connect, wait_until
+    ):
+        """Test a poll answered in the text format (<length>:<packet>) is read."""
+        events = Recorder()
+        first = '42["chat","안녕 👋"]'
+        second = '42["chat",{"n":2}]'
+        mock_server._poll_raw_bodies = [
+            f"{len(first)}:{first}{len(second)}:{second}".encode("utf-8")
+        ]
+        gateway = await connect.polling(event_hook={SocketPacketType.EVENT: events})
+        gateway.read_in_background()
+
+        await wait_until(lambda: len(events.calls) == 2, message="both events")
+
+        assert events.calls == [["chat", "안녕 👋"], ["chat", {"n": 2}]]
+        assert gateway.is_connected
+
     async def test_invalid_packet_ends_read_task(
         self, mock_server, connect, wait_finished
     ):
@@ -384,6 +545,44 @@ class TestPollingTransport:
             )
 
         assert acquired_connections(test_session) == 0
+
+    @pytest.mark.parametrize(
+        "body",
+        [b"", b"\x01\x01\xff\x00"],
+        ids=["empty", "only_binary_packets"],
+    )
+    async def test_handshake_without_packets_is_rejected(
+        self, mock_server, test_session, body
+    ):
+        """Test a handshake response that holds no packet can't connect: it has no
+        OPEN packet, which is a failed connect and not an unexpected error.
+        """
+        mock_server._handshake_body = body
+
+        with pytest.raises(ChatConnectFailed) as error:
+            await ChzzkGateway._connect_polling(
+                url=mock_server.url,
+                engine_path="socket.io",
+                loop=asyncio.get_running_loop(),
+                session=test_session,
+                ssl=False,
+            )
+
+        assert str(error.value) == str(ChatConnectFailed.polling_connect_failed(200))
+        assert acquired_connections(test_session) == 0
+
+    async def test_non_ascii_packet_is_posted_with_its_byte_length(
+        self, mock_server, connect
+    ):
+        """Test the frame of a packet outside ASCII is as long as its bytes."""
+        gateway = await connect.polling()
+        mock_server.post_bodies.clear()
+        mock_server.received_messages.clear()
+
+        await gateway.send_ping("안녕")
+
+        assert mock_server.post_bodies == [b"\x00\x07\xff2" + "안녕".encode("utf-8")]
+        assert mock_server.received_messages == ["2안녕"]
 
     async def test_send_payload_posts_all_packets_at_once(
         self, mock_server, connect, wait_until
@@ -580,40 +779,69 @@ class TestHeartbeatFailures:
         await gateway.websocket.close()
 
 
+# The packet id of an event, the ACK frame answering it and the polling body that
+# posts it. 0 is an id too, which a plain truthiness check would miss.
+ACKNOWLEDGED_IDS = pytest.mark.parametrize(
+    ("packet_id", "ack_frame", "ack_body"),
+    [
+        (0, "430", b"\x00\x03\xff430"),
+        (7, "437", b"\x00\x03\xff437"),
+        (12, "4312", b"\x00\x04\xff4312"),
+        (456, "43456", b"\x00\x05\xff43456"),
+        (1000, "431000", b"\x00\x06\xff431000"),
+    ],
+    ids=["0", "7", "12", "456", "1000"],
+)
+
+
 @pytest.mark.asyncio
 class TestAcknowledgements:
     """Test the ACK sent for the received events that carry a packet id."""
 
+    @ACKNOWLEDGED_IDS
     async def test_event_with_id_is_acknowledged_over_websocket(
-        self, mock_server, connect, wait_until
+        self, mock_server, connect, wait_until, packet_id, ack_frame, ack_body
     ):
-        """Test an event with a packet id is delivered and acknowledged."""
+        """Test an event with a packet id is delivered and acknowledged with that id."""
         events = Recorder()
         gateway = await connect.websocket(event_hook={SocketPacketType.EVENT: events})
         gateway.read_in_background()
 
-        # 0 is a packet id too, which a plain truthiness check would miss
-        await mock_server.send_custom_packet(event_packet("chat", {"n": 1}, 0))
+        # The event travels encoded, so the id is decoded by the gateway
+        await mock_server.send_custom_packet(event_packet("chat", {"n": 1}, packet_id))
 
-        await wait_until(lambda: "430" in mock_server.received_messages, message="ACK")
+        await wait_until(
+            lambda: ack_frame in mock_server.received_messages, message="ACK"
+        )
         await wait_until(lambda: events.calls, message="the event")
         assert events.calls == [["chat", {"n": 1}]]
-        assert mock_server.received_messages.count("430") == 1
+        assert [m for m in mock_server.received_messages if m.startswith("43")] == [
+            ack_frame
+        ]
 
+    @ACKNOWLEDGED_IDS
     async def test_event_with_id_is_acknowledged_over_polling(
-        self, mock_server, connect, wait_until
+        self, mock_server, connect, wait_until, packet_id, ack_frame, ack_body
     ):
-        """Test the ACK of a polled event is posted, and the event is delivered."""
+        """Test the ACK of a polled event is posted with that id, and the event is
+        delivered.
+        """
         events = Recorder()
         gateway = await connect.polling(event_hook={SocketPacketType.EVENT: events})
         gateway.read_in_background()
+        mock_server.post_bodies.clear()
 
-        mock_server.queue_polling_packet(event_packet("chat", {"n": 1}, 0))
+        mock_server.queue_polling_packet(event_packet("chat", {"n": 1}, packet_id))
 
-        ack_body = b"\x00\x03\xff430"
         await wait_until(lambda: ack_body in mock_server.post_bodies, message="ACK")
         await wait_until(lambda: events.calls, message="the event")
         assert events.calls == [["chat", {"n": 1}]]
+        # Exactly one ACK, whatever pings are posted next to it
+        assert [
+            body
+            for body in mock_server.post_bodies
+            if body.split(b"\xff", 1)[1].startswith(b"43")
+        ] == [ack_body]
 
     @pytest.mark.parametrize("packet_id", [0, 7, 42, 456])
     async def test_ack_carries_the_id_of_the_event(
@@ -885,163 +1113,124 @@ class TestStateIntegration:
         assert not read_task.done()
 
 
-@pytest.mark.asyncio
-class TestKnownBugs:
-    """Tests of the correct behavior that the implementation doesn't have yet.
+class TestPacketAndPayloadCodec:
+    """Test the packet ids and the payload framing as they travel on the wire."""
 
-    Each one fails today and is marked as an expected failure. Once the matching bug
-    is fixed the test passes, which strict mode reports: remove the marker then.
-    """
-
-    @pytest.mark.xfail(
-        strict=True,
-        raises=AssertionError,
-        reason="Packet._decode_socket counts the first digit of the packet id twice",
+    @pytest.mark.parametrize("namespace", [None, "/admin"], ids=["root", "namespace"])
+    @pytest.mark.parametrize(
+        "packet_id", [0, 1, 7, 10, 12, 100, 456, 1234567890], ids=str
     )
-    @pytest.mark.parametrize("packet_id", [1, 7, 12, 456])
-    async def test_packet_id_survives_decoding(self, packet_id):
-        encoded = event_packet("chat", {"n": 1}, packet_id).encode()
-        assert encoded == f'42{packet_id}["chat",{{"n":1}}]'
+    def test_packet_id_survives_decoding(self, packet_id, namespace):
+        """Test every digit of a packet id is read once."""
+        encoded = Packet(
+            EnginePacketType.MESSAGE,
+            SocketPacketType.EVENT,
+            data=["chat", {"n": 1}],
+            packet_id=packet_id,
+            namespace=namespace,
+        ).encode()
+        prefix = "" if namespace is None else f"{namespace},"
+        assert encoded == f'42{prefix}{packet_id}["chat",{{"n":1}}]'
 
-        assert Packet.decode(encoded).id == packet_id
+        decoded = Packet.decode(encoded)
 
-    @pytest.mark.xfail(
-        strict=True,
-        raises=AssertionError,
-        reason="the packet id of a received event is decoded wrong, so is its ACK",
+        assert decoded.id == packet_id
+        assert decoded.namespace == namespace
+        assert decoded.data == ["chat", {"n": 1}]
+
+    @pytest.mark.parametrize(
+        "socket_packet_type", [SocketPacketType.EVENT, SocketPacketType.ACK]
     )
-    async def test_received_event_is_acknowledged_with_its_own_id(
-        self, mock_server, connect, wait_until
+    @pytest.mark.parametrize("packet_id", [0, 7, 12, 456])
+    def test_packet_id_without_data_survives_decoding(
+        self, socket_packet_type, packet_id
     ):
-        gateway = await connect.websocket()
-        gateway.read_in_background()
+        """Test the packet id is read when nothing follows it."""
+        decoded = Packet.decode(f"4{socket_packet_type.value}{packet_id}")
 
-        await mock_server.send_custom_packet(event_packet("chat", {"n": 1}, 7))
+        assert decoded.socket_packet_type == socket_packet_type
+        assert decoded.id == packet_id
+        assert not decoded.data
 
-        await wait_until(
-            lambda: any(m.startswith("43") for m in mock_server.received_messages),
-            message="the ACK",
-        )
-        assert [m for m in mock_server.received_messages if m.startswith("43")] == [
-            "437"
-        ]
-
-    @pytest.mark.xfail(
-        strict=True,
-        raises=ValueError,
-        reason="Payload.decode advances past a text packet without its length prefix",
+    @pytest.mark.parametrize(
+        ("encoded", "expected"),
+        [
+            (b"1:22:40", ["2", "40"]),
+            (b"10:2abcdefghi", ["2abcdefghi"]),  # More than one digit of length
+            (b"4:2a:b", ["2a:b"]),  # A colon in the packet
+            (
+                "3:2안녕2:40".encode("utf-8"),
+                ["2안녕", "40"],
+            ),  # In characters, not bytes
+            (b"1:2" * 20, ["2"] * 20),
+            (b'11:42["e","x"]1:3', ['42["e","x"]', "3"]),
+        ],
+        ids=["two", "long", "colon", "non_ascii", "many", "mixed"],
     )
-    async def test_text_payload_is_decoded(self):
-        payload = Payload.decode(b"1:22:40")
+    def test_text_payload_is_decoded(self, encoded, expected):
+        """Test a payload of the text format (<length>:<packet>...) is decoded."""
+        payload = Payload.decode(encoded)
 
-        assert [packet.encode() for packet in payload.packets] == ["2", "40"]
+        assert [packet.encode() for packet in payload.packets] == expected
 
-    @pytest.mark.xfail(
-        strict=True,
-        raises=AttributeError,
-        reason="Payload.decode returns None, not a Payload, for an empty body",
+    @pytest.mark.parametrize(
+        "encoded",
+        [b"12", b":2", b"x:2", b"-1:2", b"+1:2", b"1:22"],
+        ids=["no_colon", "no_length", "not_a_number", "negative", "signed", "trailing"],
     )
-    async def test_empty_payload_has_no_packets(self):
+    def test_malformed_text_payload_raises(self, encoded):
+        """Test a text payload without a proper length fails instead of looping."""
+        with pytest.raises(ValueError):
+            Payload.decode(encoded)
+
+    def test_empty_payload_has_no_packets(self):
+        """Test an empty body is an empty payload, not None."""
         payload = Payload.decode(b"")
 
+        assert isinstance(payload, Payload)
         assert payload.packets == []
+        assert payload.encode() == b""
+        assert Payload.decode(b"").packets is not payload.packets
 
-    @pytest.mark.xfail(
-        strict=True,
-        raises=AssertionError,
-        reason="an empty polling response kills the read loop with an AttributeError",
+    @pytest.mark.parametrize(
+        ("text", "header"),
+        [
+            ("a", b"\x00\x02\xff"),
+            ("안녕", b"\x00\x07\xff"),
+            ("👋", b"\x00\x05\xff"),
+            ("a안b👋", b"\x00\x01\x00\xff"),
+            ("가" * 5, b"\x00\x01\x06\xff"),
+        ],
+        ids=["ascii", "korean", "emoji", "mixed", "two_digits"],
     )
-    async def test_empty_poll_response_does_not_end_the_connection(
-        self, mock_server, connect, wait_until
-    ):
-        events = Recorder()
-        mock_server._poll_raw_bodies = [b""]
-        gateway = await connect.polling(event_hook={SocketPacketType.EVENT: events})
-        read_task = gateway.read_in_background()
-
-        mock_server.queue_polling_packet(event_packet("chat", "after empty"))
-        await wait_until(
-            lambda: events.calls or read_task.done(), message="the next poll"
-        )
-
-        failure = read_task.exception() if read_task.done() else None
-        assert failure is None, repr(failure)
-        assert events.calls == [["chat", "after empty"]]
-
-    @pytest.mark.xfail(
-        strict=True,
-        raises=AssertionError,
-        reason="Payload.encode takes the length in characters, not in bytes",
-    )
-    async def test_payload_length_counts_bytes(self):
-        packet = Packet(EnginePacketType.PING, data="안녕")
+    def test_payload_length_counts_bytes(self, text, header):
+        """Test the frame length is the size of the packet in bytes."""
+        packet = Packet(EnginePacketType.PING, data=text)
 
         encoded = Payload([packet]).encode()
 
-        assert encoded == b"\x00\x07\xff" + "2안녕".encode("utf-8")
-        assert Payload.decode(encoded).packets[0].data == "안녕"
+        assert encoded == header + ("2" + text).encode("utf-8")
+        assert Payload.decode(encoded).packets[0].data == text
 
-    @pytest.mark.xfail(
-        strict=True,
-        raises=AssertionError,
-        reason="a websocket closed during the upgrade probe raises TypeError",
-    )
-    async def test_server_close_during_probe_fails_upgrade(
-        self, mock_server, test_session
-    ):
-        mock_server._close_before_reply = True
+    def test_frame_after_non_ascii_packet_is_found(self):
+        """Test the frames next to a packet outside ASCII are decoded in place."""
+        packets = [
+            Packet(EnginePacketType.PING, data="안녕"),
+            Packet(EnginePacketType.MESSAGE, SocketPacketType.EVENT, data=["e", "x"]),
+            Packet(EnginePacketType.PING, data="👋"),
+            Packet(EnginePacketType.PONG),
+        ]
 
-        with pytest.raises(Exception) as error:
-            await ChzzkGateway._connect_websocket(
-                url=mock_server.url,
-                engine_path="socket.io",
-                loop=asyncio.get_running_loop(),
-                session=test_session,
-                open_packet=upgrade_open_packet(mock_server),
-                ssl=False,
-            )
+        encoded = Payload(packets).encode()
+        decoded = Payload.decode(encoded)
 
-        assert isinstance(error.value, ChatConnectFailed), repr(error.value)
-
-    @pytest.mark.xfail(
-        strict=True,
-        raises=TypeError,
-        reason="a websocket closed during the upgrade probe skips the polling fallback",
-    )
-    async def test_server_close_during_probe_falls_back_to_polling(
-        self, mock_server, test_session
-    ):
-        mock_server._close_before_reply = True
-
-        gateway = await ChzzkGateway._connect_polling(
-            url=mock_server.url,
-            engine_path="socket.io",
-            loop=asyncio.get_running_loop(),
-            session=test_session,
-            ssl=False,
+        assert [packet.encode() for packet in decoded.packets] == [
+            packet.encode() for packet in packets
+        ]
+        # What another implementation writes is read the same
+        assert (
+            Payload.decode(b"\x00\x07\xff2" + "안녕".encode("utf-8") + b"\x00\x01\xff3")
+            .packets[0]
+            .data
+            == "안녕"
         )
-
-        assert gateway.current_transport == "polling"
-        assert gateway.is_connected
-        await gateway.disconnect()
-
-    @pytest.mark.xfail(
-        strict=True,
-        raises=AssertionError,
-        reason="a websocket closed before the OPEN packet raises TypeError",
-    )
-    async def test_server_close_before_open_packet_fails_connect(
-        self, mock_server, test_session
-    ):
-        mock_server._close_before_reply = True
-
-        with pytest.raises(Exception) as error:
-            await ChzzkGateway._connect_websocket(
-                url=mock_server.url,
-                engine_path="socket.io",
-                loop=asyncio.get_running_loop(),
-                session=test_session,
-                ssl=False,
-            )
-
-        assert isinstance(error.value, ChatConnectFailed), repr(error.value)

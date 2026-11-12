@@ -190,6 +190,10 @@ class ChzzkGateway:
         raw_payload = await connection_response.read()
         payload = Payload.decode(raw_payload)
 
+        if len(payload.packets) == 0:
+            # The first packet of the handshake is the OPEN packet.
+            raise ChatConnectFailed.polling_connect_failed(connection_response.status)
+
         raw_open_packet = payload.packets[0]
         open_packet = OpenPacketInfo.model_validate(raw_open_packet.data)
 
@@ -278,6 +282,9 @@ class ChzzkGateway:
                     )
                 except asyncio.TimeoutError:
                     raise ChatConnectFailed.websocket_upgrade_failed()
+                # The server may close the websocket (or break it) instead of a PONG.
+                if raw_pong_packet.type is not aiohttp.WSMsgType.TEXT:
+                    raise ChatConnectFailed.websocket_upgrade_failed()
                 pong_packet = Packet.decode(raw_pong_packet.data)
 
                 if (
@@ -295,6 +302,9 @@ class ChzzkGateway:
                         websocket.receive(), timeout=5.0
                     )
                 except asyncio.TimeoutError:
+                    raise ChatConnectFailed.websocket_connect_failed()
+                # The server may close the websocket (or break it) instead of an OPEN.
+                if raw_open_packet.type is not aiohttp.WSMsgType.TEXT:
                     raise ChatConnectFailed.websocket_connect_failed()
                 raw_open_packet = Packet.decode(raw_open_packet.data)
                 open_packet = OpenPacketInfo.model_validate(raw_open_packet.data)
