@@ -8,6 +8,9 @@ Logins that share a port are processed one after another, and a flow that fails 
 cancelled must give back the port and the lock. Every flow here runs the real local web
 server on a free localhost port. Nothing leaves the machine: the browser is replaced by a
 `FakeBrowser` that sends the redirect request itself, and the token exchange is stubbed.
+
+Misuse (closing a server that is not running, starting a second login on the same instance,
+a server that fails to set up) and telling the user to open the login URL are tested too.
 """
 
 import asyncio
@@ -479,3 +482,94 @@ class TestDuplicateRedirect:
 
         assert flow.exception() is error
         assert events.count("exchange:refresh") == 1
+
+
+@pytest.mark.asyncio
+class TestInvalidUse:
+    async def test_close_without_a_running_server_raises(self, port, events):
+        flow = make_flow(port, events)
+
+        with pytest.raises(RuntimeError, match="not enabled"):
+            await flow.close()
+
+        assert not flow.is_server_run
+        assert events == []
+
+    async def test_second_process_on_the_same_instance_raises(
+        self, port, events, browser
+    ):
+        browser.hold.add("first")
+        flow = make_flow(port, events)
+        first = asyncio.create_task(flow.process_oauth2("first"))
+        await browser.opened("first")
+
+        with pytest.raises(RuntimeError, match="already in progress"):
+            await asyncio.wait_for(flow.process_oauth2("second"), TIMEOUT)
+
+        # The login in progress is untouched: it keeps its state and its server.
+        assert "second" not in browser.urls
+        assert is_listening(port) and not first.done()
+        assert await browser.redirect("first") == (200, "Success to login!")
+        token = await asyncio.wait_for(first, TIMEOUT)
+        assert token.access_token == "access-first"
+        assert not oauth2._login_locks
+
+    async def test_failed_server_setup_raises_and_releases_lock(
+        self, monkeypatch, port, events, browser
+    ):
+        async def failing_setup(self):
+            raise RuntimeError("setup failed")
+
+        flow = make_flow(port, events)
+        with monkeypatch.context() as patch:
+            patch.setattr(aiohttp.web.AppRunner, "setup", failing_setup)
+
+            with pytest.raises(RuntimeError, match="setup failed"):
+                await asyncio.wait_for(flow.process_oauth2("broken"), TIMEOUT)
+
+        # No server was started, so there is nothing to close, and no browser to open.
+        assert not flow.is_server_run
+        assert events == [] and "broken" not in browser.urls
+        assert not is_listening(port)
+        assert not oauth2._login_locks
+
+        token = await asyncio.wait_for(
+            make_flow(port, events).process_oauth2("next"), TIMEOUT
+        )
+        assert token.access_token == "access-next"
+
+
+@pytest.mark.asyncio
+class TestOpeningTheBrowser:
+    @pytest.mark.parametrize(
+        "opened, message",
+        [
+            (True, "If you haven't opened your browser, please join this url"),
+            (False, "Failed to open the browser. Please join this url"),
+        ],
+    )
+    async def test_url_is_printed_whether_or_not_the_browser_opened(
+        self, monkeypatch, capsys, port, events, opened, message
+    ):
+        fake = FakeBrowser(events)
+        visited = []
+
+        def webbrowser_open(url: str) -> bool:
+            visited.append(url)
+            # The user follows the printed URL by hand when the browser did not open.
+            fake.open(url)
+            return opened
+
+        monkeypatch.setattr(oauth2.webbrowser, "open", webbrowser_open)
+
+        token = await asyncio.wait_for(
+            make_flow(port, events).process_oauth2("printed"), TIMEOUT
+        )
+        await fake.settle()
+
+        assert token.access_token == "access-printed"
+        assert visited == [fake.urls["printed"]]
+        lines = capsys.readouterr().out.splitlines()
+        assert message in lines[0]
+        assert lines[1] == visited[0]
+        assert not is_listening(port)
