@@ -1728,6 +1728,8 @@ class UserClient:
                 chat_available_group=instance.chat_available_group,
                 min_follower_minute=instance.min_follower_minute,
                 allow_subscriber_in_follower_mode=instance.allow_subscriber_in_follower_mode,
+                chat_slow_mode_sec=instance.chat_slow_mode_sec,
+                chat_emoji_mode=instance.chat_emoji_mode,
             )
             return
         await self.http.set_chat_setting(
@@ -1850,7 +1852,7 @@ class UserClient:
         result = await self.http.get_restrict_users(token=self.access_token, size=size)
         data = result.content
         data._next_method = self.http.get_restrict_users
-        data._next_method_key_argument = {"size": size}
+        data._next_method_key_argument = {"size": size, "token": self.access_token}
         return data
 
     @refreshable

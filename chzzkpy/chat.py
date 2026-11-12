@@ -32,3 +32,6 @@ class ChatSetting(ChzzkModel):
     chat_available_group: Literal["ALL", "FOLLOWER", "MANAGER", "SUBSCRIBER"]
     min_follower_minute: FollowingPeriod
     allow_subscriber_in_follower_mode: bool
+    # Defaults keep payloads without these two fields valid.
+    chat_slow_mode_sec: int = 0
+    chat_emoji_mode: bool = False

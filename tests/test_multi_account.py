@@ -60,6 +60,15 @@ class MockSession:
 class MockChzzkServer:
     """Mock Chzzk Open API and session gateway (socket.io v2 / engine.io v3)."""
 
+    DEFAULT_CHAT_SETTING = {
+        "chatAvailableCondition": "NONE",
+        "chatAvailableGroup": "ALL",
+        "minFollowerMinute": 0,
+        "allowSubscriberInFollowerMode": False,
+        "chatSlowModeSec": 0,
+        "chatEmojiMode": False,
+    }
+
     def __init__(self):
         self.url: Optional[str] = None
         self.accounts: dict[str, MockAccount] = dict()  # access token -> account
@@ -80,6 +89,15 @@ class MockChzzkServer:
         # When False, the probe of a websocket upgrade is left unanswered.
         self.answer_probe = True
         self.probes = 0
+        # Chat settings by account name, as the API returns them (camelCase fields).
+        # Accounts without an entry have `DEFAULT_CHAT_SETTING`; a PUT replaces the entry.
+        self.chat_settings: dict[str, dict[str, Any]] = dict()
+        # Restricted channel ids by account name, in the order the paged
+        # `restrict-channels` route lists them.
+        self.restricted_channels: dict[str, list[str]] = dict()
+        # Statuses the next requests to a route are answered with, one per request, by
+        # (method, path). Only the routes that call `_queued_error` honour it.
+        self.api_errors: dict[tuple[str, str], list[int]] = dict()
 
         self._sessions_by_auth: dict[str, MockSession] = dict()
         self._sessions_by_sid: dict[str, MockSession] = dict()
@@ -101,6 +119,9 @@ class MockChzzkServer:
             "/open/v1/sessions/events/unsubscribe/{event}", self.handle_unsubscribe
         )
         app.router.add_post("/open/v1/chats/send", self.handle_send_chat)
+        app.router.add_get("/open/v1/chats/settings", self.handle_get_chat_setting)
+        app.router.add_put("/open/v1/chats/settings", self.handle_set_chat_setting)
+        app.router.add_get("/open/v1/restrict-channels", self.handle_restrictions)
         app.router.add_post("/auth/v1/token", self.handle_token)
 
         self._runner = web.AppRunner(app)
@@ -201,6 +222,12 @@ class MockChzzkServer:
             return queued.pop(0)
         return self.reject_sessions.get(owner_name)
 
+    def _queued_error(self, request: web.Request) -> Optional[web.Response]:
+        queued = self.api_errors.get((request.method, request.path))
+        if queued:
+            return self._content(code=queued.pop(0), message="API_ERROR")
+        return None
+
     def _new_session(self, owner: Optional[MockAccount]) -> MockSession:
         number = next(self._ids)
         session = MockSession(
@@ -292,6 +319,63 @@ class MockChzzkServer:
         if self._account_of(request) is None:
             return self._content(code=401, message="INVALID_TOKEN")
         return self._content({"messageId": f"message-{next(self._ids)}"})
+
+    async def handle_get_chat_setting(self, request: web.Request):
+        await self._record(request)
+        account = self._account_of(request)
+        if account is None:
+            return self._content(code=401, message="INVALID_TOKEN")
+        error = self._queued_error(request)
+        if error is not None:
+            return error
+        return self._content(
+            self.chat_settings.get(account.name, dict(self.DEFAULT_CHAT_SETTING))
+        )
+
+    async def handle_set_chat_setting(self, request: web.Request):
+        record = await self._record(request)
+        account = self._account_of(request)
+        if account is None:
+            return self._content(code=401, message="INVALID_TOKEN")
+        error = self._queued_error(request)
+        if error is not None:
+            return error
+        self.chat_settings[account.name] = dict(record["body"])
+        return self._content()
+
+    async def handle_restrictions(self, request: web.Request):
+        """Lists the restricted channels of the account `size` at a time. The `next`
+        cursor of a page is what the following request must send back."""
+        await self._record(request)
+        account = self._account_of(request)
+        if account is None:
+            return self._content(code=401, message="INVALID_TOKEN")
+        error = self._queued_error(request)
+        if error is not None:
+            return error
+
+        try:
+            size = int(request.query.get("size", 20))
+            start = int(request.query.get("next", 0))
+        except ValueError:
+            return self._content(code=400, message="INVALID_PARAMETER")
+
+        channels = self.restricted_channels.get(account.name, [])
+        stop = start + size
+        return self._content(
+            {
+                "data": [
+                    {
+                        "restrictedChannelId": channel_id,
+                        "restrictedChannelName": f"name-{channel_id}",
+                        "createdDate": "2025-01-01 00:00:00",
+                        "releaseDate": "2025-02-01 00:00:00",
+                    }
+                    for channel_id in channels[start:stop]
+                ],
+                "page": {"next": str(stop) if stop < len(channels) else None},
+            }
+        )
 
     async def handle_token(self, request: web.Request):
         record = await self._record(request)
