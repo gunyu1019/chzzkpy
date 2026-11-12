@@ -51,7 +51,7 @@ class UnauthorizedException(ChzzkpyException):
 
     def __init__(self, message: Optional[str] = None):
         if message is None:
-            message = "Not Found"
+            message = "Invalid or expired authorization"
         super(UnauthorizedException, self).__init__(message)
 
 
@@ -87,7 +87,7 @@ class HTTPException(ChzzkpyException):
 
     def __init__(self, code: int, message: Optional[str] = None):
         if message is None:
-            message = f"Reponsed error code ({code})"
+            message = f"Responded error code ({code})"
         else:
             message += f" ({code})"
         super(HTTPException, self).__init__(message)

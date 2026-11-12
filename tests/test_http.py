@@ -668,6 +668,7 @@ class TestErrorResponses:
     @pytest.mark.parametrize(
         "status, exception, default_message",
         [
+            (401, UnauthorizedException, "Invalid or expired authorization"),
             (403, ForbiddenException, "Invalid permission"),
             (404, NotFoundException, "Not Found"),
         ],
@@ -695,11 +696,6 @@ class TestErrorResponses:
         with pytest.raises(UnauthorizedException):
             await http.get_user_self(token=make_token("alice"))
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="UnauthorizedException falls back to the message 'Not Found' "
-        "(copy-paste default in chzzkpy/error.py)",
-    )
     async def test_unauthorized_without_message_does_not_claim_not_found(
         self, server, http
     ):
@@ -709,6 +705,7 @@ class TestErrorResponses:
             await http.get_user_self(token=make_token("alice"))
 
         assert "Not Found" not in str(error.value)
+        assert str(error.value) == "Invalid or expired authorization"
 
     @pytest.mark.parametrize("status", [402, 405, 409, 418, 500, 502, 503])
     async def test_other_errors_raise_http_exception_with_code_and_message(
@@ -730,6 +727,7 @@ class TestErrorResponses:
             await http.get_lives()
 
         assert "500" in str(error.value)
+        assert str(error.value) == "Responded error code (500)"
 
     @pytest.mark.parametrize(
         "status, exception",
@@ -772,44 +770,36 @@ class TestErrorResponses:
         assert result.code == 200
 
 
-def _not_chzzkpy(*raises: type[BaseException]):
-    """The error responses below are expected to surface as chzzkpy exceptions, but now
-    leak exceptions of aiohttp, json or Python itself."""
-    return pytest.mark.xfail(
-        strict=True,
-        raises=raises,
-        reason="after_request reads the body of an error as Chzzk JSON without "
-        "checking it, so other bodies surface as aiohttp/json/Python exceptions",
-    )
+DEFAULT_MESSAGES = {
+    UnauthorizedException: "Invalid or expired authorization",
+    ForbiddenException: "Invalid permission",
+    NotFoundException: "Not Found",
+}
 
 
-_LEAKS_CONTENT_TYPE = _not_chzzkpy(aiohttp.ContentTypeError)
-_LEAKS_KEY = _not_chzzkpy(KeyError)
+def default_message(exception: type[ChzzkpyException], status: int) -> str:
+    """The text an exception carries when the response gave no usable message."""
+    if exception is HTTPException:
+        return f"Responded error code ({status})"
+    return DEFAULT_MESSAGES[exception]
 
 
 @pytest.mark.asyncio
 class TestErrorResponsesWithoutChzzkBody:
     """Gateways, proxies and outages answer with bodies that are not the JSON of the
-    Open API. The status is still known, so a chzzkpy exception is expected."""
+    Open API. The status is still known, so a chzzkpy exception is expected, carrying
+    the default message of its kind."""
 
     @pytest.mark.parametrize(
         "status, raw, content_type, exception",
         [
-            pytest.param(
-                401,
-                b"",
-                None,
-                UnauthorizedException,
-                id="401-empty-body",
-                marks=_LEAKS_CONTENT_TYPE,
-            ),
+            pytest.param(401, b"", None, UnauthorizedException, id="401-empty-body"),
             pytest.param(
                 401,
                 b"<html>Unauthorized</html>",
                 "text/html",
                 UnauthorizedException,
                 id="401-html",
-                marks=_LEAKS_CONTENT_TYPE,
             ),
             pytest.param(
                 403,
@@ -817,7 +807,6 @@ class TestErrorResponsesWithoutChzzkBody:
                 "text/html",
                 ForbiddenException,
                 id="403-html",
-                marks=_LEAKS_CONTENT_TYPE,
             ),
             pytest.param(
                 404,
@@ -825,7 +814,6 @@ class TestErrorResponsesWithoutChzzkBody:
                 "text/html",
                 NotFoundException,
                 id="404-html",
-                marks=_LEAKS_CONTENT_TYPE,
             ),
             pytest.param(
                 500,
@@ -833,23 +821,45 @@ class TestErrorResponsesWithoutChzzkBody:
                 "text/html",
                 HTTPException,
                 id="500-html",
-                marks=_LEAKS_CONTENT_TYPE,
             ),
-            pytest.param(
-                502,
-                b"",
-                None,
-                HTTPException,
-                id="502-empty-body",
-                marks=_LEAKS_CONTENT_TYPE,
-            ),
+            pytest.param(502, b"", None, HTTPException, id="502-empty-body"),
             pytest.param(
                 503,
                 b"Service Unavailable",
                 "text/plain",
                 HTTPException,
                 id="503-plain-text",
-                marks=_LEAKS_CONTENT_TYPE,
+            ),
+            pytest.param(
+                401, b"", "application/json", UnauthorizedException, id="401-empty-json"
+            ),
+            pytest.param(
+                500,
+                b"{",
+                "application/json",
+                HTTPException,
+                id="500-truncated-json",
+            ),
+            pytest.param(
+                403,
+                b"{'code': 403}",
+                "application/json",
+                ForbiddenException,
+                id="403-single-quoted-json",
+            ),
+            pytest.param(
+                404,
+                b"<html>Not Found</html>",
+                "application/json",
+                NotFoundException,
+                id="404-html-as-json",
+            ),
+            pytest.param(
+                502,
+                b"\xff\xfe\x00",
+                "application/json",
+                HTTPException,
+                id="502-undecodable-bytes",
             ),
         ],
     )
@@ -858,22 +868,153 @@ class TestErrorResponsesWithoutChzzkBody:
     ):
         server.reply(status, raw=raw, content_type=content_type)
 
-        with pytest.raises(exception):
+        with pytest.raises(exception) as error:
             await http.create_notice(token=make_token("alice"), message="hi")
+
+        assert type(error.value) is exception
+        assert str(error.value) == default_message(exception, status)
 
     @pytest.mark.parametrize(
         "payload",
         [
-            pytest.param({"message": "SOMETHING_FAILED"}, id="without-code"),
-            pytest.param({"code": 500}, id="without-message"),
+            pytest.param(None, id="null"),
+            pytest.param([], id="empty-array"),
+            pytest.param([{"code": 500, "message": "IN_AN_ARRAY"}], id="array"),
+            pytest.param("SOMETHING_FAILED", id="string"),
+            pytest.param(42, id="number"),
+            pytest.param(True, id="boolean"),
         ],
     )
-    @_LEAKS_KEY
-    async def test_json_error_with_missing_fields(self, server, http, payload):
-        server.reply(500, payload=payload)
+    @pytest.mark.parametrize(
+        "status, exception",
+        [
+            (401, UnauthorizedException),
+            (403, ForbiddenException),
+            (404, NotFoundException),
+            (500, HTTPException),
+        ],
+    )
+    async def test_json_body_that_is_not_an_object(
+        self, server, http, status, exception, payload
+    ):
+        server.reply(status, payload=payload)
 
-        with pytest.raises(HTTPException):
+        with pytest.raises(exception) as error:
             await http.create_notice(token=make_token("alice"), message="hi")
+
+        assert type(error.value) is exception
+        assert str(error.value) == default_message(exception, status)
+
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            pytest.param({}, id="empty-object"),
+            pytest.param({"code": 500}, id="without-message"),
+            pytest.param({"code": 500, "message": None}, id="null-message"),
+            pytest.param({"code": 500, "message": ""}, id="empty-message"),
+            pytest.param({"code": 500, "message": 123}, id="number-message"),
+            pytest.param({"code": 500, "message": ["a"]}, id="array-message"),
+            pytest.param({"code": 500, "message": {"a": 1}}, id="object-message"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "status, exception",
+        [
+            (401, UnauthorizedException),
+            (403, ForbiddenException),
+            (404, NotFoundException),
+            (500, HTTPException),
+        ],
+    )
+    async def test_json_object_without_a_usable_message(
+        self, server, http, status, exception, payload
+    ):
+        server.reply(status, payload=payload)
+
+        with pytest.raises(exception) as error:
+            await http.create_notice(token=make_token("alice"), message="hi")
+
+        assert type(error.value) is exception
+        if exception is HTTPException:
+            # The code of the body is used when it has one, otherwise the status is.
+            code = payload.get("code", status)
+            assert str(error.value) == f"Responded error code ({code})"
+        else:
+            assert str(error.value) == default_message(exception, status)
+
+    @pytest.mark.parametrize(
+        "payload, text",
+        [
+            pytest.param({"message": "SOMETHING_FAILED"}, "SOMETHING_FAILED (502)"),
+            pytest.param(
+                {"code": None, "message": "SOMETHING_FAILED"}, "SOMETHING_FAILED (502)"
+            ),
+            pytest.param(
+                {"code": "oops", "message": "SOMETHING_FAILED"},
+                "SOMETHING_FAILED (502)",
+            ),
+            pytest.param(
+                {"code": True, "message": "SOMETHING_FAILED"}, "SOMETHING_FAILED (502)"
+            ),
+            pytest.param(
+                {"code": 500, "message": "SOMETHING_FAILED"}, "SOMETHING_FAILED (500)"
+            ),
+        ],
+    )
+    async def test_http_exception_uses_the_status_when_the_code_is_not_a_number(
+        self, server, http, payload, text
+    ):
+        server.reply(502, payload=payload)
+
+        with pytest.raises(HTTPException) as error:
+            await http.create_notice(token=make_token("alice"), message="hi")
+
+        assert str(error.value) == text
+
+    async def test_json_body_is_read_whatever_its_content_type(self, server, http):
+        server.reply(
+            500,
+            raw=b'{"code": 500, "message": "FROM_A_PROXY"}',
+            content_type="text/plain",
+        )
+
+        with pytest.raises(HTTPException) as error:
+            await http.create_notice(token=make_token("alice"), message="hi")
+
+        assert str(error.value) == "FROM_A_PROXY (500)"
+
+    async def test_connections_return_to_the_pool_after_an_error(self, server):
+        # With a single connection, an error response that is neither read nor
+        # released would block every following request. The bodies are too large to be
+        # buffered by the client on their own, and the raised errors are kept alive so
+        # that a response is not closed merely by being garbage collected.
+        size = 4 * 1024 * 1024
+        http = await open_session(server)
+        await http.session.close()
+        http.session = aiohttp.ClientSession(
+            server.url,
+            connector=aiohttp.TCPConnector(limit=1),
+            timeout=aiohttp.ClientTimeout(total=15),
+        )
+        raised: list[BaseException] = []
+        try:
+            for status, exception, filler, content_type in (
+                (400, BadRequestException, b"x", "text/plain"),
+                (401, UnauthorizedException, b"<", "text/html"),
+                (404, NotFoundException, b" ", "application/json"),
+                (429, TooManyRequestsException, b"x", "text/plain"),
+                (500, HTTPException, b"{", "application/json"),
+                (502, HTTPException, b"\xff", "application/json"),
+            ):
+                server.reply(status, raw=filler * size, content_type=content_type)
+                for _ in range(3):
+                    with pytest.raises(exception) as error:
+                        await asyncio.wait_for(http.get_lives(), timeout=5)
+                    raised.append(error.value)
+        finally:
+            await http.close()
+
+        assert len(raised) == 18
 
 
 @pytest.mark.asyncio

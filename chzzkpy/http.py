@@ -103,23 +103,54 @@ class ChzzkOpenAPISession(Session):
         return request, path
 
     async def after_request(self, response: aiohttp.ClientResponse):
-        if response.status == 400:
-            raise BadRequestException(response.reason)
-        elif response.status == 401:
-            data = await response.json()
-            raise UnauthorizedException(data.get("message"))
-        elif response.status == 403:
-            data = await response.json()
-            raise ForbiddenException(data.get("message"))
-        elif response.status == 404:
-            data = await response.json()
-            raise NotFoundException(data.get("message"))
-        elif response.status == 429:
-            raise TooManyRequestsException(response.reason)
-        elif response.status >= 400:
-            data = await response.json()
-            raise HTTPException(code=data["code"], message=data["message"])
-        return response
+        if response.status < 400:
+            return response
+
+        try:
+            if response.status == 400:
+                raise BadRequestException(response.reason)
+            elif response.status == 429:
+                raise TooManyRequestsException(response.reason)
+
+            code, message = await self._read_error_body(response)
+            if response.status == 401:
+                raise UnauthorizedException(message)
+            elif response.status == 403:
+                raise ForbiddenException(message)
+            elif response.status == 404:
+                raise NotFoundException(message)
+            raise HTTPException(code=code, message=message)
+        finally:
+            # The body of an error is never handed over, so give the connection back.
+            response.release()
+
+    @staticmethod
+    async def _read_error_body(
+        response: aiohttp.ClientResponse,
+    ) -> tuple[int, Optional[str]]:
+        """Read the code and the message of an error response.
+
+        A gateway or a CDN answers with a body that is not the JSON of the Open API
+        (empty, HTML, plain text, a JSON without these fields, ...). Whatever goes
+        wrong, the status of the response is still known: it replaces the missing code
+        and the message is left out, so the caller always raises a chzzkpy exception.
+        """
+        try:
+            data = await response.json(content_type=None)
+        except Exception:
+            data = None
+
+        if not isinstance(data, dict):
+            return response.status, None
+
+        code = data.get("code")
+        if not isinstance(code, int) or isinstance(code, bool):
+            code = response.status
+
+        message = data.get("message")
+        if not isinstance(message, str) or not message:
+            message = None
+        return code, message
 
     @staticmethod
     async def query_to_json(session: Session, request: RequestCore, path: str):
