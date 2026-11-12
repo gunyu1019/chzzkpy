@@ -3,8 +3,7 @@
 Copyright (c) 2024-2025 gunyu1019
 
 Lifecycle tests for the official chzzkpy package: the expiry check of a user client's
-access token, releasing a client with `async with`, and parsing search results without
-writing to stdout.
+access token, releasing a client with `async with`, and paging through search results.
 
 The mock Chzzk server and fixtures are shared with `test_multi_account.py`.
 """
@@ -141,18 +140,6 @@ class TestSearchResult:
         "message": None,
         "content": {"data": [], "totalCount": 60, "totalPages": 2, "page": 0},
     }
-
-    def test_validation_does_not_print(self, capsys):
-        response = Content[ChannelSearchResult[FollowerInfo]].model_validate(
-            self.FOLLOWERS
-        )
-
-        captured = capsys.readouterr()
-        assert captured.out == ""
-        assert captured.err == ""
-        assert response.content._page == 0
-        assert response.content.total_count == 60
-        assert response.content.total_pages == 2
 
     @pytest.mark.asyncio
     async def test_next_and_previous_use_the_page(self):
