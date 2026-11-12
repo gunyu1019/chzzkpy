@@ -6,6 +6,8 @@ Socket.IO protocol layer tests.
 Tests event routing, data transmission, and high-level communication.
 """
 
+import json
+
 import pytest
 import asyncio
 import aiohttp
@@ -21,13 +23,13 @@ class TestSocketIOConnection:
     """Test Socket.IO connection and handshake."""
 
     async def test_socket_connect_event(
-        self, mock_server, mock_connection_state, test_session
+        self, mock_server, mock_connection_state, test_session, wait_until
     ):
         """Test Socket.IO CONNECT packet is received on connection."""
-        connect_received = asyncio.Event()
+        connects = []
 
         async def connect_handler(data):
-            connect_received.set()
+            connects.append(data)
 
         # Set up handler for CONNECT packet
         event_hook = {
@@ -42,27 +44,28 @@ class TestSocketIOConnection:
             event_hook=event_hook,
             ssl=False,
         )
+        # The server sends CONNECT after OPEN: it is read, it isn't part of the connect
+        assert connects == []
+        gateway.read_in_background()
 
-        # Wait for connect event
-        try:
-            await asyncio.wait_for(connect_received.wait(), timeout=2.0)
-            assert True, "CONNECT event received"
-        except asyncio.TimeoutError:
-            # The connect event might be processed before we set up the handler
-            # This is acceptable in this context
-            pass
-
+        await wait_until(lambda: connects, message="the CONNECT packet")
+        assert connects == [None]
         assert gateway.is_connected
         await gateway.disconnect()
 
     async def test_socket_disconnect_event(
-        self, mock_server, mock_connection_state, test_session
+        self,
+        mock_server,
+        mock_connection_state,
+        test_session,
+        wait_until,
+        wait_finished,
     ):
         """Test Socket.IO DISCONNECT packet handling."""
-        disconnect_received = asyncio.Event()
+        disconnects = []
 
         async def disconnect_handler(data):
-            disconnect_received.set()
+            disconnects.append(data)
 
         event_hook = {
             SocketPacketType.DISCONNECT: disconnect_handler,
@@ -78,11 +81,20 @@ class TestSocketIOConnection:
         )
 
         # Start background reading
-        gateway.read_in_background()
+        read_task = gateway.read_in_background()
 
-        # Send disconnect
+        # A DISCONNECT from the server reaches the hook
+        await mock_server.send_custom_packet(
+            Packet(EnginePacketType.MESSAGE, SocketPacketType.DISCONNECT)
+        )
+        await wait_until(lambda: disconnects, message="the DISCONNECT packet")
+        assert disconnects == [None]
+
+        # Send disconnect: the server answers with CLOSE and closes the websocket
         await gateway.send_disconnet()
-        await asyncio.sleep(0.1)
+        await wait_finished(read_task)
+        assert "41" in mock_server.received_messages
+        assert not gateway.is_connected
 
         await gateway.disconnect()
 
@@ -91,7 +103,9 @@ class TestSocketIOConnection:
 class TestSocketIOEvents:
     """Test Socket.IO event emission and reception."""
 
-    async def test_emit_event(self, mock_server, mock_connection_state, test_session):
+    async def test_emit_event(
+        self, mock_server, mock_connection_state, test_session, wait_until
+    ):
         """Test emitting custom events to server."""
         gateway = await ChzzkGateway._connect_websocket(
             url=mock_server.url,
@@ -109,18 +123,22 @@ class TestSocketIOEvents:
         )
         await gateway.send(event_packet)
 
-        # Wait for server to receive
-        await asyncio.sleep(0.1)
-
-        # Verify server received the event
-        assert len(mock_server.emit_events) > 0
-        event_name, event_data = mock_server.emit_events[-1]
-        assert event_name == "custom_event"
+        # Verify server received the event, with its data intact
+        await wait_until(lambda: mock_server.emit_events, message="the event")
+        assert mock_server.emit_events == [
+            ("custom_event", ["custom_event", {"message": "hello", "value": 42}])
+        ]
+        assert (
+            mock_server.received_messages.count(
+                '42["custom_event",{"message":"hello","value":42}]'
+            )
+            == 1
+        )
 
         await gateway.disconnect()
 
     async def test_receive_event(
-        self, mock_server, mock_connection_state, test_session
+        self, mock_server, mock_connection_state, test_session, wait_until
     ):
         """Test receiving custom events from server."""
         received_events = []
@@ -147,16 +165,14 @@ class TestSocketIOEvents:
         # Server sends event to client
         await mock_server.broadcast_event("server_event", {"data": "test_value"})
 
-        # Wait for client to receive
-        await asyncio.sleep(0.2)
-
-        # Verify event was received
-        assert len(received_events) > 0
+        # Verify event was received: the name and the data stay together
+        await wait_until(lambda: received_events, message="the event")
+        assert received_events == [["server_event", {"data": "test_value"}]]
 
         await gateway.disconnect()
 
     async def test_event_with_multiple_arguments(
-        self, mock_server, mock_connection_state, test_session
+        self, mock_server, mock_connection_state, test_session, wait_until
     ):
         """Test events with multiple data arguments."""
         received_events = []
@@ -191,10 +207,15 @@ class TestSocketIOEvents:
         )
         await gateway.send(event_packet)
 
-        await asyncio.sleep(0.1)
-
-        # Verify server received all arguments
-        assert len(mock_server.emit_events) > 0
+        # Verify server received all arguments, in order
+        await wait_until(lambda: mock_server.emit_events, message="the event")
+        assert mock_server.emit_events == [("multi_arg_event", event_data)]
+        assert (
+            mock_server.received_messages.count(
+                '42["multi_arg_event",{"arg1":"value1"},{"arg2":"value2"},[1,2,3]]'
+            )
+            == 1
+        )
 
         await gateway.disconnect()
 
@@ -238,14 +259,19 @@ class TestSocketIOAcknowledgments:
         # Wait for ACK
         try:
             await asyncio.wait_for(ack_received.wait(), timeout=2.0)
-            assert True, "ACK received"
         except asyncio.TimeoutError:
             pytest.fail("ACK not received within timeout")
+
+        # The packet id went out with the event
+        assert (
+            mock_server.received_messages.count('42123["ack_event",{"data":"test"}]')
+            == 1
+        )
 
         await gateway.disconnect()
 
     async def test_auto_ack_on_receive(
-        self, mock_server, mock_connection_state, test_session
+        self, mock_server, mock_connection_state, test_session, wait_until
     ):
         """Test automatic ACK sending when receiving event with ID."""
         gateway = await ChzzkGateway._connect_websocket(
@@ -255,6 +281,7 @@ class TestSocketIOAcknowledgments:
             session=test_session,
             ssl=False,
         )
+        gateway.read_in_background()
 
         # Server sends event with ID, client should auto-ACK
         event_packet = Packet(
@@ -265,11 +292,13 @@ class TestSocketIOAcknowledgments:
         )
         await mock_server.send_custom_packet(event_packet)
 
-        # Wait for client to process and send ACK
-        await asyncio.sleep(0.2)
+        # The gateway should have automatically sent an ACK (a socket.io packet of
+        # type 3), once. Its packet id is checked in test_gateway_errors.py.
+        def acks():
+            return [m for m in mock_server.received_messages if m.startswith("43")]
 
-        # The gateway should have automatically sent an ACK
-        # Verify by checking if ACK packet was sent (via message inspection)
+        await wait_until(acks, message="the ACK")
+        assert len(acks()) == 1
         assert gateway.is_connected
 
         await gateway.disconnect()
@@ -279,7 +308,7 @@ class TestSocketIOAcknowledgments:
 class TestSocketIOStateIntegration:
     """Test Socket.IO integration with ConnectionState."""
 
-    async def test_state_event_dispatching(self, mock_server, test_session):
+    async def test_state_event_dispatching(self, mock_server, test_session, wait_until):
         """Test that events are properly dispatched through ConnectionState."""
         dispatched_events = []
 
@@ -308,12 +337,19 @@ class TestSocketIOStateIntegration:
             ssl=False,
         )
 
-        # Wait for connection events
-        await asyncio.sleep(0.2)
+        # The OPEN packet is part of the connect, the socket.io CONNECT is read after it
+        assert dispatched_events == [("engine_connect", (mock_server.sid,), {})]
+        gateway.read_in_background()
+        await wait_until(
+            lambda: ("socket_connect", (), {}) in dispatched_events,
+            message="the socket_connect event",
+        )
 
-        # Should have dispatched engine_connect and socket_connect events
-        event_names = [event[0] for event in dispatched_events]
-        assert "engine_connect" in event_names or "socket_connect" in event_names
+        # Should have dispatched engine_connect and socket_connect events, once each
+        assert dispatched_events == [
+            ("engine_connect", (mock_server.sid,), {}),
+            ("socket_connect", (), {}),
+        ]
 
         await gateway.disconnect()
 
@@ -375,7 +411,7 @@ class TestSocketIOPayloadDeserialization:
     """Test Socket.IO payload deserialization."""
 
     async def test_json_payload_parsing(
-        self, mock_server, mock_connection_state, test_session
+        self, mock_server, mock_connection_state, test_session, wait_until
     ):
         """Test JSON payload is correctly deserialized."""
         received_payloads = []
@@ -411,52 +447,79 @@ class TestSocketIOPayloadDeserialization:
         }
 
         await mock_server.broadcast_event("complex_event", complex_data)
-        await asyncio.sleep(0.2)
+        await wait_until(lambda: received_payloads, message="the event")
 
-        # Verify payload was deserialized correctly
-        assert len(received_payloads) > 0
+        # Verify payload was deserialized correctly, each value with its JSON type
+        assert received_payloads == [["complex_event", complex_data]]
+        received = received_payloads[0][1]
+        assert type(received["number"]) is int
+        assert type(received["float"]) is float
+        assert received["boolean"] is True
+        assert received["null"] is None
+        assert received["array"] == [1, 2, 3]
+        assert received["nested"] == {"key": "value"}
 
         await gateway.disconnect()
 
+    @pytest.mark.parametrize(
+        ("event_name", "event_data", "frame"),
+        [
+            ("string_event", "simple string", '42["string_event","simple string"]'),
+            ("number_event", 12345, '42["number_event",12345]'),
+            ("float_event", 123.456, '42["float_event",123.456]'),
+            ("boolean_event", True, '42["boolean_event",true]'),
+            (
+                "array_event",
+                [1, "two", 3.0, True, None],
+                '42["array_event",[1,"two",3.0,true,null]]',
+            ),
+            (
+                "object_event",
+                {"key1": "value1", "key2": 42},
+                '42["object_event",{"key1":"value1","key2":42}]',
+            ),
+            (
+                "unicode_event",
+                "안녕 👋",
+                '42["unicode_event","\\uc548\\ub155 \\ud83d\\udc4b"]',
+            ),
+        ],
+    )
     async def test_event_data_type_integrity(
-        self, mock_server, mock_connection_state, test_session
+        self,
+        mock_server,
+        mock_connection_state,
+        test_session,
+        wait_until,
+        event_name,
+        event_data,
+        frame,
     ):
         """Test that data types are preserved during serialization/deserialization."""
-        test_cases = [
-            ("string_event", "simple string"),
-            ("number_event", 12345),
-            ("float_event", 123.456),
-            ("boolean_event", True),
-            ("array_event", [1, "two", 3.0, True, None]),
-            ("object_event", {"key1": "value1", "key2": 42}),
-        ]
+        gateway = await ChzzkGateway._connect_websocket(
+            url=mock_server.url,
+            engine_path="socket.io",
+            loop=asyncio.get_running_loop(),
+            session=test_session,
+            ssl=False,
+        )
 
-        for event_name, event_data in test_cases:
-            gateway = await ChzzkGateway._connect_websocket(
-                url=mock_server.url,
-                engine_path="socket.io",
-                loop=asyncio.get_running_loop(),
-                session=test_session,
-                ssl=False,
-            )
+        # Send event
+        event_packet = Packet(
+            EnginePacketType.MESSAGE,
+            SocketPacketType.EVENT,
+            data=[event_name, event_data],
+        )
+        await gateway.send(event_packet)
+        await wait_until(lambda: mock_server.emit_events, message="the event")
 
-            # Send event
-            event_packet = Packet(
-                EnginePacketType.MESSAGE,
-                SocketPacketType.EVENT,
-                data=[event_name, event_data],
-            )
-            await gateway.send(event_packet)
-            await asyncio.sleep(0.1)
+        # Verify server received correct data type: the frame tells 3.0 from 3
+        assert mock_server.received_messages.count(frame) == 1
+        assert mock_server.emit_events == [(event_name, [event_name, event_data])]
+        received = mock_server.emit_events[0][1][1]
+        assert type(received) is type(event_data)
 
-            # Verify server received correct data type
-            assert len(mock_server.emit_events) > 0
-
-            await gateway.disconnect()
-
-            # Clear for next test
-            mock_server.emit_events.clear()
-            mock_server.received_messages.clear()
+        await gateway.disconnect()
 
 
 @pytest.mark.asyncio
@@ -464,7 +527,7 @@ class TestSocketIOBroadcast:
     """Test Socket.IO broadcast and room functionality."""
 
     async def test_broadcast_to_multiple_clients(
-        self, mock_server, mock_connection_state, test_session
+        self, mock_server, mock_connection_state, test_session, wait_until
     ):
         """Test server can broadcast to multiple connected clients."""
         clients = []
@@ -497,17 +560,18 @@ class TestSocketIOBroadcast:
 
         # Broadcast event from server
         await mock_server.broadcast_event("broadcast_test", {"msg": "hello all"})
-        await asyncio.sleep(0.3)
+        await wait_until(
+            lambda: all(received_events for _, received_events in clients),
+            message="every client to receive the broadcast",
+        )
 
-        # All clients should receive the broadcast
+        # All clients should receive the broadcast, once
         for gateway, received_events in clients:
             received_counts.append(len(received_events))
+            assert received_events == [["broadcast_test", {"msg": "hello all"}]]
             await gateway.disconnect()
 
-        # At least one client should have received the event
-        assert any(
-            count > 0 for count in received_counts
-        ), "No client received broadcast"
+        assert received_counts == [1, 1, 1]
 
 
 @pytest.mark.asyncio
@@ -555,13 +619,13 @@ class TestSocketIOErrorHandling:
     """Test Socket.IO error handling."""
 
     async def test_connect_error_packet(
-        self, mock_server, mock_connection_state, test_session
+        self, mock_server, mock_connection_state, test_session, wait_until
     ):
         """Test handling of CONNECT_ERROR packet."""
-        error_received = asyncio.Event()
+        errors = []
 
         async def error_handler(data):
-            error_received.set()
+            errors.append(data)
 
         event_hook = {
             SocketPacketType.CONNECT_ERROR: error_handler,
@@ -576,6 +640,8 @@ class TestSocketIOErrorHandling:
             ssl=False,
         )
 
+        gateway.read_in_background()
+
         # Server sends connect error
         error_packet = Packet(
             EnginePacketType.MESSAGE,
@@ -584,22 +650,19 @@ class TestSocketIOErrorHandling:
         )
         await mock_server.send_custom_packet(error_packet)
 
-        await asyncio.sleep(0.1)
+        await wait_until(lambda: errors, message="the CONNECT_ERROR packet")
+        assert errors == [{"message": "Authentication failed"}]
 
         await gateway.disconnect()
 
     async def test_invalid_event_handling(
-        self, mock_server, mock_connection_state, test_session
+        self, mock_server, mock_connection_state, test_session, wait_until
     ):
         """Test handling of malformed event packets."""
         received_events = []
-        errors = []
 
         async def event_handler(data):
-            try:
-                received_events.append(data)
-            except Exception as e:
-                errors.append(e)
+            received_events.append(data)
 
         event_hook = {
             SocketPacketType.EVENT: event_handler,
@@ -621,13 +684,19 @@ class TestSocketIOErrorHandling:
             data="not_a_list",  # Should be a list
         )
 
-        try:
-            await gateway.send(malformed_packet)
-            await asyncio.sleep(0.1)
-            # Should handle gracefully
-        except Exception:
-            # Expected for malformed data
-            pass
+        await gateway.send(malformed_packet)
+
+        # Sending it is not an error: the server takes it as an event of no name
+        await wait_until(lambda: mock_server.emit_events, message="the event")
+        assert mock_server.emit_events == [("unknown", "not_a_list")]
+        assert mock_server.received_messages.count('42"not_a_list"') == 1
+
+        # Receiving it is not an error either: the hook gets the data as it is
+        gateway.read_in_background()
+        await mock_server.send_text('42"not_a_list"')
+        await wait_until(lambda: received_events, message="the received event")
+        assert received_events == ["not_a_list"]
+        assert gateway.is_connected
 
         await gateway.disconnect()
 
@@ -664,3 +733,157 @@ class TestSocketIONamespaces:
         # Namespace should be parsed without query params
         assert decoded.namespace == "/namespace"
         assert decoded.socket_packet_type == SocketPacketType.EVENT
+
+
+EMPTY = object()  # Neither None nor "" matters for a packet without data
+
+
+class TestSocketIOPacketCodec:
+    """Test Socket.IO packet encoding/decoding: namespaces, packet ids and data."""
+
+    @pytest.mark.parametrize(
+        ("encoded", "packet_type", "namespace", "packet_id", "data"),
+        [
+            ("40", SocketPacketType.CONNECT, None, None, EMPTY),
+            ("40/admin", SocketPacketType.CONNECT, "/admin", None, EMPTY),
+            ("40/admin,", SocketPacketType.CONNECT, "/admin", None, EMPTY),
+            ("40/admin?token=abc", SocketPacketType.CONNECT, "/admin", None, EMPTY),
+            ("41/admin,", SocketPacketType.DISCONNECT, "/admin", None, EMPTY),
+            ("42", SocketPacketType.EVENT, None, None, EMPTY),
+            ('42["e"]', SocketPacketType.EVENT, None, None, ["e"]),
+            ('42/admin,["e",1]', SocketPacketType.EVENT, "/admin", None, ["e", 1]),
+            ('42/admin?x=1,["e"]', SocketPacketType.EVENT, "/admin", None, ["e"]),
+            ('42/admin,0["e"]', SocketPacketType.EVENT, "/admin", 0, ["e"]),
+            ('420["e",{"k":"v"}]', SocketPacketType.EVENT, None, 0, ["e", {"k": "v"}]),
+            ('42["a-b",-1]', SocketPacketType.EVENT, None, None, ["a-b", -1]),
+            ("43", SocketPacketType.ACK, None, None, EMPTY),
+            ('430["ok"]', SocketPacketType.ACK, None, 0, ["ok"]),
+            (
+                '44{"message":"denied"}',
+                SocketPacketType.CONNECT_ERROR,
+                None,
+                None,
+                {"message": "denied"},
+            ),
+            (
+                '451-["e",{"_placeholder":true,"num":0}]',
+                SocketPacketType.BINARY_EVENT,
+                None,
+                None,
+                ["e", {"_placeholder": True, "num": 0}],
+            ),
+            (
+                '461-/admin,["ok",{"_placeholder":true,"num":0}]',
+                SocketPacketType.BINARY_ACK,
+                "/admin",
+                None,
+                ["ok", {"_placeholder": True, "num": 0}],
+            ),
+        ],
+    )
+    def test_decode(self, encoded, packet_type, namespace, packet_id, data):
+        """Test every part of a socket.io packet is decoded."""
+        packet = Packet.decode(encoded)
+
+        assert packet.engine_packet_type == EnginePacketType.MESSAGE
+        assert packet.socket_packet_type == packet_type
+        assert packet.is_socket_packet
+        assert packet.namespace == namespace
+        assert packet.id == packet_id
+        if data is EMPTY:
+            assert not packet.data
+        else:
+            assert packet.data == data
+
+    def test_decode_unknown_socket_packet_type(self):
+        """Test a socket.io packet type that isn't known is kept as it is."""
+        packet = Packet.decode('47["e"]')
+
+        assert packet.socket_packet_type == 7
+        assert not isinstance(packet.socket_packet_type, SocketPacketType)
+        assert packet.data == ["e"]
+
+    @pytest.mark.parametrize(
+        ("encoded", "error"),
+        [
+            ("4a", ValueError),  # The type isn't a number
+            ("4-1", ValueError),
+            ('42-["a"]', json.JSONDecodeError),  # Not an attachment count
+            ("42/admin,x", json.JSONDecodeError),  # The data isn't JSON
+            ('42/admin,0["e"', json.JSONDecodeError),  # Cut off data
+            ("42[1,]", json.JSONDecodeError),
+        ],
+    )
+    def test_decode_malformed(self, encoded, error):
+        """Test a socket.io packet whose data can't be read raises."""
+        with pytest.raises(error):
+            Packet.decode(encoded)
+
+    @pytest.mark.parametrize(
+        ("packet", "encoded"),
+        [
+            (Packet(EnginePacketType.MESSAGE, SocketPacketType.CONNECT), "40"),
+            (
+                Packet(
+                    EnginePacketType.MESSAGE,
+                    SocketPacketType.CONNECT,
+                    namespace="/admin",
+                ),
+                "40/admin,",
+            ),
+            (Packet(EnginePacketType.MESSAGE, SocketPacketType.DISCONNECT), "41"),
+            (Packet(EnginePacketType.MESSAGE, SocketPacketType.EVENT), "42"),
+            (
+                Packet(
+                    EnginePacketType.MESSAGE,
+                    SocketPacketType.EVENT,
+                    data=["e", {"k": [1, None]}],
+                    packet_id=12,
+                    namespace="/ns",
+                ),
+                '42/ns,12["e",{"k":[1,null]}]',
+            ),
+            (
+                Packet(EnginePacketType.MESSAGE, SocketPacketType.ACK, packet_id=0),
+                "430",
+            ),
+            (
+                Packet(
+                    EnginePacketType.MESSAGE,
+                    SocketPacketType.ACK,
+                    data=["ok"],
+                    packet_id=3,
+                ),
+                '433["ok"]',
+            ),
+            (
+                Packet(
+                    EnginePacketType.MESSAGE,
+                    SocketPacketType.EVENT,
+                    data=["chat", "안녕"],
+                ),
+                '42["chat","\\uc548\\ub155"]',
+            ),
+        ],
+    )
+    def test_encode(self, packet, encoded):
+        """Test every part of a socket.io packet is encoded, without extra spaces."""
+        assert packet.encode() == encoded
+
+    @pytest.mark.parametrize("namespace", [None, "/admin"])
+    def test_non_ascii_data_round_trip(self, namespace):
+        """Test text outside ASCII is escaped when encoded and restored when decoded."""
+        packet = Packet(
+            EnginePacketType.MESSAGE,
+            SocketPacketType.EVENT,
+            data=["chat", {"nickname": "치지직", "content": "안녕하세요 👋"}],
+            namespace=namespace,
+        )
+
+        encoded = packet.encode()
+        decoded = Packet.decode(encoded)
+
+        assert encoded.isascii()
+        assert decoded.data == packet.data
+        assert decoded.namespace == namespace
+        assert decoded.encode() == encoded

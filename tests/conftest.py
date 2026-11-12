@@ -36,6 +36,8 @@ class MockEngineIOServer:
         self.ping_timeout = 60000  # 60 seconds
         self.upgrades = ["websocket"]
         self.connections: Dict[str, web.WebSocketResponse] = {}
+        # Every websocket ever opened, also those sharing a session id.
+        self.websockets: List[web.WebSocketResponse] = []
         self.received_messages: List[str] = []
         self.emit_events: List[tuple[str, Any]] = []
         self._auto_pong = True
@@ -48,6 +50,25 @@ class MockEngineIOServer:
         self._error_body_size = 0
         self._probe_reply: Optional[str] = None
         self._open_reply: Optional[str] = None
+        # Receive the upgrade probe / connect without answering it.
+        self._withhold_probe_reply = False
+        self._withhold_open = False
+        # Close the websocket instead of answering the upgrade probe / connect.
+        self._close_before_reply = False
+        # The raw bodies of the next polling GETs (one body per GET), and the raw body
+        # of the handshake GET.
+        self._poll_raw_bodies: List[bytes] = []
+        self._handshake_body: Optional[bytes] = None
+        # Serve polling like a long-poll server: a GET waits until a packet is queued
+        # with queue_polling_packet(), and the client's PING / EVENT get their answers
+        # (PONG / ACK) queued.
+        self._poll_hold = False
+        self._poll_hold_timeout = 1.0
+        self._poll_outbox: List[Packet] = []
+        self._poll_wakeup = asyncio.Event()
+        self._poll_released = False
+        self.post_bodies: List[bytes] = []
+        self.transports: Dict[str, Any] = {}
 
     def _create_open_packet(self) -> Packet:
         """Create engine.io OPEN packet."""
@@ -76,6 +97,11 @@ class MockEngineIOServer:
                 # Initial handshake
                 if self._handshake_error_status is not None:
                     return self._status_response(self._handshake_error_status)
+                if self._handshake_body is not None:
+                    return web.Response(
+                        body=self._handshake_body,
+                        content_type="application/octet-stream",
+                    )
 
                 payload = Payload(
                     packets=[
@@ -90,6 +116,13 @@ class MockEngineIOServer:
             else:
                 if self._poll_error_status is not None:
                     return self._status_response(self._poll_error_status)
+                if self._poll_raw_bodies:
+                    return web.Response(
+                        body=self._poll_raw_bodies.pop(0),
+                        content_type="application/octet-stream",
+                    )
+                if self._poll_hold:
+                    return await self._serve_long_poll()
 
                 # Polling for messages
                 # Return empty or pending messages
@@ -102,38 +135,94 @@ class MockEngineIOServer:
         elif request.method == "POST":
             # Client sending data via polling
             body = await request.read()
+            self.post_bodies.append(body)
             payload = Payload.decode(body)
             for packet in payload.packets:
                 self.received_messages.append(packet.encode())
+                if self._poll_hold:
+                    self._answer_polling_packet(packet)
             if self._post_status is not None:
                 return self._status_response(self._post_status)
             return web.Response(text="ok")
 
         return web.Response(status=400)
 
+    def queue_polling_packet(self, packet: Packet):
+        """Queue a packet for the next polling GET (needs _poll_hold)."""
+        self._poll_outbox.append(packet)
+        self._poll_wakeup.set()
+
+    def release_pollers(self):
+        """Answer the waiting polling GETs, so they don't block the shutdown."""
+        self._poll_released = True
+        self._poll_wakeup.set()
+
+    async def _serve_long_poll(self) -> web.Response:
+        while not self._poll_outbox and not self._poll_released:
+            self._poll_wakeup.clear()
+            try:
+                await asyncio.wait_for(
+                    self._poll_wakeup.wait(), timeout=self._poll_hold_timeout
+                )
+            except asyncio.TimeoutError:
+                break
+
+        packets, self._poll_outbox = self._poll_outbox, []
+        payload = Payload(packets=packets or [Packet(EnginePacketType.NOOP)])
+        return web.Response(
+            body=payload.encode(), content_type="application/octet-stream"
+        )
+
+    def _answer_polling_packet(self, packet: Packet):
+        """Answer a packet POSTed by the client like the websocket handler does."""
+        if packet.engine_packet_type == EnginePacketType.PING:
+            if self._auto_pong:
+                self.queue_polling_packet(Packet(EnginePacketType.PONG))
+        elif (
+            packet.engine_packet_type == EnginePacketType.MESSAGE
+            and packet.socket_packet_type == SocketPacketType.EVENT
+        ):
+            event_name = packet.data[0] if isinstance(packet.data, list) else "unknown"
+            self.emit_events.append((event_name, packet.data))
+            if packet.id is not None:
+                self.queue_polling_packet(
+                    Packet(
+                        EnginePacketType.MESSAGE,
+                        SocketPacketType.ACK,
+                        packet_id=packet.id,
+                    )
+                )
+
     async def handle_websocket(self, request: web.Request) -> web.WebSocketResponse:
         """Handle engine.io websocket transport."""
         ws = web.WebSocketResponse()
         await ws.prepare(request)
+        self.websockets.append(ws)
 
         sid = request.query.get("sid")
 
         if sid is None:
             # Direct websocket connection (no upgrade)
-            if self._open_reply is not None:
-                await ws.send_str(self._open_reply)
-            else:
-                open_packet = self._create_open_packet()
-                await ws.send_str(open_packet.encode())
-
-            # Send socket.io CONNECT
-            connect_packet = self._create_socket_connect_packet()
-            await ws.send_str(connect_packet.encode())
+            if self._close_before_reply:
+                await ws.close()
+                return ws
 
             self.connections[self.sid] = ws
+            self.transports[self.sid] = request.transport
+            if not self._withhold_open:
+                if self._open_reply is not None:
+                    await ws.send_str(self._open_reply)
+                else:
+                    open_packet = self._create_open_packet()
+                    await ws.send_str(open_packet.encode())
+
+                # Send socket.io CONNECT
+                connect_packet = self._create_socket_connect_packet()
+                await ws.send_str(connect_packet.encode())
         else:
             # Websocket upgrade from polling
             self.connections[sid] = ws
+            self.transports[sid] = request.transport
 
             # Handle upgrade handshake (ping/pong probe + upgrade packet)
             upgrade_complete = False
@@ -150,6 +239,12 @@ class MockEngineIOServer:
                         packet.engine_packet_type == EnginePacketType.PING
                         and packet.data == "probe"
                     ):
+                        if self._close_before_reply:
+                            await ws.close()
+                            return ws
+                        if self._withhold_probe_reply:
+                            continue
+
                         # Send pong probe (or the configured reply instead)
                         if self._probe_reply is not None:
                             await ws.send_str(self._probe_reply)
@@ -224,7 +319,7 @@ class MockEngineIOServer:
             data=[event_name, data],
         )
 
-        for ws in self.connections.values():
+        for ws in self.websockets:
             if not ws.closed:
                 await ws.send_str(event_packet.encode())
 
@@ -234,6 +329,26 @@ class MockEngineIOServer:
         ws = self.connections.get(target_sid)
         if ws and not ws.closed:
             await ws.send_str(packet.encode())
+
+    async def send_text(self, text: str, sid: Optional[str] = None):
+        """Send a text frame as it is, also when it isn't a valid packet."""
+        ws = self.connections.get(sid or self.sid)
+        if ws and not ws.closed:
+            await ws.send_str(text)
+
+    async def send_binary(self, data: bytes, sid: Optional[str] = None):
+        """Send a binary frame."""
+        ws = self.connections.get(sid or self.sid)
+        if ws and not ws.closed:
+            await ws.send_bytes(data)
+
+    def send_raw_frame(self, data: bytes, sid: Optional[str] = None):
+        """Write bytes to the connection under the websocket layer.
+
+        A frame that breaks the websocket protocol makes the client receive an ERROR
+        message, which a well-behaved websocket server can't produce.
+        """
+        self.transports[sid or self.sid].write(data)
 
 
 @pytest_asyncio.fixture
@@ -271,7 +386,43 @@ async def mock_server():
     yield server_instance
 
     # Cleanup
+    server_instance.release_pollers()
     await runner.cleanup()
+
+
+async def _wait_until(predicate, timeout: float = 5.0, message: str = "condition"):
+    """Wait until predicate() is true; fail the test if it isn't in time."""
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + timeout
+    while not predicate():
+        if loop.time() >= deadline:
+            raise AssertionError(f"timed out after {timeout}s waiting for {message}")
+        await asyncio.sleep(0.005)
+
+
+@pytest.fixture
+def wait_until():
+    """Provide an awaitable helper that waits for a condition instead of sleeping."""
+    return _wait_until
+
+
+async def _wait_finished(task: asyncio.Future, timeout: float = 5.0):
+    """Wait for a task to end by itself and return its result (or raise its error).
+
+    Unlike asyncio.wait_for(), a task that is still running after the timeout is not
+    cancelled. Cancelling is no good for the gateway tasks: they catch the cancellation
+    and end quietly, so a task that failed to end would look like one that did.
+    """
+    done, _ = await asyncio.wait({task}, timeout=timeout)
+    if task not in done:
+        raise AssertionError(f"task still running after {timeout}s: {task!r}")
+    return task.result()
+
+
+@pytest.fixture
+def wait_finished():
+    """Provide an awaitable helper that waits for a task to end on its own."""
+    return _wait_finished
 
 
 @pytest.fixture

@@ -7,6 +7,8 @@ Tests low-level communication integrity and connection processes.
 """
 
 import asyncio
+import json
+from urllib.parse import quote_from_bytes
 
 import aiohttp
 import pytest
@@ -88,10 +90,14 @@ class TestEngineIOPolling:
 
         await gateway.disconnect()
 
+    @pytest.mark.parametrize(
+        "upgrades", [["websocket"], []], ids=["upgraded", "polling_only"]
+    )
     async def test_polling_send_message(
-        self, mock_server, mock_connection_state, test_session
+        self, mock_server, mock_connection_state, test_session, wait_until, upgrades
     ):
         """Test sending messages via polling transport."""
+        mock_server.upgrades = upgrades
         gateway = await ChzzkGateway._connect_polling(
             url=mock_server.url,
             engine_path="socket.io",
@@ -99,6 +105,7 @@ class TestEngineIOPolling:
             session=test_session,
             ssl=False,
         )
+        assert gateway.current_transport == ("websocket" if upgrades else "polling")
 
         # Send a test packet
         test_packet = Packet(
@@ -108,18 +115,21 @@ class TestEngineIOPolling:
         )
         await gateway.send(test_packet)
 
-        # Give server time to receive
-        await asyncio.sleep(0.1)
-
-        # Verify server received the message
-        assert len(mock_server.received_messages) > 0
+        # Verify server received the packet as it was encoded, once
+        frame = '42["test_event",{"data":"test"}]'
+        await wait_until(
+            lambda: frame in mock_server.received_messages, message="the event frame"
+        )
+        assert mock_server.received_messages.count(frame) == 1
 
         await gateway.disconnect()
 
     async def test_polling_receive_data(
-        self, mock_server, mock_connection_state, test_session
+        self, mock_server, mock_connection_state, test_session, wait_until
     ):
         """Test receiving raw data packets via polling."""
+        mock_server.upgrades = []
+        mock_server._poll_hold = True
         received_packets = []
 
         async def packet_handler(data):
@@ -131,16 +141,39 @@ class TestEngineIOPolling:
             loop=asyncio.get_running_loop(),
             session=test_session,
             event_hook={
-                EnginePacketType.MESSAGE: packet_handler,
+                EnginePacketType.OPEN: packet_handler,
+                SocketPacketType.CONNECT: packet_handler,
+                SocketPacketType.EVENT: packet_handler,
             },
             ssl=False,
         )
+        assert gateway.current_transport == "polling"
 
-        # Wait for initial packets
-        await asyncio.sleep(0.1)
+        # The packets of the handshake are delivered before the first poll
+        assert received_packets == [
+            {
+                "sid": mock_server.sid,
+                "upgrades": [],
+                "pingInterval": mock_server.ping_interval,
+                "pingTimeout": mock_server.ping_timeout,
+            },
+            None,
+        ]
+
+        read_task = gateway.read_in_background()
+        mock_server.queue_polling_packet(
+            Packet(
+                EnginePacketType.MESSAGE,
+                SocketPacketType.EVENT,
+                data=["polled_event", {"value": 1}],
+            )
+        )
+        await wait_until(lambda: len(received_packets) == 3, message="the polled event")
+        assert received_packets[2] == ["polled_event", {"value": 1}]
 
         assert gateway.is_connected
         await gateway.disconnect()
+        await asyncio.wait_for(read_task, timeout=2.0)
 
     @pytest.mark.parametrize("upgrades", [["websocket"], []])
     async def test_handshake_packets_reach_state_hooks(
@@ -311,16 +344,23 @@ class TestEngineIOWebSocket:
             mock_server._accept_upgrade = True
 
     async def test_websocket_send_receive(
-        self, mock_server, mock_connection_state, test_session
+        self, mock_server, mock_connection_state, test_session, wait_until
     ):
         """Test bidirectional communication over WebSocket."""
+        received_events = []
+
+        async def event_handler(data):
+            received_events.append(data)
+
         gateway = await ChzzkGateway._connect_websocket(
             url=mock_server.url,
             engine_path="socket.io",
             loop=asyncio.get_running_loop(),
             session=test_session,
+            event_hook={SocketPacketType.EVENT: event_handler},
             ssl=False,
         )
+        read_task = gateway.read_in_background()
 
         # Send a test event
         test_packet = Packet(
@@ -330,13 +370,20 @@ class TestEngineIOWebSocket:
         )
         await gateway.send(test_packet)
 
-        # Wait for server to receive
-        await asyncio.sleep(0.1)
+        # Verify server received the event as it was encoded
+        await wait_until(lambda: mock_server.emit_events, message="the sent event")
+        assert mock_server.emit_events == [
+            ("test_event", ["test_event", {"key": "value"}])
+        ]
+        assert '42["test_event",{"key":"value"}]' in mock_server.received_messages
 
-        # Verify server received
-        assert len(mock_server.received_messages) > 0
+        # And the other way round
+        await mock_server.broadcast_event("server_event", {"reply": [1, 2]})
+        await wait_until(lambda: received_events, message="the received event")
+        assert received_events == [["server_event", {"reply": [1, 2]}]]
 
         await gateway.disconnect()
+        await asyncio.wait_for(read_task, timeout=2.0)
 
 
 @pytest.mark.asyncio
@@ -384,7 +431,7 @@ class TestEngineIOHeartbeat:
             pass
 
     async def test_ping_with_data(
-        self, mock_server, mock_connection_state, test_session
+        self, mock_server, mock_connection_state, test_session, wait_until
     ):
         """Test ping packet with probe data."""
         gateway = await ChzzkGateway._connect_websocket(
@@ -397,9 +444,11 @@ class TestEngineIOHeartbeat:
 
         # Send ping with probe data
         await gateway.send_ping("probe")
-        await asyncio.sleep(0.1)
 
-        # Verify message was sent
+        # Verify message was sent as it is
+        await wait_until(
+            lambda: "2probe" in mock_server.received_messages, message="the ping"
+        )
         assert gateway.is_connected
 
         await gateway.disconnect()
@@ -454,15 +503,33 @@ class TestEngineIOPackets:
             "close": sample_packets["close"],
         }
 
+        expected_encoded = {
+            "open": '0{"sid":"test-sid","upgrades":["websocket"],'
+            '"pingInterval":25000,"pingTimeout":60000}',
+            "ping": "2",
+            "pong": "3",
+            "ping_probe": "2probe",
+            "pong_probe": "3probe",
+            "upgrade": "5",
+            "close": "1",
+        }
+
         for name, packet in engine_only_packets.items():
             # Encode
             encoded = packet.encode()
             assert isinstance(encoded, str)
-            assert len(encoded) > 0
+            assert encoded == expected_encoded[name], name
 
             # Decode
             decoded = Packet.decode(encoded)
-            assert decoded.engine_packet_type == packet.engine_packet_type
+            assert decoded.engine_packet_type == packet.engine_packet_type, name
+            assert decoded.socket_packet_type is None, name
+            if packet.data is None:
+                assert not decoded.data, name
+            else:
+                assert decoded.data == packet.data, name
+            # Nothing is lost on the way back
+            assert decoded.encode() == encoded, name
 
     def test_socket_packet_encode_decode(self):
         """Test socket.io packet encoding and decoding."""
@@ -492,10 +559,15 @@ class TestEngineIOPackets:
 
         payload = Payload(packets=packets)
 
-        # Encode
+        # Encode: <0><length digits><0xff><packet> for each packet
         encoded = payload.encode()
         assert isinstance(encoded, bytes)
-        assert len(encoded) > 0
+        assert encoded == (
+            b"\x00\x08\x05\xff"
+            b'0{"sid":"test-sid","upgrades":["websocket"],'
+            b'"pingInterval":25000,"pingTimeout":60000}'
+            b"\x00\x02\xff40"
+        )
 
         # Decode
         decoded_payload = Payload.decode(encoded)
@@ -504,23 +576,47 @@ class TestEngineIOPackets:
         # Verify each packet
         for original, decoded in zip(packets, decoded_payload.packets):
             assert decoded.engine_packet_type == original.engine_packet_type
+            assert decoded.socket_packet_type == original.socket_packet_type
+            assert decoded.encode() == original.encode()
+        assert decoded_payload.packets[0].data == packets[0].data
 
-    def test_malformed_packet_handling(self):
+    @pytest.mark.parametrize(
+        ("malformed", "error"),
+        [
+            ("", IndexError),  # Empty
+            ("x", ValueError),  # Packet type isn't a number
+            ("4", ValueError),  # MESSAGE without a socket.io packet type
+            ("4x", ValueError),  # Socket.io packet type isn't a number
+            ("42[bad", json.JSONDecodeError),  # Event data isn't JSON
+            ("42x", json.JSONDecodeError),  # Event data isn't JSON
+            ("0{broken", None),  # Not JSON, so it stays text
+        ],
+    )
+    def test_malformed_packet_handling(self, malformed, error):
         """Test handling of malformed packets."""
-        malformed_packets = [
-            "",  # Empty
-            "9",  # Invalid packet type
-            "999invalid",  # Invalid format
-        ]
+        if error is None:
+            assert Packet.decode(malformed).data == "{broken"
+            return
 
-        for malformed in malformed_packets:
-            try:
-                packet = Packet.decode(malformed)
-                # Should handle gracefully or raise appropriate error
-                assert packet is not None
-            except (ValueError, KeyError, IndexError):
-                # These exceptions are acceptable for malformed data
-                pass
+        with pytest.raises(error):
+            Packet.decode(malformed)
+
+    @pytest.mark.parametrize(
+        ("unknown", "packet_type", "data"),
+        [
+            ("9", 9, ""),  # Invalid packet type
+            ("999invalid", 9, "99invalid"),  # Invalid format
+            ("7probe", 7, "probe"),
+        ],
+    )
+    def test_unknown_packet_type_is_kept(self, unknown, packet_type, data):
+        """Test a packet type that isn't known doesn't fail decoding."""
+        packet = Packet.decode(unknown)
+
+        assert packet.engine_packet_type == packet_type
+        assert not isinstance(packet.engine_packet_type, EnginePacketType)
+        assert not packet.is_socket_packet
+        assert packet.data == data
 
     def test_binary_payload_encoding(self, sample_packets):
         """Test binary payload encoding integrity."""
@@ -532,12 +628,184 @@ class TestEngineIOPackets:
         payload = Payload(packets=packets)
         encoded = payload.encode()
 
-        # Should be binary format with delimiters
-        assert b"\x00" in encoded or b"\xff" in encoded
+        # Should be binary format with delimiters: the length is written digit by digit
+        assert encoded == (
+            b"\x00\x08\x05\xff"
+            b'0{"sid":"test-sid","upgrades":["websocket"],'
+            b'"pingInterval":25000,"pingTimeout":60000}'
+            b"\x00\x03\x02\xff"
+            b'42["test_event",{"key":"value"}]'
+        )
 
         # Should be decodable
         decoded = Payload.decode(encoded)
         assert len(decoded.packets) == len(packets)
+        assert decoded.packets[1].socket_packet_type == SocketPacketType.EVENT
+        assert decoded.packets[1].data == ["test_event", {"key": "value"}]
+
+    @pytest.mark.parametrize(
+        ("data", "expected"),
+        [
+            (None, "2"),
+            ("text", "2text"),
+            (5, "25"),
+            (1.5, "21.5"),
+            ({"a": 1, "b": [True, None]}, '2{"a":1,"b":[true,null]}'),
+            ([1, "two"], '2[1,"two"]'),
+        ],
+    )
+    def test_engine_packet_data_encoding(self, data, expected):
+        """Test the data of an engine packet is written as text, JSON for containers."""
+        assert Packet(EnginePacketType.PING, data=data).encode() == expected
+
+    @pytest.mark.parametrize(
+        ("encoded", "expected"),
+        [
+            ("2probe", "probe"),
+            ("23", "3"),  # A number stays text
+            ("2true", "true"),
+            ("2null", None),
+            ('2"quoted"', "quoted"),
+            ("2[1,2]", [1, 2]),
+            ('0{"sid":"a"}', {"sid": "a"}),
+        ],
+    )
+    def test_engine_packet_data_decoding(self, encoded, expected):
+        """Test the data of an engine packet is JSON when it is, and text otherwise."""
+        assert Packet.decode(encoded).data == expected
+
+    def test_custom_json_functions_are_used(self):
+        """Test packets are encoded and decoded with the given JSON functions."""
+        event = Packet(
+            EnginePacketType.MESSAGE, SocketPacketType.EVENT, data=["a", "b"]
+        )
+        calls = []
+
+        def serialize(data, **kwargs):
+            calls.append((data, kwargs))
+            return "<serialized>"
+
+        def parse(text):
+            return ("parsed", text)
+
+        assert event.encode(json_serialize=serialize) == "42<serialized>"
+        assert calls == [(["a", "b"], {"separators": (",", ":")})]
+        assert Packet.decode('42["a","b"]', json_serialize=parse).data == (
+            "parsed",
+            '["a","b"]',
+        )
+        assert Packet.decode("2abc", json_serialize=parse).data == ("parsed", "abc")
+
+
+class TestEngineIOPayloadCodec:
+    """Test Engine.IO payload framing: <0><length digits><0xff><packet>."""
+
+    @pytest.mark.parametrize(
+        ("size", "length_digits"),
+        [
+            (1, b"\x01"),
+            (9, b"\x09"),
+            (10, b"\x01\x00"),
+            (99, b"\x09\x09"),
+            (100, b"\x01\x00\x00"),
+            (1000, b"\x01\x00\x00\x00"),
+        ],
+    )
+    def test_length_is_written_digit_by_digit(self, size, length_digits):
+        """Test a packet of any length is framed and decoded back."""
+        packet = Packet(EnginePacketType.PING, data="x" * (size - 1))
+        assert len(packet.encode()) == size
+
+        encoded = Payload([packet]).encode()
+
+        assert encoded == b"\x00" + length_digits + b"\xff" + packet.encode().encode()
+        decoded = Payload.decode(encoded)
+        assert [p.encode() for p in decoded.packets] == [packet.encode()]
+
+    def test_empty_payload_encodes_to_nothing(self):
+        assert Payload().encode() == b""
+
+    def test_many_packets_keep_their_order(self):
+        """Test a payload of many different packets is decoded in full and in order."""
+        packets = [
+            Packet(
+                EnginePacketType.MESSAGE,
+                SocketPacketType.EVENT,
+                data=["event", index, "가" * index],
+            )
+            for index in range(40)
+        ]
+
+        decoded = Payload.decode(Payload(packets).encode())
+
+        assert [p.data for p in decoded.packets] == [p.data for p in packets]
+
+    def test_jsonp_wrapping(self):
+        """Test a JSONP payload is wrapped in the callback, with its quotes escaped."""
+        plain = Payload([Packet(EnginePacketType.PING)])
+        with_quotes = Payload(
+            [Packet(EnginePacketType.MESSAGE, SocketPacketType.EVENT, data=["e"])]
+        )
+
+        assert plain.encode(jsonp_index="3") == b"___eio[3](\x00\x01\xff2);"
+        assert (
+            with_quotes.encode(jsonp_index="0")
+            == b'___eio[0](\x00\x07\xff42[\\"e\\"]);'
+        )
+
+    def test_jsonp_post_body_is_decoded(self):
+        """Test the 'd=' form body of a JSONP POST is url-decoded before parsing."""
+        payload = Payload(
+            [
+                Packet(EnginePacketType.PING),
+                Packet(EnginePacketType.MESSAGE, SocketPacketType.EVENT, data=["e"]),
+            ]
+        )
+        body = b"d=" + quote_from_bytes(payload.encode()).encode()
+        assert b"%FF" in body
+
+        decoded = Payload.decode(body)
+
+        assert [p.encode() for p in decoded.packets] == ["2", '42["e"]']
+
+    def test_binary_packets_are_skipped(self):
+        """Test binary packets (flag 1) are left out: only text packets are decoded."""
+        encoded = (
+            b"\x01\x03\xff\xde\xad\xbe"  # Binary packet
+            b"\x00\x01\xff2"  # PING
+            b"\x01\x01\xff\x00"  # Binary packet
+        )
+
+        decoded = Payload.decode(encoded)
+
+        assert [p.encode() for p in decoded.packets] == ["2"]
+        assert Payload.decode(b"\x01\x01\xff\x00").packets == []
+
+    @pytest.mark.parametrize(
+        ("encoded", "error"),
+        [
+            (b"\x00\xff2", TypeError),  # No length
+            (b"\x00\x01", ValueError),  # No 0xff after the length
+            (b"\xff", ValueError),  # Nothing before 0xff
+            (b"\x00\x01\xffx", ValueError),  # The packet isn't a packet
+            (b"\x00\x02\xff\xff3", UnicodeDecodeError),  # The packet isn't text
+            (b"\x00\x01\xff2\x00", ValueError),  # Cut off in the next frame
+            (b"d=", KeyError),  # A form body without data
+        ],
+        ids=[
+            "no_length",
+            "no_separator",
+            "no_header",
+            "invalid_packet",
+            "invalid_text",
+            "cut_off_frame",
+            "empty_form_body",
+        ],
+    )
+    def test_malformed_payload_raises(self, encoded, error):
+        """Test a payload that isn't well formed fails instead of giving packets."""
+        with pytest.raises(error):
+            Payload.decode(encoded)
 
 
 @pytest.mark.asyncio
@@ -545,7 +813,7 @@ class TestEngineIOErrorHandling:
     """Test Engine.IO error handling and edge cases."""
 
     async def test_connection_close_handling(
-        self, mock_server, mock_connection_state, test_session
+        self, mock_server, mock_connection_state, test_session, wait_finished
     ):
         """Test proper handling of connection close packets."""
         gateway = await ChzzkGateway._connect_websocket(
@@ -555,15 +823,19 @@ class TestEngineIOErrorHandling:
             session=test_session,
             ssl=False,
         )
+        guard_read_loop_spinning(gateway)
+        read_task = gateway.read_in_background()
 
         assert gateway.is_connected
 
-        # Send close packet
+        # Send close packet: the server answers by closing the websocket
         await gateway.send(Packet(EnginePacketType.CLOSE))
-        await asyncio.sleep(0.1)
+        await wait_finished(read_task)
 
         # Should be disconnected
-        # Note: disconnect() sets is_connected to False
+        assert "1" in mock_server.received_messages
+        assert not gateway.is_connected
+        assert gateway.websocket.closed
 
     async def test_invalid_server_response(self, mock_connection_state, test_session):
         """Test handling of invalid server responses."""
