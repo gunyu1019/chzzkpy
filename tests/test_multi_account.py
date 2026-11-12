@@ -17,6 +17,7 @@ session an engine.io sid that differs from its Chzzk session key.
 import asyncio
 import itertools
 import json
+import math
 import time
 from dataclasses import dataclass, field
 from typing import Any, Optional
@@ -98,6 +99,14 @@ class MockChzzkServer:
         # Statuses the next requests to a route are answered with, one per request, by
         # (method, path). Only the routes that call `_queued_error` honour it.
         self.api_errors: dict[tuple[str, str], list[int]] = dict()
+        # Channel ids of the followers / subscribers by account name, as the paged routes
+        # list them for `sort=RECENT`. `sort=LONGER` lists them in reverse order.
+        self.followers: dict[str, list[str]] = dict()
+        self.subscribers: dict[str, list[str]] = dict()
+        # Titles of the lives the cursor-paged `lives` route lists, in order.
+        self.lives: list[str] = []
+        # Categories (camelCase fields) the `categories/search` route filters by name.
+        self.categories: list[dict[str, Any]] = []
 
         self._sessions_by_auth: dict[str, MockSession] = dict()
         self._sessions_by_sid: dict[str, MockSession] = dict()
@@ -122,6 +131,24 @@ class MockChzzkServer:
         app.router.add_get("/open/v1/chats/settings", self.handle_get_chat_setting)
         app.router.add_put("/open/v1/chats/settings", self.handle_set_chat_setting)
         app.router.add_get("/open/v1/restrict-channels", self.handle_restrictions)
+        app.router.add_post("/open/v1/restrict-channels", self.handle_add_restriction)
+        app.router.add_delete(
+            "/open/v1/restrict-channels", self.handle_remove_restriction
+        )
+        app.router.add_post(
+            "/open/v1/temporary-restrict-channels", self.handle_temporary_restriction
+        )
+        app.router.add_delete(
+            "/open/v1/temporary-restrict-channels", self.handle_temporary_restriction
+        )
+        app.router.add_post("/open/v1/chats/notice", self.handle_notice)
+        app.router.add_post("/open/v1/chats/blind-message", self.handle_blind_message)
+        app.router.add_patch("/open/v1/lives/setting", self.handle_set_live_setting)
+        app.router.add_get("/open/v1/lives", self.handle_lives)
+        app.router.add_get("/open/v1/channels", self.handle_channels)
+        app.router.add_get("/open/v1/channels/followers", self.handle_followers)
+        app.router.add_get("/open/v1/channels/subscribers", self.handle_subscribers)
+        app.router.add_get("/open/v1/categories/search", self.handle_category_search)
         app.router.add_post("/auth/v1/token", self.handle_token)
 
         self._runner = web.AppRunner(app)
@@ -315,10 +342,16 @@ class MockChzzkServer:
         return await self._handle_subscription_change(request, subscribe=False)
 
     async def handle_send_chat(self, request: web.Request):
-        await self._record(request)
+        record = await self._record(request)
         if self._account_of(request) is None:
             return self._content(code=401, message="INVALID_TOKEN")
-        return self._content({"messageId": f"message-{next(self._ids)}"})
+        error = self._queued_error(request)
+        if error is not None:
+            return error
+        # The id the request was answered with, for tests to compare with what the
+        # caller got back.
+        record["message_id"] = f"message-{next(self._ids)}"
+        return self._content({"messageId": record["message_id"]})
 
     async def handle_get_chat_setting(self, request: web.Request):
         await self._record(request)
@@ -375,6 +408,213 @@ class MockChzzkServer:
                 ],
                 "page": {"next": str(stop) if stop < len(channels) else None},
             }
+        )
+
+    async def _user_request(self, request: web.Request, *required: str):
+        """Prelude of the routes that act as the account whose token the request carries.
+
+        Returns `(record, account, None)`, or `(record, None, response)` when the request
+        must be answered with `response`: 401 for an unknown token, the next queued error,
+        or 400 when the JSON body lacks one of the `required` fields."""
+        record = await self._record(request)
+        account = self._account_of(request)
+        if account is None:
+            return record, None, self._content(code=401, message="INVALID_TOKEN")
+        error = self._queued_error(request)
+        if error is not None:
+            return record, None, error
+        body = record["body"]
+        if required and (
+            not isinstance(body, dict) or any(field not in body for field in required)
+        ):
+            return record, None, self._content(code=400, message="INVALID_PARAMETER")
+        return record, account, None
+
+    async def _client_request(self, request: web.Request):
+        """Prelude of the routes that act as the application (client credentials)."""
+        record = await self._record(request)
+        if (
+            request.headers.get("Client-Id") != CLIENT_ID
+            or request.headers.get("Client-Secret") != CLIENT_SECRET
+        ):
+            return record, self._content(code=401, message="INVALID_CLIENT")
+        return record, self._queued_error(request)
+
+    async def handle_add_restriction(self, request: web.Request):
+        record, account, response = await self._user_request(request, "targetChannelId")
+        if response is not None:
+            return response
+        channels = self.restricted_channels.setdefault(account.name, [])
+        if record["body"]["targetChannelId"] not in channels:
+            channels.append(record["body"]["targetChannelId"])
+        return self._content()
+
+    async def handle_remove_restriction(self, request: web.Request):
+        record, account, response = await self._user_request(request, "targetChannelId")
+        if response is not None:
+            return response
+        channels = self.restricted_channels.get(account.name, [])
+        if record["body"]["targetChannelId"] in channels:
+            channels.remove(record["body"]["targetChannelId"])
+        return self._content()
+
+    async def handle_temporary_restriction(self, request: web.Request):
+        """Accepts (POST) or lifts (DELETE) a temporary restriction. Only the request is
+        recorded: a restriction is identified by the target and the chat channel."""
+        _, _, response = await self._user_request(
+            request, "targetChannelId", "chatChannelId"
+        )
+        return response if response is not None else self._content()
+
+    async def handle_notice(self, request: web.Request):
+        """Registers an announcement, from either a new `message` or a sent `messageId`."""
+        record, _, response = await self._user_request(request)
+        if response is not None:
+            return response
+        body = record["body"]
+        if not isinstance(body, dict) or not (
+            isinstance(body.get("message"), str)
+            or isinstance(body.get("messageId"), str)
+        ):
+            return self._content(code=400, message="INVALID_PARAMETER")
+        return self._content()
+
+    async def handle_blind_message(self, request: web.Request):
+        record, _, response = await self._user_request(
+            request, "chatChannelId", "messageTime", "senderChannelId"
+        )
+        if response is not None:
+            return response
+        message_time = record["body"]["messageTime"]
+        if isinstance(message_time, bool) or not isinstance(message_time, (int, float)):
+            return self._content(code=400, message="INVALID_PARAMETER")
+        return self._content()
+
+    async def handle_set_live_setting(self, request: web.Request):
+        _, _, response = await self._user_request(request)
+        return response if response is not None else self._content()
+
+    @staticmethod
+    def _int_query(request: web.Request, name: str, default: int) -> Optional[int]:
+        try:
+            return int(request.query.get(name, default))
+        except ValueError:
+            return None
+
+    async def handle_lives(self, request: web.Request):
+        """Lists the lives `size` at a time to client credentials, like
+        `handle_restrictions` does for the restricted channels."""
+        _, response = await self._client_request(request)
+        if response is not None:
+            return response
+        size = self._int_query(request, "size", 20)
+        start = self._int_query(request, "next", 0)
+        if size is None or start is None:
+            return self._content(code=400, message="INVALID_PARAMETER")
+
+        stop = start + size
+        return self._content(
+            {
+                "data": [
+                    {
+                        "liveId": start + index + 1,
+                        "liveTitle": title,
+                        "liveThumbnailImageUrl": f"https://example.com/{title}.png",
+                        "concurrentUserCount": 1,
+                        "openDate": "2025-01-01 00:00:00",
+                        "adult": False,
+                        "tags": [],
+                        "liveCategory": "category",
+                        "liveCategoryValue": "Category",
+                        "categoryType": "GAME",
+                        "channelId": f"channel-of-{title}",
+                        "channelName": f"name-of-{title}",
+                        "channelImageUrl": None,
+                    }
+                    for index, title in enumerate(self.lives[start:stop])
+                ],
+                "page": {"next": str(stop) if stop < len(self.lives) else None},
+            }
+        )
+
+    async def handle_channels(self, request: web.Request):
+        """Answers with a channel for each of the comma separated `channelIds`."""
+        _, response = await self._client_request(request)
+        if response is not None:
+            return response
+        if "channelIds" not in request.query:
+            return self._content(code=400, message="INVALID_PARAMETER")
+        return self._content(
+            {
+                "data": [
+                    {"channelId": channel_id, "channelName": f"name-{channel_id}"}
+                    for channel_id in request.query["channelIds"].split(",")
+                ]
+            }
+        )
+
+    async def handle_category_search(self, request: web.Request):
+        _, response = await self._client_request(request)
+        if response is not None:
+            return response
+        size = self._int_query(request, "size", 20)
+        if "query" not in request.query or size is None:
+            return self._content(code=400, message="INVALID_PARAMETER")
+        found = [
+            category
+            for category in self.categories
+            if request.query["query"] in category["categoryValue"]
+        ]
+        return self._content({"data": found[:size]})
+
+    async def _handle_numbered_pages(
+        self,
+        request: web.Request,
+        entries_by_account: dict[str, list[str]],
+        details: bool,
+    ):
+        """Lists the followers / subscribers of the account `size` at a time, like the
+        channel routes that are paged by page number."""
+        _, account, response = await self._user_request(request)
+        if response is not None:
+            return response
+        size = self._int_query(request, "size", 30)
+        page = self._int_query(request, "page", 0)
+        sort = request.query.get("sort", "RECENT")
+        if size is None or size < 1 or page is None or page < 0:
+            return self._content(code=400, message="INVALID_PARAMETER")
+        if details and sort not in ("RECENT", "LONGER"):
+            return self._content(code=400, message="INVALID_PARAMETER")
+
+        entries = list(entries_by_account.get(account.name, []))
+        if sort == "LONGER":
+            entries.reverse()
+        data = []
+        for position, channel_id in enumerate(entries[page * size : (page + 1) * size]):
+            entry = {
+                "channelId": channel_id,
+                "channelName": f"name-{channel_id}",
+                "createdDate": "2025-01-01 00:00:00",
+            }
+            if details:
+                entry.update({"month": position + 1, "tierNo": 1})
+            data.append(entry)
+        return self._content(
+            {
+                "page": page,
+                "size": size,
+                "totalCount": len(entries),
+                "totalPages": math.ceil(len(entries) / size),
+                "data": data,
+            }
+        )
+
+    async def handle_followers(self, request: web.Request):
+        return await self._handle_numbered_pages(request, self.followers, details=False)
+
+    async def handle_subscribers(self, request: web.Request):
+        return await self._handle_numbered_pages(
+            request, self.subscribers, details=True
         )
 
     async def handle_token(self, request: web.Request):
